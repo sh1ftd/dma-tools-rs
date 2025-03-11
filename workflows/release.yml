@@ -1,0 +1,66 @@
+name: Release
+
+permissions:
+  contents: write
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'src/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - '.github/workflows/**'
+      - 'OpenOCD/**'
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          toolchain: nightly
+          
+      - name: Get Version
+        id: get_version
+        run: |
+          if (Test-Path -Path "Cargo.toml") {
+            $content = Get-Content -Path Cargo.toml -Raw
+            if ($content -match 'version\s*=\s*"([^"]+)"') {
+              $version = $matches[1]
+              echo "version=$version" >> $env:GITHUB_OUTPUT
+              echo "Found version: $version"
+            } else {
+              echo "::error::Could not extract version from Cargo.toml"
+              exit 1
+            }
+          } else {
+            echo "::error::Cargo.toml file not found"
+            exit 1
+          }
+          
+      - name: Build Release
+        run: cargo build --release
+
+      - name: Create Release Package
+        run: |
+          mkdir release-package
+          Copy-Item "target/release/dma-tools-rs.exe" -Destination "release-package/"
+          Copy-Item "OpenOCD" -Destination "release-package/OpenOCD" -Recurse
+          Compress-Archive -Path "release-package/*" -DestinationPath "dma-tools-rs.zip"
+        
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dma-tools-rs.zip
+          generate_release_notes: true
+          tag_name: v${{ steps.get_version.outputs.version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 

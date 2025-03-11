@@ -1,0 +1,44 @@
+cargo-features = ["profile-rustflags"]
+
+[package]
+    name = "dma-tools-rs"
+    version = "0.1.0"
+    edition = "2024"
+    license = "AGPL-3.0"
+    authors = ["Shifty <contact@shifty.cloud>"]
+
+[dependencies]
+    eframe = "0.23.0"    # egui framework
+    usvg = "0.45.0"
+    resvg = "0.45.0"
+    tiny-skia = "0.11.4"
+
+[target.'cfg(windows)'.dependencies]
+    winapi = { version = "0.3", features = ["winuser", "minwindef", "windef"] }
+
+[profile.dev]
+    overflow-checks = true
+    debug = true
+    strip = false
+    panic = "unwind"
+    codegen-units = 1024
+    incremental = true
+    opt-level = 0
+    lto = false
+
+[profile.release]
+    overflow-checks = true
+    debug = false
+    strip = "symbols"
+    panic = "abort"
+    codegen-units = 1
+    incremental = false
+    opt-level = "z"
+    lto = "fat"
+    rustflags = ["-C", "target-cpu=x86-64", "-C", "strip=symbols"]
+
+[profile.release.package."*"]
+    overflow-checks = true
+    debug = false
+    codegen-units = 1
+    opt-level = "z"
