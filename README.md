@@ -41,10 +41,6 @@ cargo build --release
 - CH347 or RS232 interface
 - Administrator privileges
 
-## License
-
-AGPL-3.0
-
 ## Credits
 
 Built with [Rust](https://www.rust-lang.org/), [egui](https://github.com/emilk/egui), and [OpenOCD](https://openocd.org/)
