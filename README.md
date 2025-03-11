@@ -46,7 +46,6 @@ The tool provides a simple interface with:
 ## Usage
 
 1. Connect your DMA card to the FPGA board via the JTAG port
-   - The same JTAG connection is used for both flashing and DNA reading
 2. Place your firmware (.bin) file in the same folder as the executable
 3. Launch the application as administrator
 4. Select your operation:
