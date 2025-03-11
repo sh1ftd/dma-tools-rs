@@ -40,8 +40,22 @@ The tool provides a simple interface with:
 
 1. Download the latest release from the releases page
 2. Extract the archive
-3. Run the executable
+3. Run the executable as administrator
 4. Required files will be checked automatically on first run
+
+## Usage
+
+1. Connect your DMA card to the FPGA board via the JTAG port
+   - The same JTAG connection is used for both flashing and DNA reading
+2. Place your firmware (.bin) file in the same folder as the executable
+3. Launch the application as administrator
+4. Select your operation:
+   - For flashing: Choose your .bin file and select "Flash"
+   - For DNA reading: Select "Read DNA"
+5. Choose your interface type (CH347 or RS232)
+6. Monitor the progress in the status window
+
+**Note:** Administrator privileges are required for proper hardware access.
 
 ## Building from Source
 
