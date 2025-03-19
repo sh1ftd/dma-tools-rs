@@ -65,7 +65,6 @@ fn create_window_options() -> eframe::NativeOptions {
         maximized: false,
         fullscreen: false,
         icon_data: None,
-        // Renderer will be set in run_app function
         ..Default::default()
     }
 }
