@@ -1,7 +1,7 @@
 use super::FileCheckRenderContext;
+use crate::APP_TITLE;
 use crate::ui::file_select::components::render_missing_file;
 use crate::utils::file_checker::{CheckStatus, FileCheckResult, SUCCESS_TRANSITION_DELAY};
-use crate::APP_TITLE;
 use eframe::egui::{self, Color32, Margin, RichText, Rounding, Sense, Stroke, Ui, Vec2};
 
 // UI Constants

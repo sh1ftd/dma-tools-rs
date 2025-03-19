@@ -1,5 +1,5 @@
 use crate::device_programmer::process::ProcessExecutor;
-use crate::device_programmer::{CompletionStatus, FlashingOption, DNA_OUTPUT_FILE, SCRIPT_DIR};
+use crate::device_programmer::{CompletionStatus, DNA_OUTPUT_FILE, FlashingOption, SCRIPT_DIR};
 use crate::utils::logger::Logger;
 use std::sync::{Arc, Mutex};
 use std::thread;

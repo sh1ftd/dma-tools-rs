@@ -1,3 +1,4 @@
+use crate::APP_TITLE;
 use crate::assets::IconManager;
 use crate::device_programmer::CompletionStatus;
 use crate::device_programmer::{FlashingManager, FlashingOption};
@@ -9,7 +10,6 @@ use crate::utils::firmware_discovery::FirmwareManager;
 use crate::utils::logger::Logger;
 use crate::utils::win_utils::setup_window_controls;
 use crate::utils::window::{WindowManager, WindowSizeType};
-use crate::APP_TITLE;
 use eframe::egui;
 use std::path::PathBuf;
 use std::thread;

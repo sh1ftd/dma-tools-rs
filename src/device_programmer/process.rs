@@ -1,4 +1,4 @@
-use crate::device_programmer::{CompletionStatus, CREATE_NO_WINDOW, TEMP_FIRMWARE_FILE};
+use crate::device_programmer::{CREATE_NO_WINDOW, CompletionStatus, TEMP_FIRMWARE_FILE};
 use crate::utils::logger::Logger;
 use std::fs;
 use std::io::{BufRead, BufReader};

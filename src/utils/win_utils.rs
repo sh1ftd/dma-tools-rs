@@ -1,12 +1,12 @@
 use crate::APP_TITLE;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 use winapi::shared::minwindef::{BOOL, LPARAM, TRUE};
 use winapi::shared::windef::HWND;
 use winapi::um::winuser::{
-    EnumWindows, GetWindowLongA, GetWindowTextA, SetWindowLongA, SetWindowPos, GWL_STYLE,
-    SWP_FRAMECHANGED, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, WS_MAXIMIZEBOX,
+    EnumWindows, GWL_STYLE, GetWindowLongA, GetWindowTextA, SWP_FRAMECHANGED, SWP_NOMOVE,
+    SWP_NOSIZE, SWP_NOZORDER, SetWindowLongA, SetWindowPos, WS_MAXIMIZEBOX,
 };
 
 /// Disables the maximize button for all windows containing APP_TITLE in their title.
@@ -42,46 +42,53 @@ pub fn disable_maximize_button_for_all() -> Option<&'static str> {
 }
 
 /// Retrieves the window title from a window handle.
-unsafe fn get_window_title(hwnd: HWND) -> Option<String> { unsafe {
-    // Buffer for the window title (512 bytes should be enough for most window titles)
-    let mut title = vec![0u8; 512];
+unsafe fn get_window_title(hwnd: HWND) -> Option<String> {
+    unsafe {
+        // Buffer for the window title (512 bytes should be enough for most window titles)
+        let mut title = vec![0u8; 512];
 
-    let len = GetWindowTextA(hwnd, title.as_mut_ptr() as *mut i8, title.len() as i32);
-    if len == 0 {
-        return None;
+        let len = GetWindowTextA(hwnd, title.as_mut_ptr() as *mut i8, title.len() as i32);
+        if len == 0 {
+            return None;
+        }
+
+        // Truncate to the actual length returned
+        title.truncate(len as usize);
+
+        // Convert to String, handling any invalid UTF-8
+        std::ffi::CString::new(title)
+            .ok()
+            .map(|c_string| c_string.to_string_lossy().into_owned())
     }
-
-    // Truncate to the actual length returned
-    title.truncate(len as usize);
-
-    // Convert to String, handling any invalid UTF-8
-    std::ffi::CString::new(title)
-        .ok().map(|c_string| c_string.to_string_lossy().into_owned())
-}}
+}
 
 /// Disables the maximize button for a specific window.
-unsafe fn disable_maximize_for_window(hwnd: HWND) { unsafe {
-    let style = GetWindowLongA(hwnd, GWL_STYLE) as u32;
-    let new_style = style & !WS_MAXIMIZEBOX;
-    SetWindowLongA(hwnd, GWL_STYLE, new_style as i32);
+unsafe fn disable_maximize_for_window(hwnd: HWND) {
+    unsafe {
+        let style = GetWindowLongA(hwnd, GWL_STYLE) as u32;
+        let new_style = style & !WS_MAXIMIZEBOX;
+        SetWindowLongA(hwnd, GWL_STYLE, new_style as i32);
 
-    // Force a redraw of the window frame
-    SetWindowPos(
-        hwnd,
-        std::ptr::null_mut(),
-        0,
-        0,
-        0,
-        0,
-        SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED,
-    );
-}}
+        // Force a redraw of the window frame
+        SetWindowPos(
+            hwnd,
+            std::ptr::null_mut(),
+            0,
+            0,
+            0,
+            0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED,
+        );
+    }
+}
 
 /// Marks the window as found using the atomic flag.
-unsafe fn mark_window_found(found: LPARAM) { unsafe {
-    let found_ptr = found as *mut AtomicBool;
-    (*found_ptr).store(true, Ordering::SeqCst);
-}}
+unsafe fn mark_window_found(found: LPARAM) {
+    unsafe {
+        let found_ptr = found as *mut AtomicBool;
+        (*found_ptr).store(true, Ordering::SeqCst);
+    }
+}
 
 /// Sets up window controls in a background thread with retry logic.
 pub fn setup_window_controls() {
