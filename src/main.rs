@@ -15,10 +15,25 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn main() -> Result<(), eframe::Error> {
     let window_title = format!("{} v{}", APP_TITLE, VERSION);
-    let options = create_window_options();
+    
+    // Try with default renderer first (Glow)
+    let result = run_app(&window_title, eframe::Renderer::default());
+    
+    // If default renderer failed, try with WGPU
+    if let Err(err) = result {
+        eprintln!("Default renderer failed: {}. Falling back to WGPU renderer...", err);
+        return run_app(&window_title, eframe::Renderer::Wgpu);
+    }
+    
+    result
+}
 
+fn run_app(window_title: &str, renderer: eframe::Renderer) -> Result<(), eframe::Error> {
+    let mut options = create_window_options();
+    options.renderer = renderer;
+    
     eframe::run_native(
-        &window_title,
+        window_title,
         options,
         Box::new(|cc| {
             setup_window();
@@ -41,6 +56,7 @@ fn create_window_options() -> eframe::NativeOptions {
         maximized: false,
         fullscreen: false,
         icon_data: None,
+        // Renderer will be set in run_app function
         ..Default::default()
     }
 }
