@@ -22,7 +22,6 @@ pub enum CheckStatus {
     ReadyToTransition, // After countdown timer completes
 }
 
-/// Handles checking for required files in the application directory
 pub struct FileChecker {
     pub status: Arc<Mutex<CheckStatus>>,
 }
@@ -67,11 +66,9 @@ fn log_execution_context() {
     }
 }
 
-/// Performs the actual file checking process and returns the result
 fn perform_file_check(status: &Arc<Mutex<CheckStatus>>) -> FileCheckResult {
     let mut missing_files = Vec::new();
 
-    // Required files grouped by type for better organization
     let required_files = [
         // Executables
         "OpenOCD/openocd-347.exe",
@@ -108,7 +105,7 @@ fn perform_file_check(status: &Arc<Mutex<CheckStatus>>) -> FileCheckResult {
         *status.lock().unwrap() = CheckStatus::Checking(file.to_string());
 
         // Allow UI to update and show progress
-        thread::sleep(Duration::from_millis(50));
+        thread::sleep(Duration::from_millis(15));
 
         // Check if file exists in any of the possible locations
         if !check_file_exists(file) {
@@ -124,10 +121,8 @@ fn perform_file_check(status: &Arc<Mutex<CheckStatus>>) -> FileCheckResult {
 
 /// Helper function to check multiple possible locations for a file
 fn check_file_exists(file_path: &str) -> bool {
-    // Base paths to check for the file
     let mut base_paths = vec![PathBuf::from(".")];
 
-    // In debug mode (cargo run), check additional directories
     #[cfg(debug_assertions)]
     {
         base_paths.push(PathBuf::from("target/debug"));
@@ -140,7 +135,6 @@ fn check_file_exists(file_path: &str) -> bool {
         }
     }
 
-    // In release mode, also check executable directory
     #[cfg(not(debug_assertions))]
     {
         if let Ok(exe) = env::current_exe() {
@@ -150,7 +144,6 @@ fn check_file_exists(file_path: &str) -> bool {
         }
     }
 
-    // Check all possible paths
     for base_path in &base_paths {
         let full_path = base_path.join(file_path);
         if full_path.exists() {

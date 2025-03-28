@@ -50,7 +50,7 @@ fn render_dna_result(
     on_action: &mut dyn FnMut(ResultAction),
     icon_manager: &IconManager,
 ) {
-    match manager.get_completion_status() {
+    match manager.get_status() {
         CompletionStatus::Completed => {
             // Search the log entries for the DNA value
             let dna_value = extract_dna_from_logs(manager);
@@ -74,6 +74,13 @@ fn render_dna_result(
                 &format!("Failed to read DNA from the device:\n\n{}", error),
                 icon_manager,
             );
+        }
+        CompletionStatus::InProgress(status_msg) => {
+            // Handle in-progress state - should show a spinner or progress indicator
+            ui.vertical_centered(|ui| {
+                ui.label(format!("Operation in progress: {}", status_msg));
+                ui.spinner(); // Show a spinner while in progress
+            });
         }
         CompletionStatus::NotCompleted => {
             ui.label("DNA read operation status is unknown.");
@@ -160,7 +167,7 @@ fn render_flashing_result(
     on_action: &mut dyn FnMut(ResultAction),
     icon_manager: &IconManager,
 ) {
-    let status = manager.get_completion_status();
+    let status = manager.get_status();
     let duration = manager.get_duration().unwrap_or(Duration::from_secs(0));
     let duration_secs = duration.as_secs();
 
@@ -250,6 +257,19 @@ fn render_flashing_result(
                 &format!("Failed to flash firmware to the device:\n\n{}", error),
                 icon_manager,
             );
+        }
+        CompletionStatus::InProgress(status_msg) => {
+            // Display the current operation progress
+            ui.vertical_centered(|ui| {
+                ui.label(
+                    RichText::new(format!("Operation in progress: {}", status_msg))
+                        .size(18.0)
+                        .color(egui::Color32::from_rgb(50, 150, 255)),
+                ); // Use a blue color for progress
+
+                ui.add_space(10.0);
+                ui.spinner(); // Show a spinner
+            });
         }
         CompletionStatus::NotCompleted => {
             ui.label("Flash operation status is unknown.");
