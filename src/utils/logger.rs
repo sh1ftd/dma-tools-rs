@@ -1,5 +1,6 @@
 use std::collections::VecDeque;
 use std::fmt;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
@@ -42,13 +43,19 @@ impl fmt::Display for LogLevel {
 /// The logger itself, wrapped in Arc<Mutex<>> for thread safety
 #[derive(Clone)]
 pub struct Logger {
+    name: String,
+    enabled: bool,
+    debug_mode: Arc<AtomicBool>,
     entries: Arc<Mutex<VecDeque<LogEntry>>>,
     start_time: Instant,
 }
 
 impl Logger {
-    pub fn new() -> Self {
+    pub fn new(name: &str) -> Self {
         Self {
+            name: name.to_string(),
+            enabled: true,
+            debug_mode: Arc::new(AtomicBool::new(false)),
             entries: Arc::new(Mutex::new(VecDeque::with_capacity(MAX_LOG_ENTRIES))),
             start_time: Instant::now(),
         }
@@ -56,13 +63,18 @@ impl Logger {
 
     /// Add a message to the log with specified level
     pub fn log(&self, message: impl Into<String>, level: LogLevel) {
+        // Skip logging if logger is disabled
+        if !self.enabled {
+            return;
+        }
+
         let message = message.into();
 
-        // Log to console as well for debugging
+        // Log to console with logger name
         match level {
-            LogLevel::Error => eprintln!("[{}] {}", level, message),
-            LogLevel::Warning => eprintln!("[{}] {}", level, message),
-            _ => println!("[{}] {}", level, message),
+            LogLevel::Error => eprintln!("[{}][{}] {}", self.name, level, message),
+            LogLevel::Warning => eprintln!("[{}][{}] {}", self.name, level, message),
+            _ => println!("[{}][{}] {}", self.name, level, message),
         }
 
         let mut entries = self.entries.lock().expect("Failed to lock logger mutex");
@@ -80,43 +92,35 @@ impl Logger {
         }
     }
 
-    /// Helper method to log an info message
     pub fn info(&self, message: impl Into<String>) {
         self.log(message, LogLevel::Info);
     }
 
-    /// Helper method to log a success message
     pub fn success(&self, message: impl Into<String>) {
         self.log(message, LogLevel::Success);
     }
 
-    /// Helper method to log a warning message
     pub fn warning(&self, message: impl Into<String>) {
         self.log(message, LogLevel::Warning);
     }
 
-    /// Helper method to log an error message
     pub fn error(&self, message: impl Into<String>) {
         self.log(message, LogLevel::Error);
     }
 
-    /// Helper method to log a command message
     pub fn command(&self, message: impl Into<String>) {
         self.log(message, LogLevel::Command);
     }
 
-    /// Helper method to log an output message
     pub fn output(&self, message: impl Into<String>) {
         self.log(message, LogLevel::Output);
     }
 
-    /// Get all log entries for display
     pub fn get_entries(&self) -> Vec<LogEntry> {
         let entries = self.entries.lock().expect("Failed to lock logger mutex");
         entries.iter().cloned().collect()
     }
 
-    /// Clear the log
     pub fn clear(&self) {
         let mut entries = self.entries.lock().expect("Failed to lock logger mutex");
         entries.clear();
@@ -127,11 +131,24 @@ impl Logger {
         let elapsed = timestamp.duration_since(self.start_time);
         format!("{:.2}s", elapsed.as_secs_f32())
     }
+
+    #[cfg(debug_assertions)]
+    pub fn set_debug_mode(&self, debug: bool) {
+        self.debug_mode.store(debug, Ordering::SeqCst);
+    }
+
+    /// In the debug method, respect the enabled flag
+    pub fn debug(&self, message: impl AsRef<str>) {
+        // Only log if debug mode is enabled AND logger is enabled
+        if self.enabled && self.debug_mode.load(Ordering::SeqCst) {
+            self.log(message.as_ref(), LogLevel::Info);
+        }
+    }
 }
 
 // Default implementation creates a new logger
 impl Default for Logger {
     fn default() -> Self {
-        Self::new()
+        Self::new("DefaultLogger")
     }
 }

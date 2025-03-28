@@ -21,7 +21,8 @@ const INITIAL_CHECK_DELAY_MS: u128 = 100;
 const FIRST_FIRMWARE_SCAN_INTERVAL_MS: u64 = 100;
 const SUBSEQUENT_FIRMWARE_SCAN_INTERVAL_MS: u64 = 3000;
 const FIRMWARE_SCAN_INDICATOR_DURATION_MS: u128 = 500;
-const DNA_READ_MIN_DISPLAY_SECS: u64 = 3;
+const DNA_MIN_DISPLAY_TIME_MS: u64 = 100;
+const STATUS_STABILITY_WAIT_MS: u64 = 250;
 
 // UI constants
 const TOP_PADDING: f32 = 8.0;
@@ -57,11 +58,13 @@ pub struct FirmwareToolApp {
     previous_log_state: bool,
     icon_manager: IconManager,
     dna_read_start_time: Option<Instant>,
+    dna_read_in_progress: bool,
+    waiting_message_logged: bool,
 }
 
 impl FirmwareToolApp {
     pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
-        let logger = Logger::new();
+        let logger = Logger::new("AppLogger");
         logger.info(format!("{} Tool started", APP_TITLE));
 
         setup_window_controls();
@@ -83,6 +86,8 @@ impl FirmwareToolApp {
             previous_log_state: false,
             icon_manager: IconManager::new(),
             dna_read_start_time: None,
+            dna_read_in_progress: false,
+            waiting_message_logged: false,
         }
     }
 
@@ -181,29 +186,6 @@ impl FirmwareToolApp {
         }
     }
 
-    fn check_dna_read_completion(&mut self) -> bool {
-        if !self.is_dna_read_operation() {
-            return false;
-        }
-
-        // Initialize the start time if not set
-        if self.dna_read_start_time.is_none() {
-            self.dna_read_start_time = Some(Instant::now());
-        }
-
-        // Check if we should transition to results
-        if let Some(start_time) = self.dna_read_start_time {
-            // Check if minimum display time has elapsed AND operation is complete
-            if start_time.elapsed().as_secs() >= DNA_READ_MIN_DISPLAY_SECS
-                && self.flashing_manager.get_completion_status() != CompletionStatus::NotCompleted
-            {
-                self.dna_read_start_time = None;
-                return true;
-            }
-        }
-        false
-    }
-
     fn should_show_log(&self) -> bool {
         matches!(self.state, AppState::Flashing | AppState::Result)
     }
@@ -233,6 +215,16 @@ impl FirmwareToolApp {
     }
 
     fn handle_state_specific_logic(&mut self, ctx: &egui::Context) {
+        // Reset the flag whenever we're not in Flashing state
+        if self.state != AppState::Flashing {
+            self.waiting_message_logged = false;
+        }
+
+        // Stop monitor thread if we're leaving the Result state
+        if self.state != AppState::Result && self.state != AppState::Flashing {
+            self.flashing_manager.stop_monitor_thread();
+        }
+
         // Start file check if not already started
         if !self.check_started && self.start_time.elapsed().as_millis() > INITIAL_CHECK_DELAY_MS {
             self.file_checker.start_check();
@@ -244,11 +236,53 @@ impl FirmwareToolApp {
             self.handle_firmware_scanning(ctx);
         }
 
-        // Check for operation completion
-        if self.state == AppState::Flashing
-            && (self.flashing_manager.is_completed() || self.check_dna_read_completion())
-        {
-            self.state = AppState::Result;
+        // Check for operation completion with forced minimum display time
+        if self.state == AppState::Flashing {
+            // We need to check if it's TRULY completed, not in progress
+            let status = self.flashing_manager.get_status();
+
+            // Force a minimum display time EVEN IF the operation reports completion
+            let min_display_time_elapsed = self
+                .dna_read_start_time
+                .is_none_or(|t| t.elapsed() > Duration::from_millis(DNA_MIN_DISPLAY_TIME_MS));
+
+            if self.flashing_manager.check_if_completed()
+                && !matches!(status, CompletionStatus::InProgress(_))
+                && min_display_time_elapsed
+            {
+                if let Some(last_state_change) = self.flashing_manager.get_last_status_change_time()
+                {
+                    if last_state_change.elapsed() < Duration::from_millis(STATUS_STABILITY_WAIT_MS)
+                    {
+                        // Status changed too recently - wait a bit longer for stability
+                        self.logger
+                            .debug("Status changed recently - waiting for stability");
+                        return;
+                    }
+                }
+
+                // Stop any running DNA thread before transitioning
+                if self.dna_read_in_progress {
+                    self.logger
+                        .warning("Stopping DNA thread before showing results");
+                    self.flashing_manager.stop_dna_thread();
+
+                    thread::sleep(Duration::from_millis(100));
+                }
+
+                self.logger
+                    .debug("State changing to Result after all conditions met");
+                self.state = AppState::Result;
+                self.dna_read_in_progress = false;
+                self.waiting_message_logged = false;
+            } else if self.flashing_manager.check_if_completed() {
+                // Only log once
+                if !self.waiting_message_logged {
+                    self.logger
+                        .debug("Operation completed but waiting for minimum display time");
+                    self.waiting_message_logged = true;
+                }
+            }
         }
 
         // Ensure icons are loaded
@@ -355,21 +389,27 @@ impl FirmwareToolApp {
     }
 
     fn render_flashing_options(&mut self, ui: &mut egui::Ui) {
+        // Store references to these fields
         let app_state = &mut self.state;
         let selected_option = &mut self.selected_option;
         let selected_firmware = &self.selected_firmware;
         let flashing_manager = &mut self.flashing_manager;
+        let dna_read_start_time = &mut self.dna_read_start_time;
+        let dna_read_in_progress = &mut self.dna_read_in_progress;
 
         let mut option_callback = |option: FlashingOption| {
             *selected_option = Some(option.clone());
 
             if option.is_dna_read() {
                 *app_state = AppState::Flashing;
-                // Start DNA read operation without callback
+
+                // Set these flags for the initial DNA read
+                *dna_read_start_time = Some(Instant::now());
+                *dna_read_in_progress = true;
+
                 flashing_manager.execute_dna_read(&option);
             } else if let Some(firmware) = selected_firmware {
                 *app_state = AppState::Flashing;
-                // Start flashing operation without callback
                 flashing_manager.execute_flash(firmware, &option);
             }
         };
@@ -411,6 +451,9 @@ impl FirmwareToolApp {
     }
 
     fn handle_result_action(&mut self, action: ResultAction) {
+        // Stop the monitor thread when an operation completes
+        self.flashing_manager.stop_monitor_thread();
+
         match action {
             ResultAction::Exit => {
                 std::process::exit(0);
@@ -426,7 +469,14 @@ impl FirmwareToolApp {
                     if option.is_dna_read() {
                         // Re-run DNA read with the same option
                         self.state = AppState::Flashing;
-                        self.dna_read_start_time = None; // Reset the timer
+                        self.dna_read_start_time = Some(Instant::now()); // SET the timer, don't reset to None
+                        self.dna_read_in_progress = true; // Set the in-progress flag
+
+                        // Clean up any existing DNA file before retrying
+                        crate::device_programmer::dna::DnaReader::cleanup_dna_output_file(
+                            &self.logger,
+                        );
+
                         self.flashing_manager.execute_dna_read(option);
                     } else if let Some(firmware) = &self.selected_firmware {
                         // Re-run flashing with the same firmware and option

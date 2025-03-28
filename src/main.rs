@@ -7,6 +7,8 @@ mod device_programmer;
 mod ui;
 mod utils;
 
+use crate::utils::cleanup::perform_startup_cleanup;
+use crate::utils::logger::Logger;
 use crate::utils::window::{WINDOW_HEIGHT_INITIAL, WINDOW_WIDTH};
 use eframe::egui;
 
@@ -14,6 +16,17 @@ const APP_TITLE: &str = env!("CARGO_PKG_NAME");
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn main() -> Result<(), eframe::Error> {
+    let logger = Logger::new("DMA-Tools");
+
+    #[cfg(debug_assertions)]
+    {
+        logger.set_debug_mode(true);
+        logger.info("Debug build detected - debug mode enabled");
+    }
+
+    // Perform cleanup operations at startup
+    perform_startup_cleanup(&logger);
+
     let window_title = format!("{} v{}", APP_TITLE, VERSION);
 
     // Try with default renderer first (Glow)

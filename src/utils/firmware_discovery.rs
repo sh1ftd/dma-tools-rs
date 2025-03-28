@@ -17,14 +17,12 @@ impl FirmwareManager {
             firmware_files: Vec::new(),
             selected_index: None,
             scan_count: 0,
-            logger: Logger::new(),
+            logger: Logger::new("FirmwareDiscovery"),
         }
     }
 
     pub fn scan_firmware_files(&mut self) {
-        // Clean up any existing temporary firmware file before scanning
         if let Err(e) = fs::remove_file(TEMP_FIRMWARE_FILE) {
-            // Only log as info since file may not exist, which is expected
             self.logger.info(format!(
                 "Note: Could not remove previous temp firmware file: {}",
                 e
@@ -33,7 +31,6 @@ impl FirmwareManager {
 
         self.firmware_files.clear();
 
-        // Get the executable path
         let exe_path = env::current_exe().unwrap_or_else(|_| PathBuf::from("."));
         let exe_dir = exe_path.parent().unwrap_or_else(|| Path::new("."));
 
@@ -82,21 +79,7 @@ impl FirmwareManager {
         self.scan_count
     }
 
-    // Private helper methods
-
     fn create_search_dirs(&self, exe_dir: &Path) -> Vec<PathBuf> {
-        // Common search directories for both debug and release builds
-        #[cfg(not(debug_assertions))]
-        let search_dirs = vec![
-            PathBuf::from("."),         // Current directory
-            exe_dir.to_path_buf(),      // Executable directory
-            PathBuf::from("resources"), // Resources directory for cargo run
-            PathBuf::from("bin"),       // Possible bin directory
-            PathBuf::from("firmware"),  // Possible firmware directory
-            PathBuf::from("fw"),        // Possible openocd directory
-        ];
-
-        #[cfg(debug_assertions)]
         let mut search_dirs = vec![
             PathBuf::from("."),         // Current directory
             exe_dir.to_path_buf(),      // Executable directory
@@ -106,9 +89,7 @@ impl FirmwareManager {
             PathBuf::from("fw"),        // Possible openocd directory
         ];
 
-        // Add additional search paths in debug mode
-        #[cfg(debug_assertions)]
-        {
+        if cfg!(debug_assertions) {
             search_dirs.push(PathBuf::from("target/debug"));
             search_dirs.push(exe_dir.join("../"));
         }
