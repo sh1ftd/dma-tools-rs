@@ -1,4 +1,4 @@
-mod dna;
+pub mod dna;
 mod firmware;
 mod monitor;
 mod process;
@@ -32,6 +32,8 @@ pub struct FlashingManager {
     process_executor: ProcessExecutor,
     dna_reader: DnaReader,
     firmware_flasher: FirmwareFlasher,
+    last_status_change: Arc<Mutex<Option<Instant>>>,
+    last_status: Arc<Mutex<Option<CompletionStatus>>>,
 }
 
 impl FlashingManager {
@@ -48,32 +50,23 @@ impl FlashingManager {
             process_executor,
             dna_reader: DnaReader::new(logger.clone()),
             firmware_flasher: FirmwareFlasher::new(logger),
+            last_status_change: Arc::new(Mutex::new(Some(Instant::now()))),
+            last_status: Arc::new(Mutex::new(None)),
         }
-    }
-
-    pub fn is_completed(&self) -> bool {
-        self.get_completion_status() != CompletionStatus::NotCompleted
-    }
-
-    pub fn get_completion_status(&self) -> CompletionStatus {
-        if self.monitor.was_terminated_early() {
-            return CompletionStatus::Failed(
-                "Operation terminated early due to connection issues (too many quick sector writes detected)".to_string()
-            );
-        }
-
-        self.process_executor.get_completion_status()
     }
 
     pub fn execute_flash(&mut self, firmware_path: &Path, option: &FlashingOption) {
         self.initialize_operation(option.clone());
-        self.firmware_flasher.execute(
+        if let Err(e) = self.firmware_flasher.execute(
             firmware_path,
             option,
             &self.monitor,
             &self.process_executor,
             Arc::clone(&self.duration),
-        );
+        ) {
+            self.process_executor
+                .set_completion_status(CompletionStatus::Failed(e));
+        }
     }
 
     pub fn execute_dna_read(&mut self, option: &FlashingOption) {
@@ -93,25 +86,66 @@ impl FlashingManager {
         &self.logger
     }
 
-    #[allow(dead_code)]
-    pub fn set_auto_terminate(&self, enabled: bool) {
-        self.monitor.set_auto_terminate(enabled);
+    pub fn stop_monitor_thread(&mut self) {
+        self.monitor.stop_monitor_thread();
     }
 
-    #[allow(dead_code)]
-    pub fn get_output_log(&self) -> Vec<String> {
-        self.logger
-            .get_entries()
-            .iter()
-            .map(|entry| entry.message.clone())
-            .collect()
+    pub fn stop_dna_thread(&self) {
+        self.dna_reader.stop_processing_thread();
+    }
+
+    pub fn get_last_status_change_time(&self) -> Option<Instant> {
+        *self.last_status_change.lock().unwrap()
     }
 
     // Private methods
     fn initialize_operation(&mut self, option: FlashingOption) {
+        self.monitor.stop_monitor_thread();
+
         self.start_time = Some(Instant::now());
-        self.current_option = Some(option);
+        self.current_option = Some(option.clone());
         self.monitor.reset_counters();
         self.process_executor.reset();
+
+        // CRITICAL: Reset status tracking to prevent status flashing
+        *self.last_status.lock().unwrap() = None;
+        *self.last_status_change.lock().unwrap() = Some(Instant::now());
+
+        // Set an explicit in-progress status to prevent flashing
+        // Use a local reference for clarity
+        let is_dna_read = option.is_dna_read();
+        if is_dna_read {
+            self.process_executor
+                .set_completion_status(CompletionStatus::InProgress(
+                    "Starting DNA read operation...".to_string(),
+                ));
+        } else {
+            self.process_executor
+                .set_completion_status(CompletionStatus::InProgress(
+                    "Starting flash operation...".to_string(),
+                ));
+        }
+    }
+
+    // Add these new methods for immutable access
+
+    // Immutable version that just returns the status without updating tracking
+    pub fn get_status(&self) -> CompletionStatus {
+        // Direct access to process executor status without updating tracking
+        if self.monitor.was_terminated_early() {
+            CompletionStatus::Failed(
+                "Operation terminated early due to connection issues".to_string(),
+            )
+        } else {
+            self.process_executor.get_completion_status()
+        }
+    }
+
+    // Immutable check if completed
+    pub fn check_if_completed(&self) -> bool {
+        matches!(
+            self.get_status(),
+            CompletionStatus::Completed | CompletionStatus::Failed(_)
+        )
     }
 }

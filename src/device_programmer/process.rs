@@ -4,16 +4,24 @@ use std::fs;
 use std::io::{BufRead, BufReader};
 use std::os::windows::process::CommandExt;
 use std::process::{Child, Command, Stdio};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Instant;
 
-type LineCallback = Option<Box<dyn Fn(&str) + Send + 'static>>;
+type LineCallback = Option<Box<dyn Fn(&str) + Send + Sync + 'static>>;
 
 pub struct ProcessExecutor {
     logger: Logger,
     completion_status: Arc<Mutex<CompletionStatus>>,
     start_time: Arc<Mutex<Option<Instant>>>,
+    terminated_flag: Arc<AtomicBool>,
+}
+
+pub struct CommandOptions {
+    pub update_duration: bool,
+    pub cleanup_temp_files: bool,
 }
 
 impl ProcessExecutor {
@@ -22,6 +30,7 @@ impl ProcessExecutor {
             logger,
             completion_status: Arc::new(Mutex::new(CompletionStatus::NotCompleted)),
             start_time: Arc::new(Mutex::new(None)),
+            terminated_flag: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -47,38 +56,41 @@ impl ProcessExecutor {
         &self,
         mut command: Command,
         on_line_callback: LineCallback,
-        update_duration: bool,
-        cleanup_temp_file: bool,
+        options: CommandOptions,
     ) -> Result<(), String> {
         match command.spawn() {
             Ok(mut child) => {
-                let logger_clone = self.logger.clone();
-                let completion_status = Arc::clone(&self.completion_status);
-                let start_time = Arc::clone(&self.start_time);
-                let pid = child.id();
-
-                // Create a shareable reference to the child process ID
-                let child_process = Arc::new(Mutex::new(Some(pid)));
-
-                self.handle_command_stdout(
-                    &mut child,
-                    logger_clone.clone(),
-                    on_line_callback,
-                    child_process,
-                );
-                self.handle_command_stderr(&mut child, logger_clone.clone());
+                self.attach_readers(&mut child, &options, on_line_callback);
 
                 // Wait in a separate thread for the process to complete
                 let logger = self.logger.clone();
+                let completion_status = Arc::clone(&self.completion_status);
+                let start_time = Arc::clone(&self.start_time);
+
                 thread::spawn(move || {
                     match child.wait() {
                         Ok(exit_status) => {
                             // Update execution duration
-                            if update_duration {
+                            if options.update_duration {
                                 if let Some(start) = *start_time.lock().unwrap() {
                                     let elapsed = start.elapsed();
-                                    logger
-                                        .info(format!("Operation took {}ms", elapsed.as_millis()));
+
+                                    // Format duration in a readable way based on the actual time
+                                    if elapsed.as_secs() > 0 {
+                                        // If operation took more than a second, show seconds.milliseconds
+                                        let seconds = elapsed.as_secs();
+                                        let millis = elapsed.subsec_millis();
+                                        logger.info(format!(
+                                            "Operation took {}.{:03}s",
+                                            seconds, millis
+                                        ));
+                                    } else {
+                                        // For very quick operations, show milliseconds
+                                        logger.info(format!(
+                                            "Operation took {}ms",
+                                            elapsed.as_millis()
+                                        ));
+                                    }
                                 }
                             }
 
@@ -104,9 +116,9 @@ impl ProcessExecutor {
                     }
 
                     // Clean up temporary file
-                    if cleanup_temp_file {
+                    if options.cleanup_temp_files {
                         if let Err(e) = fs::remove_file(TEMP_FIRMWARE_FILE) {
-                            logger.warning(format!(
+                            logger.debug(format!(
                                 "Failed to clean up temporary firmware file: {}",
                                 e
                             ));
@@ -122,7 +134,7 @@ impl ProcessExecutor {
                 *self.completion_status.lock().unwrap() =
                     CompletionStatus::Failed(error_msg.clone());
 
-                if cleanup_temp_file {
+                if options.cleanup_temp_files {
                     if let Err(e) = fs::remove_file(TEMP_FIRMWARE_FILE) {
                         self.logger
                             .warning(format!("Failed to clean up temporary firmware file: {}", e));
@@ -134,60 +146,150 @@ impl ProcessExecutor {
         }
     }
 
-    fn handle_command_stdout(
+    fn attach_readers(
         &self,
         child: &mut Child,
-        logger: Logger,
-        on_line_callback: LineCallback,
-        child_process: Arc<Mutex<Option<u32>>>,
+        _options: &CommandOptions,
+        line_callback: LineCallback,
     ) {
+        // Create a channel for sector line communication
+        let (_sector_tx, sector_rx) = mpsc::channel::<String>();
+
+        // Wrap the callback in an Arc for sharing between threads
+        let callback_arc = Arc::new(line_callback);
+
+        // For stdout
         if let Some(stdout) = child.stdout.take() {
-            let stdout_logger = logger.clone();
-            let stdout_reader = BufReader::new(stdout);
-            let callback = on_line_callback;
-            let _process_id = Arc::clone(&child_process);
+            let stdout_logger = self.logger.clone();
+            let callback_opt = Arc::clone(&callback_arc); // Clone the Arc, not the callback
+            let rx = sector_rx;
 
             thread::spawn(move || {
-                for line in stdout_reader.lines().map_while(Result::ok) {
-                    stdout_logger.output(&line);
+                let reader = BufReader::new(stdout);
+                let mut lines_iter = reader.lines(); // Create a lines iterator outside the loop
+                let mut stdout_done = false;
 
-                    // Call the callback if provided
-                    if let Some(ref cb) = callback {
-                        cb(&line);
+                // Use a non-blocking approach to handle both stdout and sector lines
+                loop {
+                    // Process any available sector lines (non-blocking)
+                    match rx.try_recv() {
+                        Ok(sector_line) => {
+                            stdout_logger.info(format!("RECEIVED sector line: {}", sector_line));
+
+                            if let Some(cb) = &*callback_opt {
+                                stdout_logger.info("About to call callback with sector line");
+                                cb(&sector_line);
+                                stdout_logger.info("Callback completed for sector line");
+                            }
+                        }
+                        Err(mpsc::TryRecvError::Empty) => {
+                            // No sector lines available right now, that's fine
+                        }
+                        Err(mpsc::TryRecvError::Disconnected) => {
+                            // Stderr channel closed, if stdout is also done, we can exit
+                            if stdout_done {
+                                break;
+                            }
+                        }
+                    }
+
+                    // If stdout isn't done, try to read more lines
+                    if !stdout_done {
+                        let mut reader_empty = true;
+
+                        // Try to read a line from stdout using the iterator
+                        if let Some(line_result) = lines_iter.next() {
+                            reader_empty = false;
+                            if let Ok(line) = line_result {
+                                stdout_logger.output(&line);
+
+                                // Process the stdout line
+                                if line.contains("sector") && line.contains("took") {
+                                    stdout_logger.warning(format!("STDOUT SECTOR LINE: {}", line));
+                                    if let Some(cb) = &*callback_opt {
+                                        cb(&line);
+                                    }
+                                } else if let Some(cb) = &*callback_opt {
+                                    cb(&line);
+                                }
+                            }
+                        }
+
+                        // If no lines were read, stdout might be done
+                        if reader_empty {
+                            stdout_done = true;
+                        }
+                    } else {
+                        // If stdout is done, try to check if there are any more messages
+                        match rx.try_recv() {
+                            Ok(sector_line) => {
+                                // There was one more message, process it
+                                stdout_logger.info(format!("Extra sector line: {}", sector_line));
+                                if let Some(cb) = &*callback_opt {
+                                    cb(&sector_line);
+                                }
+                            }
+                            Err(mpsc::TryRecvError::Empty) => {
+                                // Channel is empty, safe to exit
+                                break;
+                            }
+                            Err(mpsc::TryRecvError::Disconnected) => {
+                                // Channel is closed, safe to exit
+                                break;
+                            }
+                        }
+                    }
+
+                    // Small delay to prevent CPU hogging
+                    std::thread::sleep(std::time::Duration::from_millis(1));
+                }
+
+                // Final check for any remaining sector lines
+                while let Ok(sector_line) = rx.recv() {
+                    stdout_logger.info(format!("FINAL sector line: {}", sector_line));
+                    if let Some(cb) = &*callback_opt {
+                        cb(&sector_line);
+                    }
+                }
+
+                stdout_logger.debug("Stdout processor thread completed");
+            });
+        }
+
+        // For stderr
+        if let Some(stderr) = child.stderr.take() {
+            let stderr_logger = self.logger.clone();
+
+            // Clone the Arc, not the inner callback
+            let callback_opt_for_stderr = Arc::clone(&callback_arc);
+
+            // Clone the terminated_flag to pass to the thread
+            let terminated_flag = Arc::clone(&self.terminated_flag);
+
+            thread::spawn(move || {
+                let reader = BufReader::new(stderr);
+                for line in reader.lines().map_while(Result::ok) {
+                    stderr_logger.error(&line);
+
+                    // Look for sector lines in stderr
+                    if line.contains("sector") && line.contains("took") {
+                        stderr_logger.debug(format!("Stderr sector line: {}", line));
+
+                        // Check for termination before processing
+                        if let Some(cb) = &*callback_opt_for_stderr {
+                            // Now we can access the terminated_flag
+                            let terminated = terminated_flag.load(Ordering::SeqCst);
+                            if !terminated {
+                                stderr_logger.debug("Calling callback with sector line");
+                                cb(&line);
+                            } else {
+                                stderr_logger
+                                    .debug("Skipping callback - process already terminated");
+                            }
+                        }
                     }
                 }
             });
-        }
-    }
-
-    fn handle_command_stderr(&self, child: &mut Child, logger: Logger) {
-        if let Some(stderr) = child.stderr.take() {
-            let stderr_logger = logger;
-            let stderr_reader = BufReader::new(stderr);
-
-            thread::spawn(move || {
-                for line in stderr_reader.lines().map_while(Result::ok) {
-                    stderr_logger.error(&line);
-                }
-            });
-        }
-    }
-
-    #[allow(dead_code)]
-    pub fn terminate_process(&self, pid: u32) {
-        self.logger
-            .warning(format!("Forcibly terminating process {}", pid));
-
-        #[cfg(windows)]
-        {
-            let _ = Command::new("taskkill")
-                .args(["/F", "/PID", &pid.to_string()])
-                .output();
-        }
-
-        #[cfg(not(windows))]
-        {
-            let _ = Command::new("kill").arg("-9").arg(pid.to_string()).status();
         }
     }
 
