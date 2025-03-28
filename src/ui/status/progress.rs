@@ -9,7 +9,6 @@ use std::time::{Duration, Instant};
 const SECTOR_STUCK_THRESHOLD: Duration = Duration::from_secs(1);
 const SPINNER_SIZE: f32 = 48.0;
 const HEADING_SIZE: f32 = 20.0;
-const SUBHEADING_SIZE: f32 = 18.0;
 const TECHNICAL_INFO_SIZE: f32 = 16.0;
 const STANDARD_SPACING: f32 = 8.0;
 const MEDIUM_SPACING: f32 = 12.0;
@@ -23,7 +22,7 @@ static SECTOR_TIMESTAMPS: LazyLock<Mutex<HashMap<u32, Instant>>> =
 pub fn render_flashing_progress(ui: &mut Ui, manager: &FlashingManager) {
     let now = Instant::now();
 
-    let (stage_message, _current_sector, _is_writing) = determine_current_stage(manager, now);
+    let (_stage_message, _current_sector, _is_writing) = determine_current_stage(manager, now);
 
     if let Some(option) = manager.get_current_option() {
         let is_dna_read = option.is_dna_read();
@@ -38,11 +37,14 @@ pub fn render_flashing_progress(ui: &mut Ui, manager: &FlashingManager) {
 
             ui.add_space(MEDIUM_SPACING);
 
+            // Display the status more prominently
+            let status_text = get_user_friendly_status(manager);
+
             ui.label(
-                RichText::new(stage_message)
-                    .size(SUBHEADING_SIZE)
+                RichText::new(status_text)
+                    .size(22.0)
                     .strong()
-                    .color(egui::Color32::from_rgb(220, 220, 255)),
+                    .color(ui.visuals().strong_text_color()),
             );
 
             ui.add_space(LARGE_SPACING);
@@ -210,5 +212,21 @@ fn get_device_type(option: &FlashingOption) -> &'static str {
         "Artix-7 100T (CH347)"
     } else {
         "Unknown Device"
+    }
+}
+
+// Add this function to extract a user-friendly status
+fn get_user_friendly_status(manager: &FlashingManager) -> String {
+    // Check if it's a DNA read operation
+    if manager
+        .get_current_option()
+        .is_some_and(|opt| opt.is_dna_read())
+    {
+        crate::device_programmer::dna::DnaReader::get_dna_read_stage(&manager.get_status())
+    } else {
+        // The compiler error is here - we need to use the right function with the right parameters
+        let now = std::time::Instant::now();
+        let (stage_message, _, _) = determine_current_stage(manager, now);
+        stage_message
     }
 }

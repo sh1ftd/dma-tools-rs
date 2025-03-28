@@ -18,7 +18,6 @@ const CHECKMARK_RADIUS: f32 = 24.0;
 const MISSING_FILES_MAX_HEIGHT: f32 = 250.0;
 const BUTTON_SPACER_WIDTH: f32 = 150.0;
 const SPINNER_OFFSET: f32 = 10.0;
-const COUNTDOWN_OFFSET: f32 = 125.0;
 
 // Text sizes
 const TEXT_SIZE_NORMAL: f32 = 16.0;
@@ -162,21 +161,35 @@ fn render_checkmark(ui: &mut Ui) {
 }
 
 fn render_countdown(ui: &mut Ui, success_time: &std::time::Instant) {
-    ui.horizontal(|ui| {
-        let elapsed = success_time.elapsed().as_secs();
+    let elapsed = success_time.elapsed().as_secs();
 
-        if elapsed <= SUCCESS_TRANSITION_DELAY {
-            let remaining = SUCCESS_TRANSITION_DELAY - elapsed;
-            ui.add_space(ui.available_width() / 2.0 - COUNTDOWN_OFFSET);
-            ui.label(
-                RichText::new(format!("Continuing automatically in {}...", remaining))
-                    .italics()
-                    .size(TEXT_SIZE_NORMAL),
-            );
-            ui.add_space(SPACING_SMALL + 2.0);
-            ui.spinner();
-        }
-    });
+    #[allow(clippy::absurd_extreme_comparisons)]
+    if elapsed <= SUCCESS_TRANSITION_DELAY {
+        let remaining = SUCCESS_TRANSITION_DELAY - elapsed;
+        ui.add_space(SPACING_MEDIUM);
+
+        let countdown_text = format!(
+            "Continuing automatically in {} second{}...",
+            remaining,
+            if remaining == 1 { "" } else { "s" }
+        );
+
+        ui.with_layout(
+            egui::Layout::top_down_justified(egui::Align::Center),
+            |ui| {
+                ui.horizontal(|ui| {
+                    ui.add_space(112.0);
+                    ui.label(
+                        RichText::new(countdown_text)
+                            .italics()
+                            .size(TEXT_SIZE_NORMAL),
+                    );
+                    ui.add_space(SPACING_SMALL);
+                    ui.spinner();
+                });
+            },
+        );
+    }
 }
 
 fn render_centered_spinner(ui: &mut Ui) {
