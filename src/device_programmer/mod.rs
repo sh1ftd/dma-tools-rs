@@ -107,7 +107,6 @@ impl FlashingManager {
         self.monitor.reset_counters();
         self.process_executor.reset();
 
-        // CRITICAL: Reset status tracking to prevent status flashing
         *self.last_status.lock().unwrap() = None;
         *self.last_status_change.lock().unwrap() = Some(Instant::now());
 
@@ -126,8 +125,6 @@ impl FlashingManager {
                 ));
         }
     }
-
-    // Add these new methods for immutable access
 
     // Immutable version that just returns the status without updating tracking
     pub fn get_status(&self) -> CompletionStatus {

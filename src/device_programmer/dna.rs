@@ -175,6 +175,9 @@ impl DnaReader {
     }
 
     fn get_possible_dna_file_paths() -> Vec<PathBuf> {
+        // For testing
+        // vec![PathBuf::from("OpenOCD/test.log")]
+
         vec![
             PathBuf::from(DNA_OUTPUT_FILE),
             PathBuf::from(format!("./{}", DNA_OUTPUT_FILE)),
@@ -224,7 +227,16 @@ impl DnaReader {
         logger: &Logger,
         completion_status: &Arc<Mutex<CompletionStatus>>,
     ) {
+        if contents.contains("CH347 Open Succ") {
+            logger.debug("Detected CH347 device");
+        } else if contents.contains("ftdi:") {
+            logger.debug("Detected FTDI device");
+        } else {
+            logger.warning("Unknown device type detected");
+        }
+
         if let Some(dna_line) = contents.lines().find(|line| line.contains("DNA =")) {
+            logger.debug(format!("Found DNA line: {}", dna_line));
             Self::extract_dna_hex_value(dna_line, logger, completion_status);
         } else {
             logger.error("DNA line not found in output file");
@@ -238,11 +250,33 @@ impl DnaReader {
         logger: &Logger,
         completion_status: &Arc<Mutex<CompletionStatus>>,
     ) {
+        // Parsing with trimming to handle different whitespace patterns
+        let dna_line = dna_line.trim();
+
         if let Some(hex_start) = dna_line.find("(0x") {
             if let Some(hex_end) = dna_line[hex_start..].find(")") {
                 let dna_hex = &dna_line[hex_start + 1..hex_start + hex_end];
-                logger.success(format!("DNA read completed successfully: {}", dna_hex));
-                *completion_status.lock().unwrap() = CompletionStatus::Completed;
+
+                // Verify the hex value format
+                if dna_hex.starts_with("0x") && dna_hex.len() > 2 {
+                    logger.success(format!("DNA read completed successfully: {}", dna_hex));
+
+                    // Store the device type along with the DNA value
+                    let device_type = if dna_line.contains("CH347") {
+                        "CH347"
+                    } else if dna_line.contains("ftdi") {
+                        "FTDI"
+                    } else {
+                        "Unknown"
+                    };
+
+                    logger.debug(format!("Device type identified as: {}", device_type));
+                    *completion_status.lock().unwrap() = CompletionStatus::Completed;
+                } else {
+                    logger.error(format!("Invalid hex format: {}", dna_hex));
+                    *completion_status.lock().unwrap() =
+                        CompletionStatus::Failed("Invalid DNA hex format".to_string());
+                }
             } else {
                 logger.error("Failed to parse DNA hex value from output file");
                 *completion_status.lock().unwrap() =
