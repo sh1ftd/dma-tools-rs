@@ -37,7 +37,7 @@ impl FileChecker {
         self.status.lock().unwrap().clone()
     }
 
-    pub fn get_status_mut(&mut self) -> MutexGuard<CheckStatus> {
+    pub fn get_status_mut(&mut self) -> MutexGuard<'_, CheckStatus> {
         self.status.lock().unwrap()
     }
 
