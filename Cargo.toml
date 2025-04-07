@@ -2,10 +2,32 @@ cargo-features = ["profile-rustflags"]
 
 [package]
     name = "dma-tools-rs"
-    version = "0.1.5"
+    version = "0.1.6"
     edition = "2024"
     license = "AGPL-3.0"
     authors = ["Shifty <contact@shifty.cloud>"]
+
+[lints.rust]
+    # Security
+    non_ascii_idents = "forbid"
+
+    # Deny old style Rust
+    rust_2018_idioms = { level = "deny", priority = -1 }
+    macro_use_extern_crate = "deny"
+    absolute_paths_not_starting_with_crate = "deny"
+
+    # Easy to read style and opinionated best practices
+    explicit_outlives_requirements = "warn"
+    missing_abi = "deny"
+    unused_lifetimes = "warn"
+    unused_macro_rules = "warn"
+    single_use_lifetimes = "warn"
+
+
+[lints.clippy]
+    unused_async = "deny"
+    undocumented_unsafe_blocks = "warn"
+    implicit_clone = "warn"
 
 [dependencies]
     eframe = { version = "0.23.0", features = ["wgpu"] }
@@ -22,6 +44,7 @@ cargo-features = ["profile-rustflags"]
         "handleapi",
         "winnt",
     ] }
+
 [profile.dev]
     overflow-checks = true
     debug = true
