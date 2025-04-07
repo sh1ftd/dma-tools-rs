@@ -1,6 +1,6 @@
 use crate::device_programmer::monitor::OperationMonitor;
 use crate::device_programmer::process::{CommandOptions, ProcessExecutor};
-use crate::device_programmer::{FlashingOption, SCRIPT_DIR, TEMP_FIRMWARE_FILE};
+use crate::device_programmer::{CompletionStatus, FlashingOption, SCRIPT_DIR, TEMP_FIRMWARE_FILE};
 use crate::utils::logger::Logger;
 use std::fs;
 use std::path::Path;
@@ -137,9 +137,7 @@ impl FirmwareFlasher {
             .map_err(|e| {
                 let error_msg = format!("Failed to prepare firmware file: {}", e);
                 self.logger.error(&error_msg);
-                executor.set_completion_status(crate::device_programmer::CompletionStatus::Failed(
-                    error_msg.clone(),
-                ));
+                executor.set_completion_status(CompletionStatus::Failed(error_msg.clone()));
                 error_msg
             })
     }

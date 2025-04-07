@@ -1,7 +1,6 @@
 use crate::APP_TITLE;
 use crate::assets::IconManager;
-use crate::device_programmer::CompletionStatus;
-use crate::device_programmer::{FlashingManager, FlashingOption};
+use crate::device_programmer::{CompletionStatus, FlashingManager, FlashingOption, dna::DnaReader};
 use crate::ui;
 use crate::ui::file_select::FileCheckRenderContext;
 use crate::ui::status::ResultAction;
@@ -238,7 +237,6 @@ impl FirmwareToolApp {
 
         // Check for operation completion with forced minimum display time
         if self.state == AppState::Flashing {
-            // We need to check if it's TRULY completed, not in progress
             let status = self.flashing_manager.get_status();
 
             // Force a minimum display time EVEN IF the operation reports completion
@@ -464,6 +462,9 @@ impl FirmwareToolApp {
                 self.selected_option = None;
             }
             ResultAction::TryAgain => {
+                // Force a complete reset of the flashing manager
+                self.flashing_manager = FlashingManager::new_with_logger(self.logger.clone());
+
                 // Re-run the same operation
                 if let Some(option) = &self.selected_option {
                     if option.is_dna_read() {
@@ -473,9 +474,7 @@ impl FirmwareToolApp {
                         self.dna_read_in_progress = true; // Set the in-progress flag
 
                         // Clean up any existing DNA file before retrying
-                        crate::device_programmer::dna::DnaReader::cleanup_dna_output_file(
-                            &self.logger,
-                        );
+                        DnaReader::cleanup_dna_output_file(&self.logger);
 
                         self.flashing_manager.execute_dna_read(option);
                     } else if let Some(firmware) = &self.selected_firmware {

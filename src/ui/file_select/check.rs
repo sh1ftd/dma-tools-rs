@@ -37,7 +37,7 @@ struct FileCheckUiContext<'a> {
     check_status: &'a CheckStatus,
 }
 
-pub fn render_file_check(render_ctx: &mut FileCheckRenderContext) {
+pub fn render_file_check(render_ctx: &mut FileCheckRenderContext<'_>) {
     let mut ui_ctx = FileCheckUiContext {
         ui: render_ctx.ui,
         check_status: render_ctx.check_status,
@@ -47,7 +47,7 @@ pub fn render_file_check(render_ctx: &mut FileCheckRenderContext) {
 }
 
 fn render_file_check_internal(
-    ctx: &mut FileCheckUiContext,
+    ctx: &mut FileCheckUiContext<'_>,
     on_continue: &mut dyn FnMut(bool),
     on_rescan: &mut dyn FnMut(),
 ) {
@@ -273,7 +273,7 @@ struct FileGroups<'a> {
     others: Vec<&'a String>,
 }
 
-fn group_files(files: &[String]) -> FileGroups {
+fn group_files(files: &[String]) -> FileGroups<'_> {
     let mut groups = FileGroups::default();
 
     for file in files {

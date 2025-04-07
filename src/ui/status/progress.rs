@@ -1,4 +1,4 @@
-use crate::device_programmer::{FlashingManager, FlashingOption};
+use crate::device_programmer::{FlashingManager, FlashingOption, dna::DnaReader};
 use eframe::egui::{self, RichText, Ui};
 use std::collections::HashMap;
 use std::sync::LazyLock;
@@ -222,7 +222,7 @@ fn get_user_friendly_status(manager: &FlashingManager) -> String {
         .get_current_option()
         .is_some_and(|opt| opt.is_dna_read())
     {
-        crate::device_programmer::dna::DnaReader::get_dna_read_stage(&manager.get_status())
+        DnaReader::get_dna_read_stage(&manager.get_status())
     } else {
         // The compiler error is here - we need to use the right function with the right parameters
         let now = std::time::Instant::now();

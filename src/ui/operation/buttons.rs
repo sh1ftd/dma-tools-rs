@@ -17,11 +17,15 @@ mod colors {
 /// Trait for creating styled buttons in a UI
 pub trait ButtonStyled {
     /// Creates a styled button with the given ID and button configuration
-    fn button_styled(&mut self, id: impl Into<String>, button: egui::Button) -> egui::Response;
+    fn button_styled(&mut self, id: impl Into<String>, button: egui::Button<'_>) -> egui::Response;
 }
 
 impl ButtonStyled for Ui {
-    fn button_styled(&mut self, _id: impl Into<String>, button: egui::Button) -> egui::Response {
+    fn button_styled(
+        &mut self,
+        _id: impl Into<String>,
+        button: egui::Button<'_>,
+    ) -> egui::Response {
         button.ui(self)
     }
 }

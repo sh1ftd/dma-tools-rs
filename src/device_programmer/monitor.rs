@@ -1,3 +1,4 @@
+use crate::device_programmer::CREATE_NO_WINDOW;
 use crate::utils::logger::Logger;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
@@ -161,7 +162,7 @@ impl OperationMonitor {
         self.monitor_running.store(false, Ordering::SeqCst);
     }
 
-    fn process_sector_writes(line: &str, ctx: &SectorWriteContext) {
+    fn process_sector_writes(line: &str, ctx: &SectorWriteContext<'_>) {
         // First check if we're already terminated
         if ctx.terminated_early.load(Ordering::SeqCst) {
             ctx.logger
@@ -196,7 +197,7 @@ impl OperationMonitor {
     }
 
     // Separate function to handle a sector write line once detected
-    fn handle_sector_write(line: &str, ctx: &SectorWriteContext) {
+    fn handle_sector_write(line: &str, ctx: &SectorWriteContext<'_>) {
         // Force increment total count
         let prev_total = ctx.total_sector_count.fetch_add(1, Ordering::SeqCst);
         ctx.logger.debug(format!(
@@ -254,7 +255,7 @@ impl OperationMonitor {
     }
 
     // Split termination logic into a function
-    fn terminate_process(ctx: &SectorWriteContext, quick: usize, total: usize) {
+    fn terminate_process(ctx: &SectorWriteContext<'_>, quick: usize, total: usize) {
         ctx.logger.warning(format!(
             "LINE MONITOR: Too many quick writes detected: {}/{}. Terminating OpenOCD process.",
             quick, total
@@ -268,7 +269,7 @@ impl OperationMonitor {
 
             let result = Command::new("taskkill")
                 .args(["/F", "/IM", process_name])
-                .creation_flags(crate::device_programmer::CREATE_NO_WINDOW)
+                .creation_flags(CREATE_NO_WINDOW)
                 .output();
 
             match result {
