@@ -15,8 +15,13 @@ pub fn disable_maximize_button_for_all() -> Option<&'static str> {
     let found = Arc::new(AtomicBool::new(false));
     let found_clone = found.clone();
 
+    // SAFETY: We're using WinAPI callbacks and pointers to enumerate windows.
+    // The callback will only access valid window handles provided by the OS,
+    // and we maintain the lifetime of the `found` reference through Arc.
     unsafe {
         extern "system" fn enum_callback(hwnd: HWND, found: LPARAM) -> BOOL {
+            // SAFETY: We're passing a valid window handle to get_window_title,
+            // which was provided by EnumWindows.
             let window_title = unsafe { get_window_title(hwnd) };
 
             if let Some(window_title) = window_title {
@@ -24,7 +29,10 @@ pub fn disable_maximize_button_for_all() -> Option<&'static str> {
                     #[cfg(debug_assertions)]
                     println!("Found window: {}", window_title);
 
+                    // SAFETY: hwnd is a valid window handle provided by EnumWindows.
                     unsafe { disable_maximize_for_window(hwnd) };
+                    // SAFETY: found is a pointer to our AtomicBool, which is guaranteed
+                    // to be valid for the duration of this callback.
                     unsafe { mark_window_found(found) };
                 }
             }
@@ -43,6 +51,8 @@ pub fn disable_maximize_button_for_all() -> Option<&'static str> {
 
 /// Retrieves the window title from a window handle.
 unsafe fn get_window_title(hwnd: HWND) -> Option<String> {
+    // SAFETY: We ensure proper buffer allocation for the window title and
+    // handle the returned length appropriately. hwnd is expected to be a valid window handle.
     unsafe {
         // Buffer for the window title (512 bytes should be enough for most window titles)
         let mut title = vec![0u8; 512];
@@ -64,6 +74,9 @@ unsafe fn get_window_title(hwnd: HWND) -> Option<String> {
 
 /// Disables the maximize button for a specific window.
 unsafe fn disable_maximize_for_window(hwnd: HWND) {
+    // SAFETY: We're modifying window styles for a valid window handle.
+    // The WinAPI functions used here expect the HWND to be valid, which is
+    // guaranteed by the caller.
     unsafe {
         let style = GetWindowLongA(hwnd, GWL_STYLE) as u32;
         let new_style = style & !WS_MAXIMIZEBOX;
@@ -84,6 +97,9 @@ unsafe fn disable_maximize_for_window(hwnd: HWND) {
 
 /// Marks the window as found using the atomic flag.
 unsafe fn mark_window_found(found: LPARAM) {
+    // SAFETY: found is a pointer to an AtomicBool that was passed from the caller.
+    // We trust that the caller has ensured this pointer is valid and will remain valid
+    // for the duration of this function call.
     unsafe {
         let found_ptr = found as *mut AtomicBool;
         (*found_ptr).store(true, Ordering::SeqCst);
