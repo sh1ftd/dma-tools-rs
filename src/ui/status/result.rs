@@ -1,6 +1,6 @@
 use super::types::ResultAction;
 use crate::assets::IconManager;
-use crate::device_programmer::{CompletionStatus, FlashingManager};
+use crate::device_programmer::{CompletionStatus, DnaInfo, FlashingManager};
 use eframe::egui::{self, RichText, Ui};
 use std::time::Duration;
 
@@ -51,21 +51,18 @@ fn render_dna_result(
     icon_manager: &IconManager,
 ) {
     match manager.get_status() {
+        CompletionStatus::DnaReadCompleted(dna_info) => {
+            render_dna_success(ui, &dna_info, icon_manager);
+        }
         CompletionStatus::Completed => {
-            // Search the log entries for the DNA value
-            let dna_value = extract_dna_from_logs(manager);
-
-            if let Some(dna) = dna_value {
-                render_dna_success(ui, &dna, icon_manager);
-            } else {
-                render_error(
-                    ui,
-                    "DNA READ COMPLETED",
-                    "The operation completed, but the DNA value could not be extracted from the logs.\n\
-                    Please check the log output for details.",
-                    icon_manager,
-                );
-            }
+            render_error(
+                ui,
+                "DNA READ STATUS UNEXPECTED",
+                "The operation completed, but the DNA value could not be confirmed.\n\
+                 This might indicate an issue with the DNA extraction process.\n\
+                 Please check the log output for details.",
+                icon_manager,
+            );
         }
         CompletionStatus::Failed(error) => {
             render_error(
@@ -76,10 +73,9 @@ fn render_dna_result(
             );
         }
         CompletionStatus::InProgress(status_msg) => {
-            // Handle in-progress state - should show a spinner or progress indicator
             ui.vertical_centered(|ui| {
                 ui.label(format!("Operation in progress: {}", status_msg));
-                ui.spinner(); // Show a spinner while in progress
+                ui.spinner();
             });
         }
         CompletionStatus::NotCompleted => {
@@ -91,25 +87,10 @@ fn render_dna_result(
     render_dna_action_buttons(ui, on_action);
 }
 
-fn extract_dna_from_logs(manager: &FlashingManager) -> Option<String> {
-    manager.logger().get_entries().iter().find_map(|entry| {
-        if entry.message.contains("DNA read completed successfully:") {
-            entry
-                .message
-                .split(':')
-                .nth(1)
-                .map(|s| s.trim().to_string())
-        } else {
-            None
-        }
-    })
-}
-
-fn render_dna_success(ui: &mut Ui, dna_value: &str, icon_manager: &IconManager) {
+fn render_dna_success(ui: &mut Ui, dna_info: &DnaInfo, icon_manager: &IconManager) {
     ui.vertical_centered(|ui| {
         ui.add_space(SPACING_LARGE);
 
-        // Add a success icon using the SVG checkmark
         render_icon(
             ui,
             icon_manager.checkmark_icon().cloned(),
@@ -128,29 +109,38 @@ fn render_dna_success(ui: &mut Ui, dna_value: &str, icon_manager: &IconManager) 
 
         ui.add_space(SPACING_XLARGE);
 
-        // Display DNA in a nice bordered box
         render_framed_content(ui, SUCCESS_COLOR, |ui| {
             ui.vertical_centered(|ui| {
                 ui.label(RichText::new("Device DNA").size(SUBTITLE_FONT_SIZE));
                 ui.add_space(SPACING_MEDIUM);
 
-                // Make the DNA value copyable with a larger font
+                // Display the HEX value
                 let response = ui.add(egui::SelectableLabel::new(
                     false,
-                    RichText::new(dna_value)
+                    RichText::new(&dna_info.dna_value)
                         .monospace()
                         .strong()
                         .size(DNA_VALUE_FONT_SIZE),
                 ));
 
                 if response.clicked() {
-                    ui.output_mut(|output| output.copied_text = dna_value.to_string());
+                    // Get the Verilog format
+                    let verilog_hex =
+                        crate::device_programmer::dna::DnaReader::convert_dna_to_verilog_hex(
+                            &dna_info.dna_raw_value,
+                        );
+
+                    // Create a multi-line string with all formats
+                    let copy_text = format!(
+                        "DNA RAW: {}\nDNA HEX: {}\nVERILOG: {}",
+                        dna_info.dna_raw_value, dna_info.dna_value, verilog_hex
+                    );
+                    ui.output_mut(|output| output.copied_text = copy_text);
                 }
 
-                // Show tooltip
                 if response.hovered() {
                     egui::show_tooltip(ui.ctx(), response.id, |ui| {
-                        ui.label("Click to copy the DNA value");
+                        ui.label("Click to copy RAW, HEX, and Verilog DNA values");
                     });
                 }
 
@@ -227,11 +217,10 @@ fn render_flashing_result(
                     ui,
                     "FLASHING RESULT UNKNOWN",
                     "Flashing process completed but no sector write information was found in logs.\n\n\
-                    If your device is working correctly, this may be fine.\n\n\
-                    Otherwise, please verify:\n\
                     1. You selected the correct board type\n\
-                    2. The appropriate USB driver is installed\n\
-                    3. The USB cable is properly connected",
+                    2. The appropriate USB driver is installed and in JTAG port.\n\
+                    3. Try a different USB cable and/or port\n\
+                    4. Make sure the device is properly seated in the PCIE slot.",
                     icon_manager,
                 );
             } else {
@@ -240,7 +229,7 @@ fn render_flashing_result(
                 ui.add_space(SPACING_SMALL);
                 ui.label(
                     RichText::new(
-                        "Note: Unable to verify complete success, but no errors were detected.",
+                        "Note: Unable to verify complete success, but no errors were detected. Please verify manually or try again.",
                     )
                     .italics(),
                 );
@@ -249,6 +238,14 @@ fn render_flashing_result(
                     render_duration(ui, duration_secs);
                 }
             }
+        }
+        CompletionStatus::DnaReadCompleted(_) => {
+            render_error(
+                ui,
+                "UNEXPECTED STATE",
+                "This state should not be reached. Please report this bug.",
+                icon_manager,
+            );
         }
         CompletionStatus::Failed(error) => {
             render_error(
@@ -273,7 +270,7 @@ fn render_flashing_result(
         }
         CompletionStatus::NotCompleted => {
             ui.label("Flash operation status is unknown.");
-            ui.label("Please check the log for details.");
+            ui.label("Please check the log for details or try again.");
         }
     }
 
@@ -282,15 +279,18 @@ fn render_flashing_result(
 
 fn extract_sector_time(message: &str) -> Option<u64> {
     // Look for lines like "[ERROR] Info : sector 25 took 1 ms"
-    if message.contains("Info :") && message.contains("sector") && message.contains("took") {
-        message
-            .split("took")
-            .nth(1)
-            .and_then(|s| s.split_whitespace().next())
-            .and_then(|t| t.parse().ok())
-    } else {
-        None
+    if !message.contains("Info :") || !message.contains("sector") || !message.contains("took") {
+        //  Filter out non-relevant messages
+        return None; // Early exit if the message does not contain the required parts
     }
+
+    message
+        .split("took")
+        .nth(1)?
+        .split_whitespace()
+        .next()?
+        .parse()
+        .ok()
 }
 
 fn render_duration(ui: &mut Ui, duration_secs: u64) {

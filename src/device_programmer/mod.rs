@@ -2,13 +2,13 @@ pub mod dna;
 mod firmware;
 mod monitor;
 mod process;
-mod types;
+pub mod types;
 
 // Re-export the main types and functionality
 pub use dna::DnaReader;
 pub use firmware::FirmwareFlasher;
 pub use process::ProcessExecutor;
-pub use types::{CompletionStatus, FlashingOption};
+pub use types::{CompletionStatus, DnaInfo, FlashingOption};
 
 use crate::utils::logger::Logger;
 use monitor::OperationMonitor;
@@ -111,7 +111,6 @@ impl FlashingManager {
         *self.last_status_change.lock().unwrap() = Some(Instant::now());
 
         // Set an explicit in-progress status to prevent flashing
-        // Use a local reference for clarity
         let is_dna_read = option.is_dna_read();
         if is_dna_read {
             self.process_executor
@@ -126,23 +125,31 @@ impl FlashingManager {
         }
     }
 
-    // Immutable version that just returns the status without updating tracking
     pub fn get_status(&self) -> CompletionStatus {
-        // Direct access to process executor status without updating tracking
+        let current_status = self.process_executor.get_completion_status();
+
         if self.monitor.was_terminated_early() {
-            CompletionStatus::Failed(
-                "Operation terminated early due to connection issues".to_string(),
-            )
+            if matches!(current_status, CompletionStatus::Failed(_)) {
+                CompletionStatus::Failed(
+                    "Operation terminated early due to connection issues (check logs for details)"
+                        .to_string(),
+                )
+            } else {
+                CompletionStatus::Failed(
+                    "Operation terminated early due to connection issues".to_string(),
+                )
+            }
         } else {
-            self.process_executor.get_completion_status()
+            current_status
         }
     }
 
-    // Immutable check if completed
     pub fn check_if_completed(&self) -> bool {
         matches!(
             self.get_status(),
-            CompletionStatus::Completed | CompletionStatus::Failed(_)
+            CompletionStatus::Completed
+                | CompletionStatus::DnaReadCompleted(_)
+                | CompletionStatus::Failed(_)
         )
     }
 }

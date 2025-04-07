@@ -1,4 +1,11 @@
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DnaInfo {
+    pub dna_value: String,     // Hex value (e.g., 0x...)
+    pub dna_raw_value: String, // Binary value (e.g., 0011...)
+    pub device_type: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FlashingOption {
     CH347_35T,
     CH347_75T,
@@ -78,6 +85,7 @@ impl FlashingOption {
 pub enum CompletionStatus {
     NotCompleted,
     InProgress(String),
-    Completed,
+    Completed,                 // Flashing
+    DnaReadCompleted(DnaInfo), // DNA read
     Failed(String),
 }

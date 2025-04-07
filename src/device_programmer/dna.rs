@@ -1,5 +1,7 @@
 use crate::device_programmer::process::{CommandOptions, ProcessExecutor};
-use crate::device_programmer::{CompletionStatus, DNA_OUTPUT_FILE, FlashingOption, SCRIPT_DIR};
+use crate::device_programmer::{
+    CompletionStatus, DNA_OUTPUT_FILE, DnaInfo, FlashingOption, SCRIPT_DIR,
+};
 use crate::utils::logger::Logger;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -53,6 +55,7 @@ impl DnaReader {
 
         // Then execute the command - this ensures we don't miss any data
         if !self.run_dna_command(&exe_path, &config_path, executor) {
+            self.stop_processing_thread(); // Signal thread to stop if it hasn't already
             executor.set_completion_status(CompletionStatus::Failed(
                 "Failed to execute DNA read command".to_string(),
             ));
@@ -105,6 +108,15 @@ impl DnaReader {
         thread_running.store(true, Ordering::SeqCst);
 
         thread::spawn(move || {
+            // Check if the command execution already failed before the thread started processing
+            if let CompletionStatus::Failed(_) = *completion_status.lock().unwrap() {
+                logger_clone.warning(
+                    "DNA command execution failed before thread processing could complete.",
+                );
+                thread_running.store(false, Ordering::SeqCst);
+                return;
+            }
+
             if !thread_running.load(Ordering::SeqCst) {
                 logger_clone.warning("DNA thread stopped before processing");
                 return;
@@ -117,17 +129,17 @@ impl DnaReader {
             thread::sleep(Duration::from_millis(DNA_READ_WAIT_MS));
 
             // After the wait, check if the file exists
-            let possible_paths = Self::get_possible_dna_file_paths();
+            let dna_path = PathBuf::from(DNA_OUTPUT_FILE);
 
             // Delete potential incomplete/corrupt files
-            Self::cleanup_incomplete_files(&possible_paths, &logger_clone);
+            Self::cleanup_incomplete_files(&dna_path, &logger_clone);
 
             // We need to track if we found the file during any attempt
             let mut found_dna_file = false;
 
             // First try multiple attempts to find the file
             for attempt in 1..=DNA_MAX_ATTEMPTS {
-                if let Some(path) = Self::find_dna_file(&possible_paths, &logger_clone) {
+                if let Some(path) = Self::find_dna_file(&dna_path, &logger_clone) {
                     found_dna_file = true;
                     // Process the file...
                     Self::parse_dna_file(&path, &logger_clone, &completion_status);
@@ -140,61 +152,55 @@ impl DnaReader {
                 }
             }
 
-            // Only set to failed AFTER all attempts are exhausted
+            // Only set to failed AFTER all attempts are exhausted AND the command didn't already fail
             if !found_dna_file {
-                let error_msg = format!(
-                    "DNA output file not found after {} attempts",
-                    DNA_MAX_ATTEMPTS
-                );
-                logger_clone.error(&error_msg);
-                *completion_status.lock().unwrap() = CompletionStatus::Failed(error_msg);
+                if let CompletionStatus::Failed(_) = *completion_status.lock().unwrap() {
+                    logger_clone.warning("Command failed while waiting for DNA file.");
+                } else {
+                    let error_msg = format!(
+                        "DNA output file not found after {} attempts",
+                        DNA_MAX_ATTEMPTS
+                    );
+                    logger_clone.error(&error_msg);
+                    *completion_status.lock().unwrap() = CompletionStatus::Failed(error_msg);
+                }
             }
 
             thread_running.store(false, Ordering::SeqCst);
         });
     }
 
-    fn cleanup_incomplete_files(paths: &[PathBuf], logger: &Logger) {
-        for path in paths {
-            if path.exists() {
-                if let Ok(metadata) = std::fs::metadata(path) {
-                    let size = metadata.len();
-                    logger.debug(format!(
-                        "Found existing file at {} (size: {} bytes)",
-                        path.display(),
-                        size
-                    ));
-
-                    if size < MIN_VALID_DNA_FILE_SIZE {
-                        // If file is suspiciously small
-                        let _ = std::fs::remove_file(path);
-                    }
+    fn cleanup_incomplete_files(path: &PathBuf, logger: &Logger) {
+        if let Ok(metadata) = fs::metadata(path) {
+            // If the file is too small, it's likely incomplete
+            if metadata.len() < MIN_VALID_DNA_FILE_SIZE {
+                logger.warning(format!(
+                    "Found potentially incomplete DNA file (only {} bytes). Removing it.",
+                    metadata.len()
+                ));
+                if let Err(e) = fs::remove_file(path) {
+                    logger.error(format!("Failed to remove incomplete DNA file: {}", e));
                 }
             }
         }
     }
 
-    fn get_possible_dna_file_paths() -> Vec<PathBuf> {
-        // For testing
-        // vec![PathBuf::from("OpenOCD/test.log")]
-
-        vec![
-            PathBuf::from(DNA_OUTPUT_FILE),
-            PathBuf::from(format!("./{}", DNA_OUTPUT_FILE)),
-            std::env::current_dir()
-                .unwrap_or_default()
-                .join(DNA_OUTPUT_FILE),
-        ]
-    }
-
-    fn find_dna_file(possible_paths: &[PathBuf], logger: &Logger) -> Option<PathBuf> {
-        for path in possible_paths {
-            let path_str = path.to_string_lossy();
-            logger.debug(format!("Trying path: {}", path_str));
-
-            if path.exists() && path.is_file() {
-                logger.debug(format!("Found DNA output file at: {}", path_str));
-                return Some(path.clone());
+    fn find_dna_file(path: &PathBuf, logger: &Logger) -> Option<PathBuf> {
+        match fs::metadata(path) {
+            Ok(metadata) => {
+                if metadata.is_file() && metadata.len() >= MIN_VALID_DNA_FILE_SIZE {
+                    logger.debug(format!("Found DNA file at {}", path.display()));
+                    return Some(path.clone());
+                } else {
+                    logger.debug(format!(
+                        "Found file at {} but size is only {} bytes",
+                        path.display(),
+                        metadata.len()
+                    ));
+                }
+            }
+            Err(_) => {
+                logger.debug(format!("DNA file not found at {}", path.display()));
             }
         }
         None
@@ -207,8 +213,26 @@ impl DnaReader {
     ) {
         match fs::read_to_string(path) {
             Ok(contents) => {
-                logger.debug(format!("DNA file contents: {}", contents));
-                Self::extract_dna_from_contents(&contents, logger, completion_status);
+                logger.debug(format!(
+                    "Successfully read DNA file: {} bytes",
+                    contents.len()
+                ));
+
+                match Self::extract_dna_from_contents(&contents, logger) {
+                    Ok(dna_info) => {
+                        logger.info(format!(
+                            "DNA read completed successfully: {}",
+                            dna_info.dna_value
+                        ));
+                        *completion_status.lock().unwrap() =
+                            CompletionStatus::DnaReadCompleted(dna_info);
+                    }
+                    Err(e) => {
+                        logger.error(format!("Failed to extract DNA from contents: {}", e));
+                        *completion_status.lock().unwrap() =
+                            CompletionStatus::Failed(format!("Failed to extract DNA: {}", e));
+                    }
+                }
             }
             Err(e) => {
                 let error_msg = format!(
@@ -222,76 +246,72 @@ impl DnaReader {
         }
     }
 
-    fn extract_dna_from_contents(
-        contents: &str,
-        logger: &Logger,
-        completion_status: &Arc<Mutex<CompletionStatus>>,
-    ) {
-        if contents.contains("CH347 Open Succ") {
+    fn extract_dna_from_contents(contents: &str, logger: &Logger) -> Result<DnaInfo, String> {
+        // Detect device type
+        let device_type = if contents.contains("CH347 Open Succ") {
             logger.debug("Detected CH347 device");
+            "CH347"
         } else if contents.contains("ftdi:") {
             logger.debug("Detected FTDI device");
+            "FTDI"
         } else {
             logger.warning("Unknown device type detected");
-        }
+            "Unknown"
+        };
 
-        if let Some(dna_line) = contents.lines().find(|line| line.contains("DNA =")) {
+        // Try standard DNA line format first: "DNA = <binary> (<hex>)"
+        if let Some(dna_line) = contents
+            .lines()
+            .find(|line| line.trim().starts_with("DNA ="))
+        {
             logger.debug(format!("Found DNA line: {}", dna_line));
-            Self::extract_dna_hex_value(dna_line, logger, completion_status);
-        } else {
-            logger.error("DNA line not found in output file");
-            *completion_status.lock().unwrap() =
-                CompletionStatus::Failed("DNA information not found in output file".to_string());
-        }
-    }
 
-    fn extract_dna_hex_value(
-        dna_line: &str,
-        logger: &Logger,
-        completion_status: &Arc<Mutex<CompletionStatus>>,
-    ) {
-        // Parsing with trimming to handle different whitespace patterns
-        let dna_line = dna_line.trim();
+            let parts: Vec<&str> = dna_line.split('=').collect();
+            if parts.len() > 1 {
+                let value_part = parts[1].trim();
+                // Split binary and hex parts (hex is in parentheses)
+                if let Some(hex_start) = value_part.find('(') {
+                    let binary_part = value_part[..hex_start].trim();
+                    if let Some(hex_end) = value_part.find(')') {
+                        let hex_part = value_part[hex_start + 1..hex_end].trim();
 
-        if let Some(hex_start) = dna_line.find("(0x") {
-            if let Some(hex_end) = dna_line[hex_start..].find(")") {
-                let dna_hex = &dna_line[hex_start + 1..hex_start + hex_end];
+                        // Basic validation
+                        let is_binary = binary_part.chars().all(|c| c == '0' || c == '1');
+                        let is_hex = hex_part.starts_with("0x")
+                            && hex_part.len() > 2
+                            && hex_part[2..].chars().all(|c| c.is_ascii_hexdigit());
 
-                // Verify the hex value format
-                if dna_hex.starts_with("0x") && dna_hex.len() > 2 {
-                    logger.success(format!("DNA read completed successfully: {}", dna_hex));
-
-                    // Store the device type along with the DNA value
-                    let device_type = if dna_line.contains("CH347") {
-                        "CH347"
-                    } else if dna_line.contains("ftdi") {
-                        "FTDI"
+                        if is_binary && is_hex {
+                            return Ok(DnaInfo {
+                                dna_value: hex_part.to_string(),
+                                dna_raw_value: binary_part.to_string(),
+                                device_type: device_type.to_string(),
+                            });
+                        } else {
+                            logger.debug(format!(
+                                "Failed validation: binary={}, hex={}",
+                                is_binary, is_hex
+                            ));
+                        }
                     } else {
-                        "Unknown"
-                    };
-
-                    logger.debug(format!("Device type identified as: {}", device_type));
-                    *completion_status.lock().unwrap() = CompletionStatus::Completed;
+                        logger.debug("Could not find closing parenthesis ')'");
+                    }
                 } else {
-                    logger.error(format!("Invalid hex format: {}", dna_hex));
-                    *completion_status.lock().unwrap() =
-                        CompletionStatus::Failed("Invalid DNA hex format".to_string());
+                    logger.debug("Could not find opening parenthesis '('");
                 }
             } else {
-                logger.error("Failed to parse DNA hex value from output file");
-                *completion_status.lock().unwrap() =
-                    CompletionStatus::Failed("Failed to parse DNA hex value".to_string());
+                logger.debug("Could not split line by '='");
             }
         } else {
-            logger.error("DNA hex value not found in output file");
-            *completion_status.lock().unwrap() =
-                CompletionStatus::Failed("DNA hex value not found".to_string());
+            logger.debug("Did not find line starting with 'DNA ='");
         }
+
+        Err("Could not find DNA information in the output file".to_string())
     }
 
     pub fn cleanup_dna_output_file(logger: &Logger) {
         // Don't report an error if the file doesn't exist
-        match fs::remove_file(crate::device_programmer::DNA_OUTPUT_FILE) {
+        match fs::remove_file(DNA_OUTPUT_FILE) {
             Ok(_) => logger.debug("Successfully removed previous DNA output file"),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
                 logger.debug("No previous DNA output file found (which is expected)");
@@ -308,8 +328,29 @@ impl DnaReader {
         match current_status {
             CompletionStatus::NotCompleted => "Waiting to start DNA read...".to_string(),
             CompletionStatus::InProgress(_) => "Retrieving device DNA...".to_string(),
-            CompletionStatus::Completed => "DNA read successful!".to_string(),
+            // Handle the new status
+            CompletionStatus::DnaReadCompleted(_) => "DNA read successful!".to_string(),
+            CompletionStatus::Completed => "Operation completed (Non-DNA)".to_string(), // This won't happen in DNA context, but handle it just in case
             CompletionStatus::Failed(err) => format!("DNA read failed: {}", err),
         }
+    }
+
+    // Converts binary DNA to Verilog hex format with 'h' prefix
+    pub fn convert_dna_to_verilog_hex(binary: &str) -> String {
+        // Parse the binary string into a number and convert to hex
+        let value = u128::from_str_radix(binary, 2).unwrap();
+
+        // Convert to hex (uppercase, no '0x' prefix)
+        let mut hex_str = format!("{:X}", value);
+
+        // Make sure the result is exactly 16 characters long
+        let current_len = hex_str.len();
+        if current_len < 16 {
+            // Add required number of zeros at the end
+            hex_str.extend(std::iter::repeat_n('0', 16 - current_len));
+        }
+
+        // Add 'h' prefix
+        format!("h{}", hex_str)
     }
 }
