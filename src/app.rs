@@ -262,7 +262,7 @@ impl FirmwareToolApp {
                 // Stop any running DNA thread before transitioning
                 if self.dna_read_in_progress {
                     self.logger
-                        .warning("Stopping DNA thread before showing results");
+                        .debug("Stopping DNA thread before showing results");
                     self.flashing_manager.stop_dna_thread();
 
                     thread::sleep(Duration::from_millis(100));

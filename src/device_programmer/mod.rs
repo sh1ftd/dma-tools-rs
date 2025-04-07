@@ -38,7 +38,7 @@ pub struct FlashingManager {
 
 impl FlashingManager {
     pub fn new_with_logger(logger: Logger) -> Self {
-        let monitor = OperationMonitor::new();
+        let monitor = OperationMonitor::new(logger.clone());
         let process_executor = ProcessExecutor::new(logger.clone());
 
         Self {

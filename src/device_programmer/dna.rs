@@ -91,13 +91,13 @@ impl DnaReader {
 
     pub fn stop_processing_thread(&self) {
         self.thread_running.store(false, Ordering::SeqCst);
-        self.logger.warning("DNA processing thread stop requested");
+        self.logger.debug("DNA processing thread stop requested");
     }
 
     fn start_dna_processing_thread(&self, executor: &ProcessExecutor) {
         if self.thread_running.load(Ordering::SeqCst) {
             self.logger
-                .warning("DNA thread already running - not starting another");
+                .debug("DNA thread already running - not starting another");
             return;
         }
 

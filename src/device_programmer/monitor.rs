@@ -25,23 +25,31 @@ pub struct OperationMonitor {
     auto_terminate_enabled: Arc<AtomicBool>,
     terminated_early: Arc<AtomicBool>,
     monitor_running: Arc<AtomicBool>,
+    logger: Logger,
 }
 
 impl OperationMonitor {
-    pub fn new() -> Self {
+    pub fn new(logger: Logger) -> Self {
         Self {
             quick_write_count: Arc::new(AtomicUsize::new(0)),
             total_sector_count: Arc::new(AtomicUsize::new(0)),
             auto_terminate_enabled: Arc::new(AtomicBool::new(true)),
             terminated_early: Arc::new(AtomicBool::new(false)),
             monitor_running: Arc::new(AtomicBool::new(false)),
+            logger,
         }
     }
 
     pub fn reset_counters(&self) {
+        self.stop_monitor_thread();
+
         self.quick_write_count.store(0, Ordering::SeqCst);
         self.total_sector_count.store(0, Ordering::SeqCst);
         self.terminated_early.store(false, Ordering::SeqCst);
+        self.monitor_running.store(false, Ordering::SeqCst);
+
+        self.logger
+            .debug("OperationMonitor: All counters and flags have been reset");
     }
 
     pub fn was_terminated_early(&self) -> bool {
@@ -118,7 +126,7 @@ impl OperationMonitor {
                     if auto_terminate.load(Ordering::SeqCst) && quick > QUICK_WRITE_MAX_COUNT {
                         consecutive_checks_over_threshold += 1;
 
-                        logger.warning(format!(
+                        logger.debug(format!(
                             "Quick write threshold exceeded: {}/{} (consecutive detections: {}/2)",
                             quick, QUICK_WRITE_MAX_COUNT, consecutive_checks_over_threshold
                         ));
@@ -132,7 +140,7 @@ impl OperationMonitor {
 
                             // Use the same process name termination we added to terminate_process
                             for process_name in &["openocd.exe", "openocd-347.exe"] {
-                                logger.warning(format!("Terminating {}", process_name));
+                                logger.debug(format!("Terminating {}", process_name));
 
                                 // ... (use the termination code from terminate_process)
                             }
@@ -219,10 +227,9 @@ impl OperationMonitor {
                 if let Ok(write_time) = time_str.parse::<u32>() {
                     let is_quick = write_time <= QUICK_WRITE_THRESHOLD_MS;
 
-                    // Only log quick writes as warnings
                     if is_quick {
                         let previous = ctx.quick_write_count.fetch_add(1, Ordering::SeqCst);
-                        ctx.logger.warning(format!(
+                        ctx.logger.debug(format!(
                             "Quick write detected! Count increased from {} to {}",
                             previous,
                             previous + 1
@@ -232,7 +239,6 @@ impl OperationMonitor {
                             .debug(format!("Normal write time: {}ms", write_time));
                     }
 
-                    // Keep the stats as warnings
                     let quick = ctx.quick_write_count.load(Ordering::SeqCst);
                     let total = ctx.total_sector_count.load(Ordering::SeqCst);
                     ctx.logger.debug(format!(
@@ -256,7 +262,7 @@ impl OperationMonitor {
 
     // Split termination logic into a function
     fn terminate_process(ctx: &SectorWriteContext<'_>, quick: usize, total: usize) {
-        ctx.logger.warning(format!(
+        ctx.logger.debug(format!(
             "LINE MONITOR: Too many quick writes detected: {}/{}. Terminating OpenOCD process.",
             quick, total
         ));
@@ -265,7 +271,7 @@ impl OperationMonitor {
         use std::process::Command;
 
         for process_name in &["openocd.exe", "openocd-347.exe"] {
-            ctx.logger.warning(format!("Terminating {}", process_name));
+            ctx.logger.debug(format!("Terminating {}", process_name));
 
             let result = Command::new("taskkill")
                 .args(["/F", "/IM", process_name])
@@ -275,7 +281,7 @@ impl OperationMonitor {
             match result {
                 Ok(output) => {
                     let output_str = String::from_utf8_lossy(&output.stdout);
-                    ctx.logger.warning(format!(
+                    ctx.logger.debug(format!(
                         "Termination result for {}: {}",
                         process_name, output_str
                     ));
@@ -289,7 +295,7 @@ impl OperationMonitor {
                         // Stop the monitor thread
                         ctx.monitor_running.store(false, Ordering::SeqCst);
                         ctx.logger
-                            .warning("TERMINATION SUCCESSFUL - STOPPING FURTHER PROCESSING");
+                            .debug("TERMINATION SUCCESSFUL - STOPPING FURTHER PROCESSING");
 
                         // No need to continue trying other process names
                         break;
