@@ -6,13 +6,13 @@ use std::thread;
 use std::time::Duration;
 
 // Monitoring thresholds
-const QUICK_WRITE_THRESHOLD_MS: u32 = 10; // Threshold to consider a sector write "quick"
-const QUICK_WRITE_MAX_COUNT: usize = 5; // Maximum allowed quick writes before termination
+const NORMAL_WRITE_THRESHOLD_MS: u32 = 10; // Threshold to consider a sector write "normal"
+const MIN_NORMAL_WRITES_REQUIRED: usize = 5; // Minimum required normal writes before termination
 const MONITOR_CHECK_INTERVAL_MS: u64 = 50; // Reduced from 100ms for faster response time
 
 struct SectorWriteContext<'a> {
     logger: &'a Logger,
-    quick_write_count: &'a Arc<AtomicUsize>,
+    normal_write_count: &'a Arc<AtomicUsize>,
     total_sector_count: &'a Arc<AtomicUsize>,
     auto_terminate: &'a Arc<AtomicBool>,
     terminated_early: &'a Arc<AtomicBool>,
@@ -20,7 +20,7 @@ struct SectorWriteContext<'a> {
 }
 
 pub struct OperationMonitor {
-    quick_write_count: Arc<AtomicUsize>,
+    normal_write_count: Arc<AtomicUsize>,
     total_sector_count: Arc<AtomicUsize>,
     auto_terminate_enabled: Arc<AtomicBool>,
     terminated_early: Arc<AtomicBool>,
@@ -31,7 +31,7 @@ pub struct OperationMonitor {
 impl OperationMonitor {
     pub fn new(logger: Logger) -> Self {
         Self {
-            quick_write_count: Arc::new(AtomicUsize::new(0)),
+            normal_write_count: Arc::new(AtomicUsize::new(0)),
             total_sector_count: Arc::new(AtomicUsize::new(0)),
             auto_terminate_enabled: Arc::new(AtomicBool::new(true)),
             terminated_early: Arc::new(AtomicBool::new(false)),
@@ -43,7 +43,7 @@ impl OperationMonitor {
     pub fn reset_counters(&self) {
         self.stop_monitor_thread();
 
-        self.quick_write_count.store(0, Ordering::SeqCst);
+        self.normal_write_count.store(0, Ordering::SeqCst);
         self.total_sector_count.store(0, Ordering::SeqCst);
         self.terminated_early.store(false, Ordering::SeqCst);
         self.monitor_running.store(false, Ordering::SeqCst);
@@ -57,7 +57,7 @@ impl OperationMonitor {
     }
 
     pub fn create_line_monitor(&self, logger: Logger) -> Box<dyn Fn(&str) + Send + Sync + 'static> {
-        let quick_write_count = Arc::clone(&self.quick_write_count);
+        let normal_write_count = Arc::clone(&self.normal_write_count);
         let total_sector_count = Arc::clone(&self.total_sector_count);
         let auto_terminate = Arc::clone(&self.auto_terminate_enabled);
         let terminated_early = Arc::clone(&self.terminated_early);
@@ -73,7 +73,7 @@ impl OperationMonitor {
             // Create the context with all required references
             let context = SectorWriteContext {
                 logger: &logger,
-                quick_write_count: &quick_write_count,
+                normal_write_count: &normal_write_count,
                 total_sector_count: &total_sector_count,
                 auto_terminate: &auto_terminate,
                 terminated_early: &terminated_early,
@@ -85,7 +85,7 @@ impl OperationMonitor {
     }
 
     fn start_monitor_thread(&self, logger: Logger) {
-        let quick_write_count = Arc::clone(&self.quick_write_count);
+        let normal_write_count = Arc::clone(&self.normal_write_count);
         let total_sector_count = Arc::clone(&self.total_sector_count);
         let auto_terminate = Arc::clone(&self.auto_terminate_enabled);
         let terminated_early = Arc::clone(&self.terminated_early);
@@ -99,43 +99,44 @@ impl OperationMonitor {
                 logger.info("Starting real-time sector write monitoring thread".to_string());
 
                 // Track the previous count to detect increments
-                let mut prev_quick_count = 0;
+                let mut prev_normal_count = 0;
                 let mut prev_total_count = 0;
                 let mut consecutive_checks_over_threshold = 0;
                 let mut check_count = 0;
 
                 while monitor_running.load(Ordering::SeqCst) {
-                    let quick = quick_write_count.load(Ordering::SeqCst);
+                    let normal = normal_write_count.load(Ordering::SeqCst);
                     let total = total_sector_count.load(Ordering::SeqCst);
 
                     // Always log a status update every few checks
                     check_count += 1;
                     if check_count % 10 == 0
-                        || quick != prev_quick_count
+                        || normal != prev_normal_count
                         || total != prev_total_count
                     {
                         logger.debug(format!(
-                            "[Monitor Thread] Check #{}: Quick writes: {}/{} (threshold: {})",
-                            check_count, quick, total, QUICK_WRITE_MAX_COUNT
+                            "[Monitor Thread] Check #{}: Normal writes: {}/{} (threshold: {})",
+                            check_count, normal, total, MIN_NORMAL_WRITES_REQUIRED
                         ));
-                        prev_quick_count = quick;
+                        prev_normal_count = normal;
                         prev_total_count = total;
                     }
 
-                    // Check if we need to terminate due to too many quick writes
-                    if auto_terminate.load(Ordering::SeqCst) && quick > QUICK_WRITE_MAX_COUNT {
+                    // Check if we need to terminate due to too few normal writes
+                    if auto_terminate.load(Ordering::SeqCst) && normal < MIN_NORMAL_WRITES_REQUIRED
+                    {
                         consecutive_checks_over_threshold += 1;
 
                         logger.debug(format!(
-                            "Quick write threshold exceeded: {}/{} (consecutive detections: {}/2)",
-                            quick, QUICK_WRITE_MAX_COUNT, consecutive_checks_over_threshold
+                            "Normal write count below minimum: {}/{} (consecutive detections: {}/2)",
+                            normal, MIN_NORMAL_WRITES_REQUIRED, consecutive_checks_over_threshold
                         ));
 
-                        // Add an extra check to ensure we've been consistently over threshold
+                        // Add an extra check to ensure we've been consistently under threshold
                         if consecutive_checks_over_threshold >= 2 {
                             logger.warning(format!(
-                                "Monitor thread detected too many quick sector writes: {}/{}. Terminating process early.",
-                                quick, total
+                                "Monitor thread detected too few normal sector writes: {}/{}. Terminating process early.",
+                                normal, total
                             ));
 
                             // Use the same process name termination we added to terminate_process
@@ -151,8 +152,8 @@ impl OperationMonitor {
                         }
                     } else if consecutive_checks_over_threshold > 0 {
                         logger.info(format!(
-                            "Quick write count {}/{} now below threshold, resetting consecutive counter", 
-                            quick, QUICK_WRITE_MAX_COUNT
+                            "Normal write count {}/{} now above minimum, resetting consecutive counter", 
+                            normal, MIN_NORMAL_WRITES_REQUIRED
                         ));
                         consecutive_checks_over_threshold = 0;
                     }
@@ -225,30 +226,32 @@ impl OperationMonitor {
                     .debug(format!("Extracted time value: '{}'", time_str));
 
                 if let Ok(write_time) = time_str.parse::<u32>() {
-                    let is_quick = write_time <= QUICK_WRITE_THRESHOLD_MS;
+                    let is_normal = write_time >= NORMAL_WRITE_THRESHOLD_MS;
 
-                    if is_quick {
-                        let previous = ctx.quick_write_count.fetch_add(1, Ordering::SeqCst);
+                    if is_normal {
+                        let previous = ctx.normal_write_count.fetch_add(1, Ordering::SeqCst);
                         ctx.logger.debug(format!(
-                            "Quick write detected! Count increased from {} to {}",
+                            "Normal write detected! Count increased from {} to {}",
                             previous,
                             previous + 1
                         ));
                     } else {
                         ctx.logger
-                            .debug(format!("Normal write time: {}ms", write_time));
+                            .debug(format!("Quick write time: {}ms", write_time));
                     }
 
-                    let quick = ctx.quick_write_count.load(Ordering::SeqCst);
+                    let normal = ctx.normal_write_count.load(Ordering::SeqCst);
                     let total = ctx.total_sector_count.load(Ordering::SeqCst);
                     ctx.logger.debug(format!(
-                        "Current stats - Quick writes: {}/{} (threshold: {})",
-                        quick, total, QUICK_WRITE_MAX_COUNT
+                        "Current stats - Normal writes: {}/{} (threshold: {})",
+                        normal, total, MIN_NORMAL_WRITES_REQUIRED
                     ));
 
                     // Check for termination
-                    if ctx.auto_terminate.load(Ordering::SeqCst) && quick > QUICK_WRITE_MAX_COUNT {
-                        Self::terminate_process(ctx, quick, total);
+                    if ctx.auto_terminate.load(Ordering::SeqCst)
+                        && normal < MIN_NORMAL_WRITES_REQUIRED
+                    {
+                        Self::terminate_process(ctx, normal, total);
                     }
                 } else {
                     ctx.logger
@@ -261,10 +264,10 @@ impl OperationMonitor {
     }
 
     // Split termination logic into a function
-    fn terminate_process(ctx: &SectorWriteContext<'_>, quick: usize, total: usize) {
+    fn terminate_process(ctx: &SectorWriteContext<'_>, normal: usize, total: usize) {
         ctx.logger.debug(format!(
-            "LINE MONITOR: Too many quick writes detected: {}/{}. Terminating OpenOCD process.",
-            quick, total
+            "LINE MONITOR: Too few normal writes detected: {}/{}. Terminating OpenOCD process.",
+            normal, total
         ));
 
         use std::os::windows::process::CommandExt;
@@ -290,7 +293,7 @@ impl OperationMonitor {
                     if output.status.success() || output_str.contains("SUCCESS") {
                         ctx.terminated_early.store(true, Ordering::SeqCst);
                         ctx.logger
-                            .error("Operation terminated early - too many quick writes detected.");
+                            .error("Operation terminated early - too few normal writes detected.");
 
                         // Stop the monitor thread
                         ctx.monitor_running.store(false, Ordering::SeqCst);

@@ -163,13 +163,13 @@ fn render_flashing_result(
 
     // Analyze sector write times from logs
     let mut total_sectors = 0;
-    let mut quick_writes = 0;
+    let mut normal_writes = 0;
 
     for entry in manager.logger().get_entries() {
         if let Some(time_ms) = extract_sector_time(&entry.message) {
             total_sectors += 1;
-            if time_ms < 50 {
-                quick_writes += 1;
+            if time_ms >= 10 {
+                normal_writes += 1;
             }
         }
     }
@@ -183,18 +183,18 @@ fn render_flashing_result(
 
     // Analysis of sector write times
     let has_sectors = total_sectors > 0;
-    let has_quick_writes = has_sectors && quick_writes > total_sectors / 2;
-    let has_proper_sector_times = has_sectors && quick_writes < total_sectors / 2;
+    let has_few_normal_writes = has_sectors && normal_writes < 5;
+    let has_proper_sector_times = has_sectors && normal_writes >= 5;
 
     // Show appropriate screen based on analysis
     match status {
         CompletionStatus::Completed => {
-            if has_quick_writes {
+            if has_few_normal_writes {
                 render_error(
                     ui,
                     "FLASHING FAILED - CONNECTION ISSUE",
                     &format!(
-                        "Multiple sector writes completed too quickly (50ms or less): {} out of {} sectors.\n\n\
+                        "Insufficient normal sector writes detected: {} out of {} sectors.\n\n\
                         This indicates a hardware connection issue. The device is accessible but \
                         data is not being properly transferred.\n\n\
                         Try:\n\
@@ -202,7 +202,7 @@ fn render_flashing_result(
                         2. Check cable connections\n\
                         3. Ensure the device is powered correctly\n\
                         4. Try a different USB cable",
-                        quick_writes, total_sectors
+                        normal_writes, total_sectors
                     ),
                     icon_manager,
                 );

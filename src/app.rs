@@ -152,7 +152,6 @@ impl FirmwareToolApp {
     }
 
     fn handle_firmware_scanning(&mut self, ctx: &egui::Context) {
-        // First scan is quick, then use longer intervals
         let scan_interval = if self.firmware_manager.get_scan_count() <= 1 {
             FIRST_FIRMWARE_SCAN_INTERVAL_MS
         } else {
