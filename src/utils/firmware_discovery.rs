@@ -9,6 +9,7 @@ pub struct FirmwareManager {
     selected_index: Option<usize>,
     scan_count: usize,
     logger: Logger,
+    cleanup_enabled: bool,
 }
 
 impl FirmwareManager {
@@ -18,6 +19,7 @@ impl FirmwareManager {
             selected_index: None,
             scan_count: 0,
             logger: Logger::new("FirmwareDiscovery"),
+            cleanup_enabled: false,
         }
     }
 
@@ -145,5 +147,13 @@ impl FirmwareManager {
         for file in &self.firmware_files {
             println!("  - {}", file.display());
         }
+    }
+
+    pub fn get_cleanup_enabled(&self) -> bool {
+        self.cleanup_enabled
+    }
+
+    pub fn set_cleanup_enabled(&mut self, enabled: bool) {
+        self.cleanup_enabled = enabled;
     }
 }

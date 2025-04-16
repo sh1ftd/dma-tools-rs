@@ -13,6 +13,7 @@ pub use types::{CompletionStatus, DnaInfo, FlashingOption};
 use crate::utils::logger::Logger;
 use monitor::OperationMonitor;
 use std::path::Path;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -34,6 +35,8 @@ pub struct FlashingManager {
     firmware_flasher: FirmwareFlasher,
     last_status_change: Arc<Mutex<Option<Instant>>>,
     last_status: Arc<Mutex<Option<CompletionStatus>>>,
+    cleanup_enabled: bool,
+    original_firmware_path: Option<PathBuf>,
 }
 
 impl FlashingManager {
@@ -52,11 +55,19 @@ impl FlashingManager {
             firmware_flasher: FirmwareFlasher::new(logger),
             last_status_change: Arc::new(Mutex::new(Some(Instant::now()))),
             last_status: Arc::new(Mutex::new(None)),
+            cleanup_enabled: false,
+            original_firmware_path: None,
         }
+    }
+
+    pub fn set_cleanup_enabled(&mut self, enabled: bool) {
+        self.cleanup_enabled = enabled;
     }
 
     pub fn execute_flash(&mut self, firmware_path: &Path, option: &FlashingOption) {
         self.initialize_operation(option.clone());
+        self.original_firmware_path = Some(firmware_path.to_path_buf());
+
         if let Err(e) = self.firmware_flasher.execute(
             firmware_path,
             option,
@@ -145,11 +156,30 @@ impl FlashingManager {
     }
 
     pub fn check_if_completed(&self) -> bool {
-        matches!(
-            self.get_status(),
+        let status = self.get_status();
+        let completed = matches!(
+            status,
             CompletionStatus::Completed
                 | CompletionStatus::DnaReadCompleted(_)
                 | CompletionStatus::Failed(_)
-        )
+        );
+
+        if completed && self.cleanup_enabled {
+            if let CompletionStatus::Completed = status {
+                if let Some(path) = &self.original_firmware_path {
+                    if let Err(e) = std::fs::remove_file(path) {
+                        self.logger
+                            .error(format!("Failed to clean up original firmware file: {}", e));
+                    } else {
+                        self.logger.info(format!(
+                            "Successfully cleaned up original firmware file: {}",
+                            path.display()
+                        ));
+                    }
+                }
+            }
+        }
+
+        completed
     }
 }

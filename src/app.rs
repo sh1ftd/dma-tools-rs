@@ -368,9 +368,14 @@ impl FirmwareToolApp {
     }
 
     fn render_firmware_selection(&mut self, ui: &mut egui::Ui) {
+        // Get cleanup value before the callback
+        let cleanup_enabled = self.firmware_manager.get_cleanup_enabled();
+
         let mut select_callback = |selected: Option<PathBuf>| {
             self.selected_firmware = selected;
             self.state = AppState::FlashingOptions;
+            // Pass cleanup option to flashing manager
+            self.flashing_manager.set_cleanup_enabled(cleanup_enabled);
         };
 
         // Store the scan count before passing the mutable reference

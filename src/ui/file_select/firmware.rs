@@ -81,6 +81,20 @@ fn render_firmware_list(
     ui.vertical_centered(|ui| {
         render_status_bar(ui, is_scanning);
         render_file_list(ui, files, firmware_manager);
+
+        let mut cleanup_enabled = firmware_manager.get_cleanup_enabled();
+        ui.horizontal(|ui| {
+            if ui
+                .checkbox(&mut cleanup_enabled, "Perform Clean up")
+                .changed()
+            {
+                firmware_manager.set_cleanup_enabled(cleanup_enabled);
+            }
+            ui.label("(Delete target .bin file if flash successful)");
+        });
+
+        ui.add_space(8.0);
+
         render_continue_button(ui, firmware_manager, on_select);
     });
 }
