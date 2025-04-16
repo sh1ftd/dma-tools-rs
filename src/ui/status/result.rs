@@ -182,14 +182,14 @@ fn render_flashing_result(
     });
 
     // Analysis of sector write times
-    let has_sectors = total_sectors > 0;
-    let has_few_normal_writes = has_sectors && normal_writes < 5;
-    let has_proper_sector_times = has_sectors && normal_writes >= 5;
+    let has_enough_sectors = total_sectors >= 10; // Minimum sectors before checking normal writes
+    let has_few_normal_writes = has_enough_sectors && normal_writes < 5;
+    let has_proper_sector_times = has_enough_sectors && normal_writes >= 5;
 
     // Show appropriate screen based on analysis
     match status {
         CompletionStatus::Completed => {
-            if has_few_normal_writes {
+            if has_enough_sectors && has_few_normal_writes {
                 render_error(
                     ui,
                     "FLASHING FAILED - CONNECTION ISSUE",
@@ -223,6 +223,20 @@ fn render_flashing_result(
                     4. Make sure the device is properly seated in the PCIE slot.",
                     icon_manager,
                 );
+            } else if total_sectors < 10 {
+                render_success(ui, icon_manager);
+
+                ui.add_space(SPACING_SMALL);
+                ui.label(
+                    RichText::new(
+                        "Note: Operation completed with fewer than 10 sectors. Please verify manually or try again.",
+                    )
+                    .italics(),
+                );
+
+                if duration_secs > 1 {
+                    render_duration(ui, duration_secs);
+                }
             } else {
                 render_success(ui, icon_manager);
 

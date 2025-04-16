@@ -6,9 +6,10 @@ use std::thread;
 use std::time::Duration;
 
 // Monitoring thresholds
-const NORMAL_WRITE_THRESHOLD_MS: u32 = 10; // Threshold to consider a sector write "normal"
-const MIN_NORMAL_WRITES_REQUIRED: usize = 5; // Minimum required normal writes before termination
-const MONITOR_CHECK_INTERVAL_MS: u64 = 50; // Reduced from 100ms for faster response time
+const NORMAL_WRITE_THRESHOLD_MS: u32 = 10;
+const MIN_NORMAL_WRITES_REQUIRED: usize = 5;
+const MIN_SECTORS_BEFORE_CHECK: usize = 10;
+const MONITOR_CHECK_INTERVAL_MS: u64 = 50;
 
 struct SectorWriteContext<'a> {
     logger: &'a Logger,
@@ -123,7 +124,9 @@ impl OperationMonitor {
                     }
 
                     // Check if we need to terminate due to too few normal writes
-                    if auto_terminate.load(Ordering::SeqCst) && normal < MIN_NORMAL_WRITES_REQUIRED
+                    if auto_terminate.load(Ordering::SeqCst)
+                        && total >= MIN_SECTORS_BEFORE_CHECK
+                        && normal < MIN_NORMAL_WRITES_REQUIRED
                     {
                         consecutive_checks_over_threshold += 1;
 
@@ -249,6 +252,7 @@ impl OperationMonitor {
 
                     // Check for termination
                     if ctx.auto_terminate.load(Ordering::SeqCst)
+                        && total >= MIN_SECTORS_BEFORE_CHECK
                         && normal < MIN_NORMAL_WRITES_REQUIRED
                     {
                         Self::terminate_process(ctx, normal, total);
