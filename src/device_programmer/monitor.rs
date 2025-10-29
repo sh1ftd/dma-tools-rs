@@ -69,7 +69,7 @@ impl OperationMonitor {
 
         Box::new(move |line: &str| {
             // Only log detailed info in debug mode
-            logger.debug(format!("Monitor processing: {}", line));
+            logger.debug(format!("Monitor processing: {line}"));
 
             // Create the context with all required references
             let context = SectorWriteContext {
@@ -116,8 +116,7 @@ impl OperationMonitor {
                         || total != prev_total_count
                     {
                         logger.debug(format!(
-                            "[Monitor Thread] Check #{}: Normal writes: {}/{} (threshold: {})",
-                            check_count, normal, total, MIN_NORMAL_WRITES_REQUIRED
+                            "[Monitor Thread] Check #{check_count}: Normal writes: {normal}/{total} (threshold: {MIN_NORMAL_WRITES_REQUIRED})"
                         ));
                         prev_normal_count = normal;
                         prev_total_count = total;
@@ -131,20 +130,18 @@ impl OperationMonitor {
                         consecutive_checks_over_threshold += 1;
 
                         logger.debug(format!(
-                            "Normal write count below minimum: {}/{} (consecutive detections: {}/2)",
-                            normal, MIN_NORMAL_WRITES_REQUIRED, consecutive_checks_over_threshold
+                            "Normal write count below minimum: {normal}/{MIN_NORMAL_WRITES_REQUIRED} (consecutive detections: {consecutive_checks_over_threshold}/2)"
                         ));
 
                         // Add an extra check to ensure we've been consistently under threshold
                         if consecutive_checks_over_threshold >= 2 {
                             logger.warning(format!(
-                                "Monitor thread detected too few normal sector writes: {}/{}. Terminating process early.",
-                                normal, total
+                                "Monitor thread detected too few normal sector writes: {normal}/{total}. Terminating process early."
                             ));
 
                             // Use the same process name termination we added to terminate_process
                             for process_name in &["openocd.exe", "openocd-347.exe"] {
-                                logger.debug(format!("Terminating {}", process_name));
+                                logger.debug(format!("Terminating {process_name}"));
 
                                 // ... (use the termination code from terminate_process)
                             }
@@ -155,8 +152,7 @@ impl OperationMonitor {
                         }
                     } else if consecutive_checks_over_threshold > 0 {
                         logger.info(format!(
-                            "Normal write count {}/{} now above minimum, resetting consecutive counter", 
-                            normal, MIN_NORMAL_WRITES_REQUIRED
+                            "Normal write count {normal}/{MIN_NORMAL_WRITES_REQUIRED} now above minimum, resetting consecutive counter"
                         ));
                         consecutive_checks_over_threshold = 0;
                     }
@@ -183,7 +179,7 @@ impl OperationMonitor {
         }
 
         // Add a visible debug print for every line
-        ctx.logger.debug(format!("Processing line: {}", line));
+        ctx.logger.debug(format!("Processing line: {line}"));
 
         // Original format attempt
         if line.contains("Info :") && line.contains("sector") && line.contains("took") {
@@ -219,14 +215,14 @@ impl OperationMonitor {
         ));
 
         // Extract the time value more reliably - all debug level
-        ctx.logger.debug(format!("Extracting time from: {}", line));
+        ctx.logger.debug(format!("Extracting time from: {line}"));
 
         if let Some(time_part) = line.split("took").nth(1) {
-            ctx.logger.debug(format!("After 'took': '{}'", time_part));
+            ctx.logger.debug(format!("After 'took': '{time_part}'"));
 
             if let Some(time_str) = time_part.split_whitespace().next() {
                 ctx.logger
-                    .debug(format!("Extracted time value: '{}'", time_str));
+                    .debug(format!("Extracted time value: '{time_str}'"));
 
                 if let Ok(write_time) = time_str.parse::<u32>() {
                     let is_normal = write_time >= NORMAL_WRITE_THRESHOLD_MS;
@@ -240,14 +236,13 @@ impl OperationMonitor {
                         ));
                     } else {
                         ctx.logger
-                            .debug(format!("Quick write time: {}ms", write_time));
+                            .debug(format!("Quick write time: {write_time}ms"));
                     }
 
                     let normal = ctx.normal_write_count.load(Ordering::SeqCst);
                     let total = ctx.total_sector_count.load(Ordering::SeqCst);
                     ctx.logger.debug(format!(
-                        "Current stats - Normal writes: {}/{} (threshold: {})",
-                        normal, total, MIN_NORMAL_WRITES_REQUIRED
+                        "Current stats - Normal writes: {normal}/{total} (threshold: {MIN_NORMAL_WRITES_REQUIRED})"
                     ));
 
                     // Check for termination
@@ -259,7 +254,7 @@ impl OperationMonitor {
                     }
                 } else {
                     ctx.logger
-                        .debug(format!("Failed to parse '{}' as u32", time_str));
+                        .debug(format!("Failed to parse '{time_str}' as u32"));
                 }
             }
         } else {
@@ -270,15 +265,14 @@ impl OperationMonitor {
     // Split termination logic into a function
     fn terminate_process(ctx: &SectorWriteContext<'_>, normal: usize, total: usize) {
         ctx.logger.debug(format!(
-            "LINE MONITOR: Too few normal writes detected: {}/{}. Terminating OpenOCD process.",
-            normal, total
+            "LINE MONITOR: Too few normal writes detected: {normal}/{total}. Terminating OpenOCD process."
         ));
 
         use std::os::windows::process::CommandExt;
         use std::process::Command;
 
         for process_name in &["openocd.exe", "openocd-347.exe"] {
-            ctx.logger.debug(format!("Terminating {}", process_name));
+            ctx.logger.debug(format!("Terminating {process_name}"));
 
             let result = Command::new("taskkill")
                 .args(["/F", "/IM", process_name])
@@ -289,8 +283,7 @@ impl OperationMonitor {
                 Ok(output) => {
                     let output_str = String::from_utf8_lossy(&output.stdout);
                     ctx.logger.debug(format!(
-                        "Termination result for {}: {}",
-                        process_name, output_str
+                        "Termination result for {process_name}: {output_str}"
                     ));
 
                     // If successful, set the terminated flag
@@ -310,7 +303,7 @@ impl OperationMonitor {
                 }
                 Err(e) => {
                     ctx.logger
-                        .error(format!("Failed to terminate {}: {}", process_name, e));
+                        .error(format!("Failed to terminate {process_name}: {e}"));
                 }
             }
         }

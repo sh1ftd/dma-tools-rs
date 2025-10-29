@@ -23,7 +23,7 @@ fn terminate_lingering_processes(logger: &Logger) {
     logger.debug("Checking for lingering processes...");
 
     for process_name in OPENOCD_PROCESSES.iter() {
-        logger.debug(format!("Attempting to terminate {}", process_name));
+        logger.debug(format!("Attempting to terminate {process_name}"));
 
         let result = Command::new("taskkill")
             .args(["/F", "/IM", process_name])
@@ -34,13 +34,12 @@ fn terminate_lingering_processes(logger: &Logger) {
             Ok(output) => {
                 let stdout = String::from_utf8_lossy(&output.stdout);
                 if !stdout.contains("ERROR") {
-                    logger.debug(format!("Terminated lingering {} processes", process_name));
+                    logger.debug(format!("Terminated lingering {process_name} processes"));
                 }
             }
             Err(e) => {
                 logger.debug(format!(
-                    "No {} processes to terminate or error: {}",
-                    process_name, e
+                    "No {process_name} processes to terminate or error: {e}"
                 ));
             }
         }
@@ -53,8 +52,8 @@ fn cleanup_temp_files(logger: &Logger) {
     for file in CLEANUP_FILES {
         if Path::new(file).exists() {
             match fs::remove_file(file) {
-                Ok(_) => logger.debug(format!("Removed temporary file: {}", file)),
-                Err(e) => logger.debug(format!("Failed to remove {}: {}", file, e)),
+                Ok(_) => logger.debug(format!("Removed temporary file: {file}")),
+                Err(e) => logger.debug(format!("Failed to remove {file}: {e}")),
             }
         }
     }

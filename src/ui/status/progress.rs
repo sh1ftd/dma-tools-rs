@@ -80,11 +80,10 @@ fn determine_current_stage(manager: &FlashingManager, now: Instant) -> (String, 
                 sector_times.entry(sector).or_insert(now);
 
                 // Check if we've been stuck on this sector
-                if let Some(first_seen) = sector_times.get(&sector) {
-                    if now.duration_since(*first_seen) > SECTOR_STUCK_THRESHOLD {
+                if let Some(first_seen) = sector_times.get(&sector)
+                    && now.duration_since(*first_seen) > SECTOR_STUCK_THRESHOLD {
                         is_finalizing = true;
                     }
-                }
 
                 current_sector = Some(sector);
                 is_writing = true;
@@ -187,10 +186,10 @@ fn render_technical_info_frame(ui: &mut Ui, option: &FlashingOption, operation_n
                 ));
                 ui.add_space(STANDARD_SPACING);
                 ui.label(format!("Interface: {}", option.get_driver_type()));
-                ui.label(format!("Operation Type: {}", operation_name));
+                ui.label(format!("Operation Type: {operation_name}"));
 
                 let device_type = get_device_type(option);
-                ui.label(format!("Target Device: {}", device_type));
+                ui.label(format!("Target Device: {device_type}"));
             });
         });
 }

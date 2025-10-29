@@ -73,7 +73,7 @@ fn render_file_check_internal(
 // Status rendering functions
 fn render_not_started(ui: &mut Ui) {
     ui.add_space(SPACING_XXLARGE);
-    ui.label(format!("Welcome to the {} Tool", APP_TITLE));
+    ui.label(format!("Welcome to the {APP_TITLE} Tool"));
     ui.add_space(SPACING_LARGE);
     ui.label("Checking system files...");
     ui.add_space(SPACING_LARGE);
@@ -87,7 +87,7 @@ fn render_checking(ui: &mut Ui, current_file: &str) {
     render_centered_spinner(ui);
     ui.add_space(SPACING_XLARGE);
     ui.vertical_centered(|ui| {
-        ui.label(RichText::new(format!("Checking: {}", current_file)).monospace());
+        ui.label(RichText::new(format!("Checking: {current_file}")).monospace());
     });
     ui.add_space(SPACING_XXLARGE);
 }

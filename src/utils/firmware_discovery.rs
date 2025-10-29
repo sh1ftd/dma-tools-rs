@@ -26,8 +26,7 @@ impl FirmwareManager {
     pub fn scan_firmware_files(&mut self) {
         if let Err(e) = fs::remove_file(TEMP_FIRMWARE_FILE) {
             self.logger.info(format!(
-                "Note: Could not remove previous temp firmware file: {}",
-                e
+                "Note: Could not remove previous temp firmware file: {e}"
             ));
         }
 

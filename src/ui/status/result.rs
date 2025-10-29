@@ -68,13 +68,13 @@ fn render_dna_result(
             render_error(
                 ui,
                 "DNA READ FAILED",
-                &format!("Failed to read DNA from the device:\n\n{}", error),
+                &format!("Failed to read DNA from the device:\n\n{error}"),
                 icon_manager,
             );
         }
         CompletionStatus::InProgress(status_msg) => {
             ui.vertical_centered(|ui| {
-                ui.label(format!("Operation in progress: {}", status_msg));
+                ui.label(format!("Operation in progress: {status_msg}"));
                 ui.spinner();
             });
         }
@@ -194,15 +194,14 @@ fn render_flashing_result(
                     ui,
                     "FLASHING FAILED - CONNECTION ISSUE",
                     &format!(
-                        "Insufficient normal sector writes detected: {} out of {} sectors.\n\n\
+                        "Insufficient normal sector writes detected: {normal_writes} out of {total_sectors} sectors.\n\n\
                         This indicates a hardware connection issue. The device is accessible but \
                         data is not being properly transferred.\n\n\
                         Try:\n\
                         1. Use a different USB port\n\
                         2. Check cable connections\n\
                         3. Ensure the device is powered correctly\n\
-                        4. Try a different USB cable",
-                        normal_writes, total_sectors
+                        4. Try a different USB cable"
                     ),
                     icon_manager,
                 );
@@ -265,7 +264,7 @@ fn render_flashing_result(
             render_error(
                 ui,
                 "FLASHING FAILED",
-                &format!("Failed to flash firmware to the device:\n\n{}", error),
+                &format!("Failed to flash firmware to the device:\n\n{error}"),
                 icon_manager,
             );
         }
@@ -273,7 +272,7 @@ fn render_flashing_result(
             // Display the current operation progress
             ui.vertical_centered(|ui| {
                 ui.label(
-                    RichText::new(format!("Operation in progress: {}", status_msg))
+                    RichText::new(format!("Operation in progress: {status_msg}"))
                         .size(18.0)
                         .color(egui::Color32::from_rgb(50, 150, 255)),
                 ); // Use a blue color for progress

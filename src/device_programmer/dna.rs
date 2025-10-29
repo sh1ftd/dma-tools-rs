@@ -47,8 +47,8 @@ impl DnaReader {
         Self::cleanup_dna_output_file(&self.logger);
 
         let (cmd, config) = option.get_command_args();
-        let exe_path = format!("{}/{}", SCRIPT_DIR, cmd);
-        let config_path = format!("{}/{}", SCRIPT_DIR, config);
+        let exe_path = format!("{SCRIPT_DIR}/{cmd}");
+        let config_path = format!("{SCRIPT_DIR}/{config}");
 
         // Start background processing thread first (only sets up the thread)
         self.start_dna_processing_thread(executor);
@@ -72,7 +72,7 @@ impl DnaReader {
             ProcessExecutor::prepare_command(exe_path, &["-f", config_path, "-c", "exit"]);
 
         self.logger
-            .debug(format!("Executing DNA read command: {:?}", command));
+            .debug(format!("Executing DNA read command: {command:?}"));
 
         let options = CommandOptions {
             update_duration: true,
@@ -83,7 +83,7 @@ impl DnaReader {
             Ok(_) => true,
             Err(e) => {
                 self.logger
-                    .error(format!("Failed to execute DNA read: {}", e));
+                    .error(format!("Failed to execute DNA read: {e}"));
                 false
             }
         }
@@ -158,8 +158,7 @@ impl DnaReader {
                     logger_clone.warning("Command failed while waiting for DNA file.");
                 } else {
                     let error_msg = format!(
-                        "DNA output file not found after {} attempts",
-                        DNA_MAX_ATTEMPTS
+                        "DNA output file not found after {DNA_MAX_ATTEMPTS} attempts"
                     );
                     logger_clone.error(&error_msg);
                     *completion_status.lock().unwrap() = CompletionStatus::Failed(error_msg);
@@ -179,7 +178,7 @@ impl DnaReader {
                     metadata.len()
                 ));
                 if let Err(e) = fs::remove_file(path) {
-                    logger.error(format!("Failed to remove incomplete DNA file: {}", e));
+                    logger.error(format!("Failed to remove incomplete DNA file: {e}"));
                 }
             }
         }
@@ -228,9 +227,9 @@ impl DnaReader {
                             CompletionStatus::DnaReadCompleted(dna_info);
                     }
                     Err(e) => {
-                        logger.error(format!("Failed to extract DNA from contents: {}", e));
+                        logger.error(format!("Failed to extract DNA from contents: {e}"));
                         *completion_status.lock().unwrap() =
-                            CompletionStatus::Failed(format!("Failed to extract DNA: {}", e));
+                            CompletionStatus::Failed(format!("Failed to extract DNA: {e}"));
                     }
                 }
             }
@@ -264,7 +263,7 @@ impl DnaReader {
             .lines()
             .find(|line| line.trim().starts_with("DNA ="))
         {
-            logger.debug(format!("Found DNA line: {}", dna_line));
+            logger.debug(format!("Found DNA line: {dna_line}"));
 
             let parts: Vec<&str> = dna_line.split('=').collect();
             if parts.len() > 1 {
@@ -289,8 +288,7 @@ impl DnaReader {
                             });
                         } else {
                             logger.debug(format!(
-                                "Failed validation: binary={}, hex={}",
-                                is_binary, is_hex
+                                "Failed validation: binary={is_binary}, hex={is_hex}"
                             ));
                         }
                     } else {
@@ -318,7 +316,7 @@ impl DnaReader {
             }
             Err(e) => {
                 // Other errors should still be logged
-                logger.debug(format!("Could not remove previous DNA output file: {}", e));
+                logger.debug(format!("Could not remove previous DNA output file: {e}"));
             }
         }
     }
@@ -331,7 +329,7 @@ impl DnaReader {
             // Handle the new status
             CompletionStatus::DnaReadCompleted(_) => "DNA read successful!".to_string(),
             CompletionStatus::Completed => "Operation completed (Non-DNA)".to_string(), // This won't happen in DNA context, but handle it just in case
-            CompletionStatus::Failed(err) => format!("DNA read failed: {}", err),
+            CompletionStatus::Failed(err) => format!("DNA read failed: {err}"),
         }
     }
 
@@ -341,7 +339,7 @@ impl DnaReader {
         let value = u128::from_str_radix(binary, 2).unwrap();
 
         // Convert to hex (uppercase, no '0x' prefix)
-        let mut hex_str = format!("{:X}", value);
+        let mut hex_str = format!("{value:X}");
 
         // Make sure the result is exactly 16 characters long
         let current_len = hex_str.len();
@@ -351,6 +349,6 @@ impl DnaReader {
         }
 
         // Add 'h' prefix
-        format!("h{}", hex_str)
+        format!("h{hex_str}")
     }
 }

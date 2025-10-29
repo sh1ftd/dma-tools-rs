@@ -24,10 +24,10 @@ pub fn disable_maximize_button_for_all() -> Option<&'static str> {
             // which was provided by EnumWindows.
             let window_title = unsafe { get_window_title(hwnd) };
 
-            if let Some(window_title) = window_title {
-                if window_title.contains(APP_TITLE) {
+            if let Some(window_title) = window_title
+                && window_title.contains(APP_TITLE) {
                     #[cfg(debug_assertions)]
-                    println!("Found window: {}", window_title);
+                    println!("Found window: {window_title}");
 
                     // SAFETY: hwnd is a valid window handle provided by EnumWindows.
                     unsafe { disable_maximize_for_window(hwnd) };
@@ -35,7 +35,6 @@ pub fn disable_maximize_button_for_all() -> Option<&'static str> {
                     // to be valid for the duration of this callback.
                     unsafe { mark_window_found(found) };
                 }
-            }
             TRUE
         }
 

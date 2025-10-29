@@ -75,7 +75,7 @@ impl FirmwareFlasher {
                 Ok(())
             }
             Err(e) => {
-                let error_msg = format!("Failed to execute firmware flash: {}", e);
+                let error_msg = format!("Failed to execute firmware flash: {e}");
                 self.logger.error(&error_msg);
                 Err(error_msg)
             }
@@ -101,7 +101,7 @@ impl FirmwareFlasher {
         ));
         self.logger
             .info(format!("Firmware file: {}", firmware_path.display()));
-        self.logger.command(format!("Executing: {}", command_str));
+        self.logger.command(format!("Executing: {command_str}"));
     }
 
     fn prepare_flash_command(
@@ -110,8 +110,8 @@ impl FirmwareFlasher {
         option: &FlashingOption,
     ) -> (String, String, Vec<String>) {
         let (cmd, config) = option.get_command_args();
-        let exe_path = format!("{}/{}", SCRIPT_DIR, cmd);
-        let config_path = format!("{}/{}", SCRIPT_DIR, config);
+        let exe_path = format!("{SCRIPT_DIR}/{cmd}");
+        let config_path = format!("{SCRIPT_DIR}/{config}");
 
         let program_arg = format!("program {}; exit", firmware_path.display());
         let args = vec![
@@ -122,7 +122,7 @@ impl FirmwareFlasher {
         ];
 
         // For logging purposes
-        let command_str = format!("{} -f {} -c \"{}\"", exe_path, config_path, program_arg);
+        let command_str = format!("{exe_path} -f {config_path} -c \"{program_arg}\"");
 
         (exe_path, command_str, args)
     }
@@ -135,7 +135,7 @@ impl FirmwareFlasher {
         fs::copy(firmware_path, TEMP_FIRMWARE_FILE)
             .map(|_| ())
             .map_err(|e| {
-                let error_msg = format!("Failed to prepare firmware file: {}", e);
+                let error_msg = format!("Failed to prepare firmware file: {e}");
                 self.logger.error(&error_msg);
                 executor.set_completion_status(CompletionStatus::Failed(error_msg.clone()));
                 error_msg

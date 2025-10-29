@@ -64,7 +64,7 @@ pub struct FirmwareToolApp {
 impl FirmwareToolApp {
     pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
         let logger = Logger::new("AppLogger");
-        logger.info(format!("{} Tool started", APP_TITLE));
+        logger.info(format!("{APP_TITLE} Tool started"));
 
         setup_window_controls();
 
@@ -105,11 +105,10 @@ impl FirmwareToolApp {
     fn get_window_size_type(&self) -> WindowSizeType {
         match self.state {
             AppState::FileCheck => {
-                if let CheckStatus::Complete(result) = self.file_checker.get_status() {
-                    if result.error_count > 0 {
+                if let CheckStatus::Complete(result) = self.file_checker.get_status()
+                    && result.error_count > 0 {
                         return WindowSizeType::MissingFiles;
                     }
-                }
                 WindowSizeType::FileCheck
             }
             AppState::OperationSelection => WindowSizeType::OperationSelection,
@@ -248,15 +247,13 @@ impl FirmwareToolApp {
                 && min_display_time_elapsed
             {
                 if let Some(last_state_change) = self.flashing_manager.get_last_status_change_time()
-                {
-                    if last_state_change.elapsed() < Duration::from_millis(STATUS_STABILITY_WAIT_MS)
+                    && last_state_change.elapsed() < Duration::from_millis(STATUS_STABILITY_WAIT_MS)
                     {
                         // Status changed too recently - wait a bit longer for stability
                         self.logger
                             .debug("Status changed recently - waiting for stability");
                         return;
                     }
-                }
 
                 // Stop any running DNA thread before transitioning
                 if self.dna_read_in_progress {
@@ -321,11 +318,10 @@ impl FirmwareToolApp {
 
         let mut continue_callback = |continue_anyway: bool| {
             if continue_anyway {
-                if let CheckStatus::Complete(result) = &check_status {
-                    if result.error_count > 0 {
+                if let CheckStatus::Complete(result) = &check_status
+                    && result.error_count > 0 {
                         self.state = AppState::OperationSelection;
                     }
-                }
             } else {
                 std::process::exit(1);
             }

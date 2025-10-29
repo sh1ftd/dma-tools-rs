@@ -71,8 +71,8 @@ impl ProcessExecutor {
                     match child.wait() {
                         Ok(exit_status) => {
                             // Update execution duration
-                            if options.update_duration {
-                                if let Some(start) = *start_time.lock().unwrap() {
+                            if options.update_duration
+                                && let Some(start) = *start_time.lock().unwrap() {
                                     let elapsed = start.elapsed();
 
                                     // Format duration in a readable way based on the actual time
@@ -81,8 +81,7 @@ impl ProcessExecutor {
                                         let seconds = elapsed.as_secs();
                                         let millis = elapsed.subsec_millis();
                                         logger.info(format!(
-                                            "Operation took {}.{:03}s",
-                                            seconds, millis
+                                            "Operation took {seconds}.{millis:03}s"
                                         ));
                                     } else {
                                         // For very quick operations, show milliseconds
@@ -92,7 +91,6 @@ impl ProcessExecutor {
                                         ));
                                     }
                                 }
-                            }
 
                             if exit_status.success() {
                                 logger.success("Command completed successfully");
@@ -108,7 +106,7 @@ impl ProcessExecutor {
                             }
                         }
                         Err(e) => {
-                            let error_msg = format!("Failed to wait for process: {}", e);
+                            let error_msg = format!("Failed to wait for process: {e}");
                             logger.error(&error_msg);
                             *completion_status.lock().unwrap() =
                                 CompletionStatus::Failed(error_msg.clone());
@@ -116,30 +114,27 @@ impl ProcessExecutor {
                     }
 
                     // Clean up temporary file
-                    if options.cleanup_temp_files {
-                        if let Err(e) = fs::remove_file(TEMP_FIRMWARE_FILE) {
+                    if options.cleanup_temp_files
+                        && let Err(e) = fs::remove_file(TEMP_FIRMWARE_FILE) {
                             logger.debug(format!(
-                                "Failed to clean up temporary firmware file: {}",
-                                e
+                                "Failed to clean up temporary firmware file: {e}"
                             ));
                         }
-                    }
                 });
 
                 Ok(())
             }
             Err(e) => {
-                let error_msg = format!("Failed to start process: {}", e);
+                let error_msg = format!("Failed to start process: {e}");
                 self.logger.error(&error_msg);
                 *self.completion_status.lock().unwrap() =
                     CompletionStatus::Failed(error_msg.clone());
 
-                if options.cleanup_temp_files {
-                    if let Err(e) = fs::remove_file(TEMP_FIRMWARE_FILE) {
+                if options.cleanup_temp_files
+                    && let Err(e) = fs::remove_file(TEMP_FIRMWARE_FILE) {
                         self.logger
-                            .warning(format!("Failed to clean up temporary firmware file: {}", e));
+                            .warning(format!("Failed to clean up temporary firmware file: {e}"));
                     }
-                }
 
                 Err(error_msg)
             }
@@ -174,7 +169,7 @@ impl ProcessExecutor {
                     // Process any available sector lines (non-blocking)
                     match rx.try_recv() {
                         Ok(sector_line) => {
-                            stdout_logger.info(format!("RECEIVED sector line: {}", sector_line));
+                            stdout_logger.info(format!("RECEIVED sector line: {sector_line}"));
 
                             if let Some(cb) = &*callback_opt {
                                 stdout_logger.info("About to call callback with sector line");
@@ -205,7 +200,7 @@ impl ProcessExecutor {
 
                                 // Process the stdout line
                                 if line.contains("sector") && line.contains("took") {
-                                    stdout_logger.warning(format!("STDOUT SECTOR LINE: {}", line));
+                                    stdout_logger.warning(format!("STDOUT SECTOR LINE: {line}"));
                                     if let Some(cb) = &*callback_opt {
                                         cb(&line);
                                     }
@@ -224,7 +219,7 @@ impl ProcessExecutor {
                         match rx.try_recv() {
                             Ok(sector_line) => {
                                 // There was one more message, process it
-                                stdout_logger.info(format!("Extra sector line: {}", sector_line));
+                                stdout_logger.info(format!("Extra sector line: {sector_line}"));
                                 if let Some(cb) = &*callback_opt {
                                     cb(&sector_line);
                                 }
@@ -246,7 +241,7 @@ impl ProcessExecutor {
 
                 // Final check for any remaining sector lines
                 while let Ok(sector_line) = rx.recv() {
-                    stdout_logger.info(format!("FINAL sector line: {}", sector_line));
+                    stdout_logger.info(format!("FINAL sector line: {sector_line}"));
                     if let Some(cb) = &*callback_opt {
                         cb(&sector_line);
                     }
@@ -273,7 +268,7 @@ impl ProcessExecutor {
 
                     // Look for sector lines in stderr
                     if line.contains("sector") && line.contains("took") {
-                        stderr_logger.debug(format!("Stderr sector line: {}", line));
+                        stderr_logger.debug(format!("Stderr sector line: {line}"));
 
                         // Check for termination before processing
                         if let Some(cb) = &*callback_opt_for_stderr {

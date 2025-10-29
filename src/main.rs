@@ -27,7 +27,7 @@ fn main() -> Result<(), eframe::Error> {
     // Perform cleanup operations at startup
     perform_startup_cleanup(&logger);
 
-    let window_title = format!("{} v{}", APP_TITLE, VERSION);
+    let window_title = format!("{APP_TITLE} v{VERSION}");
 
     // Try with default renderer first (Glow)
     let result = run_app(&window_title, eframe::Renderer::default());
@@ -35,8 +35,7 @@ fn main() -> Result<(), eframe::Error> {
     // If default renderer failed, try with WGPU
     if let Err(err) = result {
         eprintln!(
-            "Default renderer failed: {}. Falling back to WGPU renderer...",
-            err
+            "Default renderer failed: {err}. Falling back to WGPU renderer..."
         );
         return run_app(&window_title, eframe::Renderer::Wgpu);
     }

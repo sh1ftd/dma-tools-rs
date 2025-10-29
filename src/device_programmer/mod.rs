@@ -164,12 +164,12 @@ impl FlashingManager {
                 | CompletionStatus::Failed(_)
         );
 
-        if completed && self.cleanup_enabled {
-            if let CompletionStatus::Completed = status {
-                if let Some(path) = &self.original_firmware_path {
+        if completed && self.cleanup_enabled
+            && let CompletionStatus::Completed = status
+                && let Some(path) = &self.original_firmware_path {
                     if let Err(e) = std::fs::remove_file(path) {
                         self.logger
-                            .error(format!("Failed to clean up original firmware file: {}", e));
+                            .error(format!("Failed to clean up original firmware file: {e}"));
                     } else {
                         self.logger.info(format!(
                             "Successfully cleaned up original firmware file: {}",
@@ -177,8 +177,6 @@ impl FlashingManager {
                         ));
                     }
                 }
-            }
-        }
 
         completed
     }

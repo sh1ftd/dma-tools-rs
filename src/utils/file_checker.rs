@@ -128,7 +128,7 @@ fn check_file_exists(file_path: &str) -> bool {
         base_paths.push(PathBuf::from("target/debug"));
         base_paths.push(PathBuf::from(".."));
 
-        println!("Checking for file: {}", file_path);
+        println!("Checking for file: {file_path}");
         for path in &base_paths {
             let full_path = path.join(file_path);
             println!("Looking in: {}", full_path.display());
@@ -154,7 +154,7 @@ fn check_file_exists(file_path: &str) -> bool {
     }
 
     #[cfg(debug_assertions)]
-    println!("✗ Not found: {}", file_path);
+    println!("✗ Not found: {file_path}");
 
     false
 }
