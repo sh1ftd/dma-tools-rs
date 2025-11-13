@@ -25,16 +25,17 @@ pub fn disable_maximize_button_for_all() -> Option<&'static str> {
             let window_title = unsafe { get_window_title(hwnd) };
 
             if let Some(window_title) = window_title
-                && window_title.contains(APP_TITLE) {
-                    #[cfg(debug_assertions)]
-                    println!("Found window: {window_title}");
+                && window_title.contains(APP_TITLE)
+            {
+                #[cfg(debug_assertions)]
+                println!("Found window: {window_title}");
 
-                    // SAFETY: hwnd is a valid window handle provided by EnumWindows.
-                    unsafe { disable_maximize_for_window(hwnd) };
-                    // SAFETY: found is a pointer to our AtomicBool, which is guaranteed
-                    // to be valid for the duration of this callback.
-                    unsafe { mark_window_found(found) };
-                }
+                // SAFETY: hwnd is a valid window handle provided by EnumWindows.
+                unsafe { disable_maximize_for_window(hwnd) };
+                // SAFETY: found is a pointer to our AtomicBool, which is guaranteed
+                // to be valid for the duration of this callback.
+                unsafe { mark_window_found(found) };
+            }
             TRUE
         }
 

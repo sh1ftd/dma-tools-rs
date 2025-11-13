@@ -81,7 +81,8 @@ fn determine_current_stage(manager: &FlashingManager, now: Instant) -> (String, 
 
                 // Check if we've been stuck on this sector
                 if let Some(first_seen) = sector_times.get(&sector)
-                    && now.duration_since(*first_seen) > SECTOR_STUCK_THRESHOLD {
+                    && now.duration_since(*first_seen) > SECTOR_STUCK_THRESHOLD
+                {
                         is_finalizing = true;
                     }
 

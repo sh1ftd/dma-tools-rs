@@ -34,9 +34,7 @@ fn main() -> Result<(), eframe::Error> {
 
     // If default renderer failed, try with WGPU
     if let Err(err) = result {
-        eprintln!(
-            "Default renderer failed: {err}. Falling back to WGPU renderer..."
-        );
+        eprintln!("Default renderer failed: {err}. Falling back to WGPU renderer...");
         return run_app(&window_title, eframe::Renderer::Wgpu);
     }
 

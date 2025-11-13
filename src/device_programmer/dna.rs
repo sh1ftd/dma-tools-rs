@@ -157,9 +157,8 @@ impl DnaReader {
                 if let CompletionStatus::Failed(_) = *completion_status.lock().unwrap() {
                     logger_clone.warning("Command failed while waiting for DNA file.");
                 } else {
-                    let error_msg = format!(
-                        "DNA output file not found after {DNA_MAX_ATTEMPTS} attempts"
-                    );
+                    let error_msg =
+                        format!("DNA output file not found after {DNA_MAX_ATTEMPTS} attempts");
                     logger_clone.error(&error_msg);
                     *completion_status.lock().unwrap() = CompletionStatus::Failed(error_msg);
                 }

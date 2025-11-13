@@ -72,25 +72,22 @@ impl ProcessExecutor {
                         Ok(exit_status) => {
                             // Update execution duration
                             if options.update_duration
-                                && let Some(start) = *start_time.lock().unwrap() {
-                                    let elapsed = start.elapsed();
+                                && let Some(start) = *start_time.lock().unwrap()
+                            {
+                                let elapsed = start.elapsed();
 
-                                    // Format duration in a readable way based on the actual time
-                                    if elapsed.as_secs() > 0 {
-                                        // If operation took more than a second, show seconds.milliseconds
-                                        let seconds = elapsed.as_secs();
-                                        let millis = elapsed.subsec_millis();
-                                        logger.info(format!(
-                                            "Operation took {seconds}.{millis:03}s"
-                                        ));
-                                    } else {
-                                        // For very quick operations, show milliseconds
-                                        logger.info(format!(
-                                            "Operation took {}ms",
-                                            elapsed.as_millis()
-                                        ));
-                                    }
+                                // Format duration in a readable way based on the actual time
+                                if elapsed.as_secs() > 0 {
+                                    // If operation took more than a second, show seconds.milliseconds
+                                    let seconds = elapsed.as_secs();
+                                    let millis = elapsed.subsec_millis();
+                                    logger.info(format!("Operation took {seconds}.{millis:03}s"));
+                                } else {
+                                    // For very quick operations, show milliseconds
+                                    logger
+                                        .info(format!("Operation took {}ms", elapsed.as_millis()));
                                 }
+                            }
 
                             if exit_status.success() {
                                 logger.success("Command completed successfully");
@@ -115,11 +112,10 @@ impl ProcessExecutor {
 
                     // Clean up temporary file
                     if options.cleanup_temp_files
-                        && let Err(e) = fs::remove_file(TEMP_FIRMWARE_FILE) {
-                            logger.debug(format!(
-                                "Failed to clean up temporary firmware file: {e}"
-                            ));
-                        }
+                        && let Err(e) = fs::remove_file(TEMP_FIRMWARE_FILE)
+                    {
+                        logger.debug(format!("Failed to clean up temporary firmware file: {e}"));
+                    }
                 });
 
                 Ok(())
@@ -131,10 +127,11 @@ impl ProcessExecutor {
                     CompletionStatus::Failed(error_msg.clone());
 
                 if options.cleanup_temp_files
-                    && let Err(e) = fs::remove_file(TEMP_FIRMWARE_FILE) {
-                        self.logger
-                            .warning(format!("Failed to clean up temporary firmware file: {e}"));
-                    }
+                    && let Err(e) = fs::remove_file(TEMP_FIRMWARE_FILE)
+                {
+                    self.logger
+                        .warning(format!("Failed to clean up temporary firmware file: {e}"));
+                }
 
                 Err(error_msg)
             }
