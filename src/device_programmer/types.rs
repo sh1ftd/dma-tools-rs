@@ -12,9 +12,11 @@ pub enum FlashingOption {
     CH347_100T,
     RS232_35T,
     RS232_75T,
+    RS232_100T,
     DnaCH347,
     DnaRS232_35T,
     DnaRS232_75T,
+    DnaRS232_100T,
 }
 
 // Constants for OpenOCD executable paths
@@ -25,7 +27,10 @@ impl FlashingOption {
     pub fn is_dna_read(&self) -> bool {
         matches!(
             self,
-            FlashingOption::DnaCH347 | FlashingOption::DnaRS232_35T | FlashingOption::DnaRS232_75T
+            FlashingOption::DnaCH347
+                | FlashingOption::DnaRS232_35T
+                | FlashingOption::DnaRS232_75T
+                | FlashingOption::DnaRS232_100T
         )
     }
 
@@ -37,6 +42,7 @@ impl FlashingOption {
                 | FlashingOption::CH347_100T
                 | FlashingOption::RS232_35T
                 | FlashingOption::RS232_75T
+                | FlashingOption::RS232_100T
         )
     }
 
@@ -47,9 +53,11 @@ impl FlashingOption {
             FlashingOption::CH347_100T => (OPENOCD_CH347_PATH, "OpenOCD/flash/xc7a100T.cfg"),
             FlashingOption::RS232_35T => (OPENOCD_RS232_PATH, "OpenOCD/flash/xc7a35T_rs232.cfg"),
             FlashingOption::RS232_75T => (OPENOCD_RS232_PATH, "OpenOCD/flash/xc7a75T_rs232.cfg"),
+            FlashingOption::RS232_100T => (OPENOCD_RS232_PATH, "OpenOCD/flash/xc7a100T_rs232.cfg"),
             FlashingOption::DnaCH347 => (OPENOCD_CH347_PATH, "OpenOCD/DNA/init_347.cfg"),
             FlashingOption::DnaRS232_35T => (OPENOCD_RS232_PATH, "OpenOCD/DNA/init_232_35t.cfg"),
             FlashingOption::DnaRS232_75T => (OPENOCD_RS232_PATH, "OpenOCD/DNA/init_232_75t.cfg"),
+            FlashingOption::DnaRS232_100T => (OPENOCD_RS232_PATH, "OpenOCD/DNA/init_232_100t.cfg"),
         }
     }
 
@@ -62,8 +70,10 @@ impl FlashingOption {
 
             FlashingOption::RS232_35T => "RS232 - 35T",
             FlashingOption::RS232_75T => "RS232 - 75T",
+            FlashingOption::RS232_100T => "RS232 - 100T",
             FlashingOption::DnaRS232_35T => "RS232 - 35T DNA Read",
             FlashingOption::DnaRS232_75T => "RS232 - 75T DNA Read",
+            FlashingOption::DnaRS232_100T => "RS232 - 100T DNA Read",
         }
     }
 
@@ -75,8 +85,10 @@ impl FlashingOption {
             | FlashingOption::DnaCH347 => "CH347 USB Driver",
             FlashingOption::RS232_35T
             | FlashingOption::RS232_75T
+            | FlashingOption::RS232_100T
             | FlashingOption::DnaRS232_35T
-            | FlashingOption::DnaRS232_75T => "FTDI Driver",
+            | FlashingOption::DnaRS232_75T
+            | FlashingOption::DnaRS232_100T => "FTDI Driver",
         }
     }
 }

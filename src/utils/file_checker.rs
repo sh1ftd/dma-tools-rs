@@ -93,10 +93,12 @@ fn perform_file_check(status: &Arc<Mutex<CheckStatus>>) -> FileCheckResult {
         "OpenOCD/flash/xc7a100T.cfg",
         "OpenOCD/flash/xc7a35T_rs232.cfg",
         "OpenOCD/flash/xc7a75T_rs232.cfg",
+        "OpenOCD/flash/xc7a100T_rs232.cfg",
         // DNA configuration
         "OpenOCD/DNA/init_347.cfg",
         "OpenOCD/DNA/init_232_35t.cfg",
         "OpenOCD/DNA/init_232_75t.cfg",
+        "OpenOCD/DNA/init_232_100t.cfg",
     ];
 
     // Check each file with a small delay to show progress

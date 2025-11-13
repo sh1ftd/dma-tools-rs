@@ -60,6 +60,17 @@ pub fn render_dna_section(ui: &mut Ui, on_select: &mut dyn FnMut(FlashingOption)
             || FlashingOption::DnaRS232_75T,
             on_select,
         );
+
+        ui.add_space(BUTTON_SPACE);
+
+        render_colored_option_button(
+            ui,
+            "RS232 - DNA Read: 100T",
+            "Read DNA from 100T boards using RS232 interface",
+            RS232_COLOR,
+            || FlashingOption::DnaRS232_100T,
+            on_select,
+        );
     });
 }
 
@@ -136,6 +147,17 @@ fn render_rs232_options(ui: &mut Ui, on_select: &mut dyn FnMut(FlashingOption)) 
         "For 75T boards using RS232 interface",
         RS232_COLOR,
         || FlashingOption::RS232_75T,
+        on_select,
+    );
+
+    ui.add_space(BUTTON_SPACE);
+
+    render_colored_option_button(
+        ui,
+        "RS232 - 100T",
+        "For 100T boards using RS232 interface",
+        RS232_COLOR,
+        || FlashingOption::RS232_100T,
         on_select,
     );
 }

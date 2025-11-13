@@ -83,8 +83,8 @@ fn determine_current_stage(manager: &FlashingManager, now: Instant) -> (String, 
                 if let Some(first_seen) = sector_times.get(&sector)
                     && now.duration_since(*first_seen) > SECTOR_STUCK_THRESHOLD
                 {
-                        is_finalizing = true;
-                    }
+                    is_finalizing = true;
+                }
 
                 current_sector = Some(sector);
                 is_writing = true;
@@ -204,6 +204,8 @@ fn get_device_type(option: &FlashingOption) -> &'static str {
         "Artix-7 35T (RS232)"
     } else if display_name.contains("RS232 - 75T") {
         "Artix-7 75T (RS232)"
+    } else if display_name.contains("RS232 - 100T") {
+        "Artix-7 100T (RS232)"
     } else if display_name.contains("CH347 - 35T") {
         "Artix-7 35T (CH347)"
     } else if display_name.contains("CH347 - 75T") {
