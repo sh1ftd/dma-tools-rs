@@ -8,6 +8,7 @@ A Windows GUI tool for FPGA firmware flashing and DNA reading, supporting CH347 
   - 35T (CH347/RS232)
   - 75T (CH347/RS232)
   - Stark100T (CH347)
+  - 100T (RS232)
 - Device DNA reading
 - Real-time operation logging
 - Progress tracking and status updates
