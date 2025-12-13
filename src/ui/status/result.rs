@@ -18,10 +18,10 @@ const SUBTITLE_FONT_SIZE: f32 = 16.0;
 const DNA_VALUE_FONT_SIZE: f32 = 22.0;
 const FALLBACK_ICON_SIZE: f32 = 50.0;
 
-const FRAME_ROUNDING: f32 = 12.0;
+const FRAME_ROUNDING: u8 = 12;
 const FRAME_STROKE_WIDTH: f32 = 1.0;
-const FRAME_MARGIN: f32 = 20.0;
-const FRAME_OUTER_MARGIN: f32 = 10.0;
+const FRAME_MARGIN: i8 = 20;
+const FRAME_OUTER_MARGIN: i8 = 10;
 
 // Color Constants
 const SUCCESS_COLOR: egui::Color32 = egui::Color32::from_rgb(100, 255, 100);
@@ -114,14 +114,12 @@ fn render_dna_success(ui: &mut Ui, dna_info: &DnaInfo, icon_manager: &IconManage
                 ui.label(RichText::new("Device DNA").size(SUBTITLE_FONT_SIZE));
                 ui.add_space(SPACING_MEDIUM);
 
-                // Display the HEX value
-                let response = ui.add(egui::SelectableLabel::new(
-                    false,
-                    RichText::new(&dna_info.dna_value)
-                        .monospace()
-                        .strong()
-                        .size(DNA_VALUE_FONT_SIZE),
-                ));
+                let dna_text = RichText::new(&dna_info.dna_value)
+                    .monospace()
+                    .strong()
+                    .size(DNA_VALUE_FONT_SIZE);
+
+                let response = ui.selectable_label(false, dna_text);
 
                 if response.clicked() {
                     // Get the Verilog format
@@ -135,14 +133,10 @@ fn render_dna_success(ui: &mut Ui, dna_info: &DnaInfo, icon_manager: &IconManage
                         "DNA RAW: {}\nDNA HEX: {}\nVERILOG: {}",
                         dna_info.dna_raw_value, dna_info.dna_value, verilog_hex
                     );
-                    ui.output_mut(|output| output.copied_text = copy_text);
+                    ui.ctx().copy_text(copy_text);
                 }
 
-                if response.hovered() {
-                    egui::show_tooltip(ui.ctx(), response.id, |ui| {
-                        ui.label("Click to copy RAW, HEX, and Verilog DNA values");
-                    });
-                }
+                response.on_hover_text("Click to copy RAW, HEX, and Verilog DNA values");
 
                 ui.add_space(SPACING_SMALL);
                 ui.label("Click to copy");
@@ -291,10 +285,8 @@ fn render_flashing_result(
 }
 
 fn extract_sector_time(message: &str) -> Option<u64> {
-    // Look for lines like "[ERROR] Info : sector 25 took 1 ms"
     if !message.contains("Info :") || !message.contains("sector") || !message.contains("took") {
-        //  Filter out non-relevant messages
-        return None; // Early exit if the message does not contain the required parts
+        return None;
     }
 
     message
@@ -342,9 +334,9 @@ fn render_framed_content(
     border_color: egui::Color32,
     add_contents: impl FnOnce(&mut Ui),
 ) {
-    egui::Frame::none()
+    egui::Frame::NONE
         .fill(ui.style().visuals.extreme_bg_color)
-        .rounding(egui::Rounding::same(FRAME_ROUNDING))
+        .corner_radius(egui::CornerRadius::same(FRAME_ROUNDING))
         .stroke(egui::Stroke::new(FRAME_STROKE_WIDTH, border_color))
         .inner_margin(egui::Margin::same(FRAME_MARGIN))
         .outer_margin(egui::Margin::same(FRAME_OUTER_MARGIN))

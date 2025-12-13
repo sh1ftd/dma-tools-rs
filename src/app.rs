@@ -1,5 +1,7 @@
 use crate::APP_TITLE;
 use crate::assets::IconManager;
+#[cfg(feature = "branding")]
+use crate::branding::BrandingManager;
 use crate::device_programmer::{CompletionStatus, FlashingManager, FlashingOption, dna::DnaReader};
 use crate::ui;
 use crate::ui::file_select::FileCheckRenderContext;
@@ -27,8 +29,8 @@ const STATUS_STABILITY_WAIT_MS: u64 = 250;
 const TOP_PADDING: f32 = 8.0;
 const BOTTOM_PADDING: f32 = 18.0;
 const LOG_SECTION_PADDING: f32 = 12.0;
-const HORIZONTAL_MARGIN: f32 = 20.0;
-const VERTICAL_MARGIN: f32 = 10.0;
+const HORIZONTAL_MARGIN: i8 = 20;
+const VERTICAL_MARGIN: i8 = 10;
 
 #[derive(PartialEq, Eq)]
 pub enum AppState {
@@ -59,6 +61,8 @@ pub struct FirmwareToolApp {
     dna_read_start_time: Option<Instant>,
     dna_read_in_progress: bool,
     waiting_message_logged: bool,
+    #[cfg(feature = "branding")]
+    branding_manager: BrandingManager,
 }
 
 impl FirmwareToolApp {
@@ -87,6 +91,8 @@ impl FirmwareToolApp {
             dna_read_start_time: None,
             dna_read_in_progress: false,
             waiting_message_logged: false,
+            #[cfg(feature = "branding")]
+            branding_manager: BrandingManager::new(),
         }
     }
 
@@ -190,9 +196,9 @@ impl FirmwareToolApp {
 }
 
 impl eframe::App for FirmwareToolApp {
-    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.setup_ui_and_animation(ctx);
-        self.update_window_size(frame);
+        self.update_window_size(ctx);
         self.handle_state_specific_logic(ctx);
         self.render_main_ui(ctx);
     }
@@ -207,9 +213,9 @@ impl FirmwareToolApp {
         ctx.request_repaint_after(Duration::from_millis(ANIMATION_FRAME_RATE_MS));
     }
 
-    fn update_window_size(&mut self, frame: &mut eframe::Frame) {
+    fn update_window_size(&mut self, ctx: &egui::Context) {
         let window_size_type = self.get_window_size_type();
-        self.window_manager.set_window_size(frame, window_size_type);
+        self.window_manager.set_window_size(ctx, window_size_type);
     }
 
     fn handle_state_specific_logic(&mut self, ctx: &egui::Context) {
@@ -282,18 +288,23 @@ impl FirmwareToolApp {
 
         // Ensure icons are loaded
         self.icon_manager.ensure_loaded(ctx);
+
+        // Ensure branding texture is loaded when branding feature is enabled
+        #[cfg(feature = "branding")]
+        self.branding_manager.ensure_loaded(ctx);
     }
 
     fn render_main_ui(&mut self, ctx: &egui::Context) {
         egui::CentralPanel::default().show(ctx, |ui| {
+            // Render brand background first (behind all other content)
+            #[cfg(feature = "branding")]
+            crate::branding::render_background(ui, &self.branding_manager);
+
             // Add some padding at the top
             ui.add_space(TOP_PADDING);
 
-            egui::Frame::none()
-                .inner_margin(egui::style::Margin::symmetric(
-                    HORIZONTAL_MARGIN,
-                    VERTICAL_MARGIN,
-                ))
+            egui::Frame::NONE
+                .inner_margin(egui::Margin::symmetric(HORIZONTAL_MARGIN, VERTICAL_MARGIN))
                 .show(ui, |ui| {
                     self.render_state_content(ui);
                 });

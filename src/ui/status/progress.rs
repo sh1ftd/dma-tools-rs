@@ -110,11 +110,15 @@ fn determine_current_stage(manager: &FlashingManager, now: Instant) -> (String, 
     }
 
     // Create the appropriate message based on current state
-    let stage_message = if is_writing && current_sector.is_some() {
-        if is_finalizing {
-            "Testing and verifying...".to_string()
+    let stage_message = if is_writing {
+        if let Some(sector) = current_sector {
+            if is_finalizing {
+                "Testing and verifying...".to_string()
+            } else {
+                format!("Writing sector {}...", sector)
+            }
         } else {
-            format!("Writing sector {}...", current_sector.unwrap())
+            current_stage.to_string()
         }
     } else {
         current_stage.to_string()
@@ -132,11 +136,11 @@ fn extract_sector_from_log(message: &str) -> Option<u32> {
 }
 
 fn render_operation_info_frame(ui: &mut Ui, is_dna_read: bool) {
-    egui::Frame::none()
+    egui::Frame::NONE
         .fill(ui.style().visuals.extreme_bg_color)
-        .rounding(egui::Rounding::same(12.0))
+        .corner_radius(egui::CornerRadius::same(12))
         .stroke(egui::Stroke::new(1.0, egui::Color32::from_rgb(60, 60, 70)))
-        .inner_margin(egui::Margin::same(LARGE_SPACING))
+        .inner_margin(egui::Margin::same(LARGE_SPACING as i8))
         .show(ui, |ui| {
             ui.vertical_centered(|ui| {
                 if is_dna_read {
@@ -175,11 +179,11 @@ fn render_flashing_info(ui: &mut Ui) {
 }
 
 fn render_technical_info_frame(ui: &mut Ui, option: &FlashingOption, operation_name: &str) {
-    egui::Frame::none()
+    egui::Frame::NONE
         .fill(ui.style().visuals.faint_bg_color)
-        .rounding(egui::Rounding::same(12.0))
+        .corner_radius(egui::CornerRadius::same(12))
         .stroke(egui::Stroke::new(1.0, egui::Color32::from_rgb(80, 80, 90)))
-        .inner_margin(egui::Margin::same(15.0))
+        .inner_margin(egui::Margin::same(15))
         .show(ui, |ui| {
             ui.vertical_centered(|ui| {
                 ui.add(egui::Label::new(

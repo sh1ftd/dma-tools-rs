@@ -3,7 +3,7 @@ use eframe::egui::{self, Align2, Ui};
 
 // Styling constants
 const BUTTON_HEIGHT: f32 = 54.0;
-const BUTTON_ROUNDING: f32 = 12.0;
+const BUTTON_ROUNDING: u8 = 12;
 const BUTTON_STROKE_WIDTH: f32 = 1.0;
 const BUTTON_STROKE_COLOR: egui::Color32 = egui::Color32::from_rgb(80, 80, 90);
 const BUTTON_TEXT_COLOR: egui::Color32 = egui::Color32::WHITE;
@@ -34,7 +34,7 @@ pub fn render_colored_option_button(
         .min_size(egui::vec2(ui.available_width(), BUTTON_HEIGHT))
         .fill(color)
         .stroke(egui::Stroke::new(BUTTON_STROKE_WIDTH, BUTTON_STROKE_COLOR))
-        .rounding(egui::Rounding::same(BUTTON_ROUNDING));
+        .corner_radius(egui::CornerRadius::same(BUTTON_ROUNDING));
 
     let response = ui.add(button);
 
@@ -58,7 +58,7 @@ fn draw_hover_effects(
 ) {
     ui.painter().rect_filled(
         response.rect,
-        egui::Rounding::same(BUTTON_ROUNDING),
+        egui::CornerRadius::same(BUTTON_ROUNDING),
         hover_color,
     );
 
@@ -66,9 +66,7 @@ fn draw_hover_effects(
 
     draw_animated_highlight_bar(ui, response, time);
 
-    egui::show_tooltip(ui.ctx(), response.id, |ui| {
-        ui.label(tooltip);
-    });
+    response.clone().on_hover_text(tooltip);
 }
 
 /// Draws an animated vertical highlight on the button's left edge
@@ -82,11 +80,11 @@ fn draw_animated_highlight_bar(ui: &Ui, response: &egui::Response, time: f32) {
     );
 
     // Round only the left corners to match button shape
-    let left_only_rounding = egui::Rounding {
+    let left_only_rounding = egui::CornerRadius {
         nw: BUTTON_ROUNDING,
-        ne: 0.0,
+        ne: 0,
         sw: BUTTON_ROUNDING,
-        se: 0.0,
+        se: 0,
     };
 
     let highlight_color = egui::Color32::from_rgb(

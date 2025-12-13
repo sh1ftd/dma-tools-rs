@@ -3,6 +3,8 @@
 
 mod app;
 mod assets;
+#[cfg(feature = "branding")]
+mod branding;
 mod device_programmer;
 mod ui;
 mod utils;
@@ -27,6 +29,11 @@ fn main() -> Result<(), eframe::Error> {
     // Perform cleanup operations at startup
     perform_startup_cleanup(&logger);
 
+    // Use branded title when branding feature is enabled
+    #[cfg(feature = "branding")]
+    let window_title = branding::get_branded_title(APP_TITLE, VERSION);
+
+    #[cfg(not(feature = "branding"))]
     let window_title = format!("{APP_TITLE} v{VERSION}");
 
     // Try with default renderer first (Glow)
@@ -56,7 +63,7 @@ fn run_app(window_title: &str, renderer: eframe::Renderer) -> Result<(), eframe:
         options,
         Box::new(|cc| {
             setup_window();
-            Box::new(app::FirmwareToolApp::new(cc))
+            Ok(Box::new(app::FirmwareToolApp::new(cc)))
         }),
     )
 }
@@ -65,17 +72,48 @@ fn create_window_options() -> eframe::NativeOptions {
     let window_width = WINDOW_WIDTH;
     let window_height = WINDOW_HEIGHT_INITIAL;
 
+    #[cfg(feature = "branding")]
+    let icon_data = branding::get_window_icon();
+
+    #[cfg(not(feature = "branding"))]
+    let icon_data: Option<egui::IconData> = None;
+
+    let mut viewport = egui::ViewportBuilder::default()
+        .with_inner_size([window_width, window_height])
+        .with_min_inner_size([window_width, window_height])
+        .with_max_inner_size([window_width, window_height])
+        .with_resizable(false)
+        .with_decorations(true)
+        .with_maximized(false)
+        .with_fullscreen(false)
+        .with_icon(icon_data.map(std::sync::Arc::new).unwrap_or_default());
+
+    // Center the window on the screen
+    if let Some(monitor_size) = get_primary_monitor_size() {
+        let x = (monitor_size.x - window_width) / 2.0;
+        let y = (monitor_size.y - window_height) / 2.0;
+        viewport = viewport.with_position([x, y]);
+    }
+
     eframe::NativeOptions {
-        initial_window_size: Some(egui::vec2(window_width, window_height)),
-        min_window_size: Some(egui::vec2(window_width, window_height)),
-        max_window_size: Some(egui::vec2(window_width, window_height)),
-        resizable: false,
-        centered: true,
-        decorated: true,
-        maximized: false,
-        fullscreen: false,
-        icon_data: None,
+        viewport,
         ..Default::default()
+    }
+}
+
+fn get_primary_monitor_size() -> Option<egui::Vec2> {
+    use winapi::um::winuser::{GetSystemMetrics, SM_CXSCREEN, SM_CYSCREEN};
+
+    // SAFETY: GetSystemMetrics is a read-only Windows API call that returns screen dimensions
+    unsafe {
+        let width = GetSystemMetrics(SM_CXSCREEN) as f32;
+        let height = GetSystemMetrics(SM_CYSCREEN) as f32;
+
+        if width > 0.0 && height > 0.0 {
+            Some(egui::Vec2::new(width, height))
+        } else {
+            None
+        }
     }
 }
 

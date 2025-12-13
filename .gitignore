@@ -1,2 +1,4 @@
 /target/
 OpenOCD/openocd_output.log
+src/branding/brand.webp
+src/branding/mod.rs

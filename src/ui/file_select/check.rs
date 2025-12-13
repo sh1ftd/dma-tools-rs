@@ -2,7 +2,7 @@ use super::FileCheckRenderContext;
 use crate::APP_TITLE;
 use crate::ui::file_select::components::render_missing_file;
 use crate::utils::file_checker::{CheckStatus, FileCheckResult, SUCCESS_TRANSITION_DELAY};
-use eframe::egui::{self, Color32, Margin, RichText, Rounding, Sense, Stroke, Ui, Vec2};
+use eframe::egui::{self, Color32, CornerRadius, Margin, RichText, Sense, Stroke, Ui, Vec2};
 
 // UI Constants
 const SPACING_SMALL: f32 = 4.0;
@@ -94,8 +94,8 @@ fn render_checking(ui: &mut Ui, current_file: &str) {
 
 fn render_success_state(ui: &mut Ui, success_time: &std::time::Instant) {
     // Container frame for better spacing control
-    egui::Frame::none()
-        .inner_margin(Margin::symmetric(0.0, SPACING_SECTION))
+    egui::Frame::NONE
+        .inner_margin(Margin::symmetric(0, SPACING_SECTION as i8))
         .show(ui, |ui| {
             ui.vertical_centered(|ui| {
                 // Checkmark circle
@@ -202,8 +202,8 @@ fn render_centered_spinner(ui: &mut Ui) {
 fn render_missing_files_list(ui: &mut Ui, check_result: &FileCheckResult) {
     egui::Frame::dark_canvas(ui.style())
         .stroke(Stroke::new(1.0, COLOR_BORDER))
-        .rounding(Rounding::same(SPACING_LARGE))
-        .inner_margin(Margin::same(SPACING_LARGE))
+        .corner_radius(CornerRadius::same(SPACING_LARGE as u8))
+        .inner_margin(Margin::same(SPACING_LARGE as i8))
         .show(ui, |ui| {
             egui::ScrollArea::vertical()
                 .max_height(MISSING_FILES_MAX_HEIGHT)
@@ -248,11 +248,11 @@ fn render_action_buttons(
 }
 
 fn render_warning_box(ui: &mut Ui) {
-    egui::Frame::none()
+    egui::Frame::NONE
         .fill(COLOR_WARNING_BG)
         .stroke(Stroke::new(1.0, COLOR_WARNING_BORDER))
-        .rounding(Rounding::same(SPACING_LARGE))
-        .inner_margin(Margin::same(SPACING_LARGE))
+        .corner_radius(CornerRadius::same(SPACING_LARGE as u8))
+        .inner_margin(Margin::same(SPACING_LARGE as i8))
         .show(ui, |ui| {
             ui.colored_label(
                 Color32::BLACK,

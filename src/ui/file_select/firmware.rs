@@ -1,5 +1,7 @@
 use crate::utils::firmware_discovery::FirmwareManager;
-use eframe::egui::{self, Color32, Frame, Layout, Margin, RichText, Rounding, Stroke, Ui, Vec2};
+use eframe::egui::{
+    self, Color32, CornerRadius, Frame, Layout, Margin, RichText, Stroke, Ui, Vec2,
+};
 use std::path::PathBuf;
 
 // UI constants for consistent styling
@@ -8,8 +10,8 @@ const PRIMARY_COLOR: Color32 = Color32::from_rgb(70, 130, 180);
 const DISABLED_COLOR_FACTOR: f32 = 0.5;
 const BORDER_COLOR: Color32 = Color32::from_rgb(150, 150, 150);
 const BORDER_WIDTH: f32 = 1.0;
-const CORNER_RADIUS: f32 = 12.0;
-const PADDING: f32 = 6.0;
+const CORNER_RADIUS: u8 = 12;
+const PADDING: i8 = 6;
 const SCROLL_HEIGHT: f32 = 80.0;
 
 // Text sizes
@@ -49,7 +51,7 @@ fn render_firmware_status(ui: &mut Ui, status_message: &str) {
         let available_width = ui.available_width();
         ui.horizontal(|ui| {
             ui.add_space(available_width / 2.0 - 10.0);
-            Frame::none().show(ui, |ui| {
+            Frame::NONE.show(ui, |ui| {
                 ui.spinner();
             });
         });
@@ -123,7 +125,7 @@ fn render_file_list(
 ) {
     let file_list_frame = Frame::dark_canvas(ui.style())
         .stroke(Stroke::new(BORDER_WIDTH, BORDER_COLOR))
-        .rounding(Rounding::same(CORNER_RADIUS))
+        .corner_radius(CornerRadius::same(CORNER_RADIUS))
         .inner_margin(Margin::same(PADDING));
 
     file_list_frame.show(ui, |ui| {
@@ -145,11 +147,7 @@ fn render_file_list(
                         firmware_manager.select_firmware(*i);
                     }
 
-                    if response.hovered() {
-                        egui::show_tooltip(ui.ctx(), response.id, |ui| {
-                            ui.label(RichText::new(file.to_string_lossy()).monospace());
-                        });
-                    }
+                    response.on_hover_text(file.to_string_lossy());
                 }
             });
     });

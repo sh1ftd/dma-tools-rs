@@ -3,9 +3,9 @@ use crate::device_programmer::FlashingOption;
 use eframe::egui::{self, RichText, Ui};
 
 // UI styling constants
-const PANEL_ROUNDING: f32 = 12.0;
+const PANEL_ROUNDING: u8 = 12;
 const PANEL_STROKE_WIDTH: f32 = 1.0;
-const PANEL_MARGIN: f32 = 20.0;
+const PANEL_MARGIN: i8 = 20;
 const SECTION_SPACE: f32 = 8.0;
 const BUTTON_SPACE: f32 = 12.0;
 const HEADING_SIZE: f32 = 18.0;
@@ -78,9 +78,9 @@ pub fn render_dna_section(ui: &mut Ui, on_select: &mut dyn FnMut(FlashingOption)
 
 fn render_panel(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui)) {
     ui.vertical(|ui| {
-        egui::Frame::none()
+        egui::Frame::NONE
             .fill(ui.style().visuals.extreme_bg_color)
-            .rounding(egui::Rounding::same(PANEL_ROUNDING))
+            .corner_radius(egui::CornerRadius::same(PANEL_ROUNDING))
             .stroke(egui::Stroke::new(PANEL_STROKE_WIDTH, STROKE_COLOR))
             .inner_margin(egui::Margin::same(PANEL_MARGIN))
             .show(ui, add_contents);

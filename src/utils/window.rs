@@ -40,17 +40,25 @@ impl WindowManager {
     }
 
     pub fn setup_style(&self, ctx: &Context) {
-        // Set up styles once
         SETUP.call_once(|| {
-            // Apply a dark theme
             let mut visuals = Visuals::dark();
-            visuals.panel_fill = Color32::from_rgb(30, 30, 35);
-            visuals.window_fill = Color32::from_rgb(30, 30, 35);
+
+            #[cfg(feature = "branding")]
+            {
+                let (r, g, b) = crate::branding::BACKGROUND_COLOR;
+                let bg_color = Color32::from_rgb(r, g, b);
+                visuals.panel_fill = bg_color;
+                visuals.window_fill = bg_color;
+            }
+
+            #[cfg(not(feature = "branding"))]
+            {
+                visuals.panel_fill = Color32::from_rgb(30, 30, 35);
+                visuals.window_fill = Color32::from_rgb(30, 30, 35);
+            }
+
             visuals.window_stroke.width = 1.0;
             visuals.window_stroke.color = Color32::from_gray(60);
-            visuals.window_shadow.extrusion = 0.0;
-            visuals.window_rounding = eframe::epaint::Rounding::same(10.0);
-            visuals.window_fill = Color32::from_rgb(30, 30, 35);
             visuals.widgets.noninteractive.bg_fill = Color32::from_rgb(45, 45, 50);
             visuals.widgets.inactive.bg_fill = Color32::from_rgb(50, 50, 55);
             visuals.widgets.hovered.bg_fill = Color32::from_rgb(70, 70, 80);
@@ -58,34 +66,29 @@ impl WindowManager {
             visuals.widgets.noninteractive.bg_stroke.width = 1.0;
             visuals.widgets.noninteractive.bg_stroke.color = Color32::from_gray(60);
 
-            // Apply the visual styles (colors only)
             ctx.set_visuals(visuals);
         });
     }
 
-    pub fn resize_window(&mut self, frame: &mut eframe::Frame, new_height: f32) {
-        // Get current window size and position
-        let current_size = frame.info().window_info.size;
-        let current_pos = frame.info().window_info.position.unwrap_or_default();
-
-        // Only proceed if height actually changed
+    pub fn resize_window(&mut self, ctx: &Context, new_height: f32) {
         if self.previous_height != Some(new_height) {
-            // Calculate how much to shift the Y position to keep the window centered
-            let height_diff = new_height - current_size.y;
-            let new_y = current_pos.y - (height_diff / 2.0);
+            ctx.send_viewport_cmd(eframe::egui::ViewportCommand::InnerSize(
+                eframe::egui::Vec2::new(WINDOW_WIDTH, new_height),
+            ));
 
-            // Set new position
-            frame.set_window_pos([current_pos.x, new_y].into());
+            // Recenter the window when resizing
+            if let Some(screen_size) = get_primary_monitor_size() {
+                let x = (screen_size.x - WINDOW_WIDTH) / 2.0;
+                let y = (screen_size.y - new_height) / 2.0;
+                ctx.send_viewport_cmd(eframe::egui::ViewportCommand::OuterPosition(
+                    eframe::egui::Pos2::new(x, y),
+                ));
+            }
 
-            // Set new size
-            frame.set_window_size([WINDOW_WIDTH, new_height].into());
-
-            // Store the new height for the next comparison
             self.previous_height = Some(new_height);
         }
     }
 
-    /// Get the window size for a given window type
     fn get_height_for_type(&self, size_type: WindowSizeType) -> f32 {
         match size_type {
             WindowSizeType::FileCheck => WINDOW_HEIGHT_FILE_CHECK,
@@ -98,11 +101,24 @@ impl WindowManager {
         }
     }
 
-    /// Set the window to a specific size type
-    pub fn set_window_size(&mut self, frame: &mut eframe::Frame, size_type: WindowSizeType) {
+    pub fn set_window_size(&mut self, ctx: &Context, size_type: WindowSizeType) {
         let target_height = self.get_height_for_type(size_type);
+        self.resize_window(ctx, target_height);
+    }
+}
 
-        // Use the resizing function that preserves centering
-        self.resize_window(frame, target_height);
+fn get_primary_monitor_size() -> Option<eframe::egui::Vec2> {
+    use winapi::um::winuser::{GetSystemMetrics, SM_CXSCREEN, SM_CYSCREEN};
+
+    // SAFETY: GetSystemMetrics is a read-only Windows API call that returns screen dimensions
+    unsafe {
+        let width = GetSystemMetrics(SM_CXSCREEN) as f32;
+        let height = GetSystemMetrics(SM_CYSCREEN) as f32;
+
+        if width > 0.0 && height > 0.0 {
+            Some(eframe::egui::Vec2::new(width, height))
+        } else {
+            None
+        }
     }
 }
