@@ -36,13 +36,13 @@ fn main() -> Result<(), eframe::Error> {
     #[cfg(not(feature = "branding"))]
     let window_title = format!("{APP_TITLE} v{VERSION}");
 
-    // Try with default renderer first (Glow)
-    let result = run_app(&window_title, eframe::Renderer::default());
+    // Try with WGPU first (better for AMD on Windows usually)
+    let result = run_app(&window_title, eframe::Renderer::Wgpu);
 
-    // If default renderer failed, try with WGPU
+    // If WGPU failed, fallback to Glow
     if let Err(err) = result {
-        eprintln!("Default renderer failed: {err}. Falling back to WGPU renderer...");
-        return run_app(&window_title, eframe::Renderer::Wgpu);
+        eprintln!("WGPU renderer failed: {err}. Falling back to Glow renderer...");
+        return run_app(&window_title, eframe::Renderer::Glow);
     }
 
     result
@@ -95,8 +95,24 @@ fn create_window_options() -> eframe::NativeOptions {
         viewport = viewport.with_position([x, y]);
     }
 
+    let mut wgpu_options = eframe::egui_wgpu::WgpuConfiguration::default();
+
+    // Force DX12 on Windows to avoid OpenGL/Vulkan issues on some AMD drivers
+    #[cfg(target_os = "windows")]
+    {
+        wgpu_options.wgpu_setup =
+            eframe::egui_wgpu::WgpuSetup::CreateNew(eframe::egui_wgpu::WgpuSetupCreateNew {
+                instance_descriptor: eframe::wgpu::InstanceDescriptor {
+                    backends: eframe::wgpu::Backends::DX12,
+                    ..Default::default()
+                },
+                ..Default::default()
+            });
+    }
+
     eframe::NativeOptions {
         viewport,
+        wgpu_options,
         ..Default::default()
     }
 }

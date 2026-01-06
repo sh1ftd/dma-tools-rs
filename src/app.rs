@@ -66,14 +66,17 @@ pub struct FirmwareToolApp {
 }
 
 impl FirmwareToolApp {
-    pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
+    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         let logger = Logger::new("AppLogger");
         logger.info(format!("{APP_TITLE} Tool started"));
 
         setup_window_controls();
 
+        let window_manager = WindowManager::new();
+        window_manager.setup_style(&cc.egui_ctx);
+
         Self {
-            window_manager: WindowManager::new(),
+            window_manager,
             state: AppState::FileCheck,
             file_checker: FileChecker::new(),
             firmware_manager: FirmwareManager::new(),
@@ -197,6 +200,11 @@ impl FirmwareToolApp {
 
 impl eframe::App for FirmwareToolApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        // Force dark mode if system is overriding it
+        if !ctx.style().visuals.dark_mode {
+            self.window_manager.setup_style(ctx);
+        }
+
         self.setup_ui_and_animation(ctx);
         self.update_window_size(ctx);
         self.handle_state_specific_logic(ctx);

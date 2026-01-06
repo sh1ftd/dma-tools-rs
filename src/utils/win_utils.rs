@@ -2,14 +2,16 @@ use crate::APP_TITLE;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
+use winapi::ctypes::c_void;
 use winapi::shared::minwindef::{BOOL, LPARAM, TRUE};
 use winapi::shared::windef::HWND;
+use winapi::um::dwmapi::DwmSetWindowAttribute;
 use winapi::um::winuser::{
     EnumWindows, GWL_STYLE, GetWindowLongA, GetWindowTextA, SWP_FRAMECHANGED, SWP_NOMOVE,
     SWP_NOSIZE, SWP_NOZORDER, SetWindowLongA, SetWindowPos, WS_MAXIMIZEBOX,
 };
 
-/// Disables the maximize button for all windows containing APP_TITLE in their title.
+/// Disables the maximize button and enables dark mode for all windows containing APP_TITLE in their title.
 /// Returns Some message on success, None if no matching window was found.
 pub fn disable_maximize_button_for_all() -> Option<&'static str> {
     let found = Arc::new(AtomicBool::new(false));
@@ -31,7 +33,7 @@ pub fn disable_maximize_button_for_all() -> Option<&'static str> {
                 println!("Found window: {window_title}");
 
                 // SAFETY: hwnd is a valid window handle provided by EnumWindows.
-                unsafe { disable_maximize_for_window(hwnd) };
+                unsafe { configure_window(hwnd) };
                 // SAFETY: found is a pointer to our AtomicBool, which is guaranteed
                 // to be valid for the duration of this callback.
                 unsafe { mark_window_found(found) };
@@ -72,15 +74,25 @@ unsafe fn get_window_title(hwnd: HWND) -> Option<String> {
     }
 }
 
-/// Disables the maximize button for a specific window.
-unsafe fn disable_maximize_for_window(hwnd: HWND) {
+/// Disables the maximize button and enables dark mode for a specific window.
+unsafe fn configure_window(hwnd: HWND) {
     // SAFETY: We're modifying window styles for a valid window handle.
     // The WinAPI functions used here expect the HWND to be valid, which is
     // guaranteed by the caller.
     unsafe {
+        // Disable maximize button
         let style = GetWindowLongA(hwnd, GWL_STYLE) as u32;
         let new_style = style & !WS_MAXIMIZEBOX;
         SetWindowLongA(hwnd, GWL_STYLE, new_style as i32);
+
+        // Enable dark mode for title bar
+        let dark_mode = TRUE;
+        DwmSetWindowAttribute(
+            hwnd,
+            20, // DWMWA_USE_IMMERSIVE_DARK_MODE
+            &dark_mode as *const _ as *const c_void,
+            std::mem::size_of::<BOOL>() as u32,
+        );
 
         // Force a redraw of the window frame
         SetWindowPos(
