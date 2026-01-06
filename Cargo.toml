@@ -48,6 +48,7 @@ cargo-features = ["profile-rustflags"]
         "processthreadsapi",
         "handleapi",
         "winnt",
+        "dwmapi",
     ] }
 
 [profile.dev]
