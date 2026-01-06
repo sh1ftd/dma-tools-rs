@@ -115,7 +115,7 @@ fn determine_current_stage(manager: &FlashingManager, now: Instant) -> (String, 
             if is_finalizing {
                 "Testing and verifying...".to_string()
             } else {
-                format!("Writing sector {}...", sector)
+                format!("Writing sector {sector}...")
             }
         } else {
             current_stage.to_string()
