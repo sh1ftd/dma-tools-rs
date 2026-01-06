@@ -65,12 +65,14 @@ impl FlashingOption {
         match self {
             FlashingOption::CH347_35T => "CH347 - 35T",
             FlashingOption::CH347_75T => "CH347 - 75T",
-            FlashingOption::CH347_100T => "CH347 - Stark100T",
-            FlashingOption::DnaCH347 => "CH347 - 35T, 75T, 100T DNA Read",
+            FlashingOption::CH347_100T => "CH347 - 100T",
 
             FlashingOption::RS232_35T => "RS232 - 35T",
             FlashingOption::RS232_75T => "RS232 - 75T",
             FlashingOption::RS232_100T => "RS232 - 100T",
+
+            FlashingOption::DnaCH347 => "CH347 - 35T, 75T, 100T DNA Read",
+
             FlashingOption::DnaRS232_35T => "RS232 - 35T DNA Read",
             FlashingOption::DnaRS232_75T => "RS232 - 75T DNA Read",
             FlashingOption::DnaRS232_100T => "RS232 - 100T DNA Read",

@@ -121,8 +121,8 @@ fn render_ch347_options(ui: &mut Ui, on_select: &mut dyn FnMut(FlashingOption)) 
 
     render_colored_option_button(
         ui,
-        "CH347 - Stark100T",
-        "For Stark100T boards using CH347 interface",
+        "CH347 - 100T",
+        "For 100T boards using CH347 interface",
         CH347_COLOR,
         || FlashingOption::CH347_100T,
         on_select,

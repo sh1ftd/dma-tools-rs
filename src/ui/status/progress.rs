@@ -214,7 +214,7 @@ fn get_device_type(option: &FlashingOption) -> &'static str {
         "Artix-7 35T (CH347)"
     } else if display_name.contains("CH347 - 75T") {
         "Artix-7 75T (CH347)"
-    } else if display_name.contains("CH347 - Stark100T") {
+    } else if display_name.contains("CH347 - 100T") {
         "Artix-7 100T (CH347)"
     } else {
         "Unknown Device"
