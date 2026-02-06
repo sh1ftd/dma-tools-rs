@@ -11,19 +11,19 @@ pub enum WindowSizeType {
 }
 
 pub const WINDOW_WIDTH: f32 = 600.0;
-pub const WINDOW_HEIGHT_INITIAL: f32 = 200.0;
+pub const WINDOW_HEIGHT_INITIAL: f32 = 250.0;
 
-pub const WINDOW_HEIGHT_FILE_CHECK: f32 = 200.0;
-pub const WINDOW_HEIGHT_MISSING_FILES: f32 = 475.0;
+pub const WINDOW_HEIGHT_FILE_CHECK: f32 = 250.0;
+pub const WINDOW_HEIGHT_MISSING_FILES: f32 = 600.0;
 
-pub const WINDOW_HEIGHT_OPERATION_SELECT: f32 = 300.0;
+pub const WINDOW_HEIGHT_OPERATION_SELECT: f32 = 350.0;
 
-pub const WINDOW_HEIGHT_FLASH_FILE_SELECT: f32 = 240.0;
+pub const WINDOW_HEIGHT_FLASH_FILE_SELECT: f32 = 290.0;
 
-pub const WINDOW_HEIGHT_FLASH_OPTION_SELECT: f32 = 650.0;
-pub const WINDOW_HEIGHT_READ_OPTION_SELECT: f32 = 390.0;
+pub const WINDOW_HEIGHT_FLASH_OPTION_SELECT: f32 = 700.0;
+pub const WINDOW_HEIGHT_READ_OPTION_SELECT: f32 = 440.0;
 
-pub const WINDOW_HEIGHT_OPERATION_RESULT: f32 = 675.0;
+pub const WINDOW_HEIGHT_OPERATION_RESULT: f32 = 725.0;
 
 pub struct WindowManager {
     previous_height: Option<f32>,
@@ -34,6 +34,67 @@ impl WindowManager {
         Self {
             previous_height: None,
         }
+    }
+
+    pub fn setup_fonts(&self, ctx: &Context) {
+        let mut fonts = eframe::egui::FontDefinitions::default();
+
+        let font_paths = [
+            "C:\\Windows\\Fonts\\msyh.ttc",
+            "C:\\Windows\\Fonts\\msyh.ttf", 
+            "C:\\Windows\\Fonts\\simhei.ttf"
+        ];
+
+        for path in font_paths {
+            if let Ok(font_data) = std::fs::read(path) {
+                // Determine name based on path
+                let font_name = "Microsoft YaHei".to_string();
+                
+                fonts.font_data.insert(
+                    font_name.clone(),
+                    std::sync::Arc::new(eframe::egui::FontData::from_owned(font_data)),
+                );
+
+                // Insert into families
+                if let Some(vec) = fonts.families.get_mut(&eframe::egui::FontFamily::Proportional) {
+                    vec.insert(0, font_name.clone());
+                }
+                if let Some(vec) = fonts.families.get_mut(&eframe::egui::FontFamily::Monospace) {
+                    vec.insert(0, font_name);
+                }
+                
+                break;
+            }
+        }
+
+        // Load Arabic font support
+        let arabic_font_paths = [
+            "C:\\Windows\\Fonts\\segoeui.ttf",
+            "C:\\Windows\\Fonts\\arial.ttf",
+            "C:\\Windows\\Fonts\\tahoma.ttf",
+        ];
+
+        for path in arabic_font_paths {
+            if let Ok(font_data) = std::fs::read(path) {
+                let font_name = "Arabic Font".to_string();
+                
+                fonts.font_data.insert(
+                    font_name.clone(),
+                    std::sync::Arc::new(eframe::egui::FontData::from_owned(font_data)),
+                );
+
+                if let Some(vec) = fonts.families.get_mut(&eframe::egui::FontFamily::Proportional) {
+                    vec.insert(1, font_name.clone());
+                }
+                if let Some(vec) = fonts.families.get_mut(&eframe::egui::FontFamily::Monospace) {
+                    vec.insert(1, font_name);
+                }
+                
+                break;
+            }
+        }
+
+        ctx.set_fonts(fonts);
     }
 
     pub fn setup_style(&self, ctx: &Context) {
