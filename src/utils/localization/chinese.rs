@@ -25,7 +25,7 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::GroupBitstreams => "比特流文件",
         TextKey::GroupConfigs => "配置文件",
         TextKey::GroupOther => "其他文件",
-        TextKey::ContinueAnyway => "强制继续 (不推荐)",
+        TextKey::ContinueAnyway => "强制继续",
         TextKey::Rescan => "重新扫描",
         TextKey::SelectOperation => "选择操作",
         TextKey::FlashFirmware => "烧录固件",

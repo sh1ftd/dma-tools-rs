@@ -25,7 +25,7 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::GroupBitstreams => "Bitstreams",
         TextKey::GroupConfigs => "ملفات التكوين",
         TextKey::GroupOther => "ملفات أخرى",
-        TextKey::ContinueAnyway => "(المتابعة على أي حال (غير مستحسن",
+        TextKey::ContinueAnyway => "المتابعة على أي حال",
         TextKey::Rescan => "فحص الملفات مرة أخرى",
         TextKey::SelectOperation => "اختر العملية",
         TextKey::FlashFirmware => "فلاش البرنامج الثابت",

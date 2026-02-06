@@ -25,7 +25,7 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::GroupBitstreams => "Bitstreams",
         TextKey::GroupConfigs => "Konfigurationsdateien",
         TextKey::GroupOther => "Andere Dateien",
-        TextKey::ContinueAnyway => "Trotzdem fortfahren (nicht empfohlen)",
+        TextKey::ContinueAnyway => "Trotzdem fortfahren",
         TextKey::Rescan => "Erneut scannen",
         TextKey::SelectOperation => "Vorgang auswählen",
         TextKey::FlashFirmware => "Firmware flashen",
