@@ -63,6 +63,7 @@ pub struct FirmwareToolApp {
     waiting_message_logged: bool,
     #[cfg(feature = "branding")]
     branding_manager: BrandingManager,
+    contact_copy_notification: Option<(String, Instant)>,
 }
 
 impl FirmwareToolApp {
@@ -96,8 +97,64 @@ impl FirmwareToolApp {
             waiting_message_logged: false,
             #[cfg(feature = "branding")]
             branding_manager: BrandingManager::new(),
+            contact_copy_notification: None,
         }
     }
+
+// ... existing helper methods ...
+
+    fn render_contact_icon(
+        ui: &mut egui::Ui,
+        icon: &egui::TextureHandle,
+        copy_text: &str,
+        tooltip: &str,
+        name: &str,
+        notification: &mut Option<(String, Instant)>,
+    ) {
+        // Allocate space for the icon button (fixed layout size to prevent jitter)
+        let button_size = egui::Vec2::splat(30.0);
+        let (rect, response) = ui.allocate_exact_size(button_size, egui::Sense::click());
+
+        // Handle interactions
+        if response.clicked() {
+            ui.ctx().copy_text(copy_text.to_string());
+            *notification = Some((format!("Copied {}!", name), Instant::now()));
+        }
+        let response = response.on_hover_text(tooltip);
+
+        // Determine visual properties
+        let is_hovered = response.hovered();
+        
+        // Animate scale
+        let target_scale = if is_hovered { 1.2 } else { 1.0 };
+        let scale = ui.ctx().animate_value_with_time(
+            response.id.with("scale"),
+            target_scale,
+            0.1
+        );
+        
+        // Render icon
+        if ui.is_rect_visible(rect) {
+            let icon_size = 24.0 * scale;
+            let icon_rect = egui::Rect::from_center_size(rect.center(), egui::Vec2::splat(icon_size));
+            
+            // Tint: Light Gray by default, White on hover
+            let tint = if is_hovered {
+                egui::Color32::WHITE
+            } else {
+                egui::Color32::LIGHT_GRAY
+            };
+
+            ui.painter().image(
+                icon.id(),
+                icon_rect,
+                egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
+                tint
+            );
+        }
+    }
+
+
 
     fn is_dna_read_operation(&self) -> bool {
         self.selected_option
@@ -303,6 +360,12 @@ impl FirmwareToolApp {
     }
 
     fn render_main_ui(&mut self, ctx: &egui::Context) {
+        egui::TopBottomPanel::bottom("contact_footer")
+            .show_separator_line(false)
+            .show(ctx, |ui| {
+                self.render_contact_info(ui);
+            });
+
         egui::CentralPanel::default().show(ctx, |ui| {
             // Render brand background first (behind all other content)
             #[cfg(feature = "branding")]
@@ -319,6 +382,72 @@ impl FirmwareToolApp {
 
             self.handle_log_display(ui, ctx);
         });
+    }
+
+    fn render_contact_info(&mut self, ui: &mut egui::Ui) {
+        ui.add_space(4.0);
+        ui.horizontal(|ui| {
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                ui.add_space(10.0);
+
+                // Telegram
+                if let Some(icon) = self.icon_manager.telegram_icon() {
+                    Self::render_contact_icon(
+                        ui, 
+                        icon, 
+                        "https://t.me/shifty_1337", 
+                        "Copy Telegram Link", 
+                        "Telegram",
+                        &mut self.contact_copy_notification
+                    );
+                }
+
+                ui.add_space(4.0);
+
+                // Wechat
+                if let Some(icon) = self.icon_manager.wechat_icon() {
+                    Self::render_contact_icon(
+                        ui, 
+                        icon, 
+                        "shifty1337", 
+                        "Copy WeChat ID", 
+                        "WeChat",
+                        &mut self.contact_copy_notification
+                    );
+                }
+
+                ui.add_space(4.0);
+
+                // Discord
+                if let Some(icon) = self.icon_manager.discord_icon() {
+                    Self::render_contact_icon(
+                        ui, 
+                        icon, 
+                        "_shifty1337", 
+                        "Copy Discord ID", 
+                        "Discord",
+                        &mut self.contact_copy_notification
+                    );
+                }
+
+                ui.label("Contact:");
+                ui.add_space(8.0); // Space between label and notification
+
+                 // Show notification if active (Left of everything else)
+                if let Some((msg, time)) = &self.contact_copy_notification {
+                    if time.elapsed() < Duration::from_secs(2) {
+                        ui.label(
+                            egui::RichText::new(msg)
+                                .color(egui::Color32::GREEN)
+                                .size(16.0)
+                        );
+                        // Request repaint to handle animation/timeout
+                        ui.ctx().request_repaint(); 
+                    }
+                }
+            });
+        });
+        ui.add_space(4.0);
     }
 
     fn render_state_content(&mut self, ui: &mut egui::Ui) {
