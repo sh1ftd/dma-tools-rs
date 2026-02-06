@@ -1,0 +1,164 @@
+use crate::app::Language;
+
+pub mod english;
+pub mod chinese;
+pub mod german;
+pub mod portuguese;
+pub mod arabic;
+
+
+#[allow(non_camel_case_types)]
+#[allow(dead_code)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum TextKey {
+    OperationLog,
+    Contact,
+    CopyTelegram,
+    CopyWeChat,
+    CopyDiscord,
+    TelegramLink,
+    WeChatID,
+    DiscordID,
+    Copied,
+    CheckingFiles,
+    MissingFiles,
+    FileCheckSuccess,
+    SystemCheck,
+    WelcomeMessage,
+    CheckingItem,
+    CountdownMessage,
+    ExitButton,
+    MissingFilesWarning,
+    GroupExecutables,
+    GroupLibraries,
+    GroupBitstreams,
+    GroupConfigs,
+    GroupOther,
+    ContinueAnyway,
+    Rescan,
+    SelectOperation,
+    FlashFirmware,
+    ReadDna,
+    SelectFirmware,
+    ScanningFirmware,
+    SelectOption,
+    Flash,
+    Read,
+    Back,
+    FlashingInProgress,
+    ReadingDnaInProgress,
+    Success,
+    Failed,
+    TryAgain,
+    ReturnToMenu,
+    DownloadHere,
+    UpdateAvailable,
+    // Firmware Selection
+    NoFirmwareFound,
+    PlaceFirmwareHere,
+    AutoScanning,
+    AutoRefreshing,
+    PerformCleanup,
+    CleanupDescription,
+    Continue,
+    SelectFirmwareToContinue,
+    FlashFirmwareDesc,
+    ReadDnaDesc,
+    // Flashing Options
+    SelectFlashingOption,
+    SelectDnaReadOption,
+    Ch347Options,
+    Rs232Options,
+    // Option Labels & Descriptions
+    Ch347_35T_Label, Ch347_35T_Desc,
+    Ch347_75T_Label, Ch347_75T_Desc,
+    Ch347_100T_Label, Ch347_100T_Desc,
+    Rs232_35T_Label, Rs232_35T_Desc,
+    Rs232_75T_Label, Rs232_75T_Desc,
+    Rs232_100T_Label, Rs232_100T_Desc,
+    // DNA Read Labels & Descriptions
+    Dna_Ch347_Label, Dna_Ch347_Desc,
+    Dna_Rs232_35T_Label, Dna_Rs232_35T_Desc,
+    Dna_Rs232_75T_Label, Dna_Rs232_75T_Desc,
+    Dna_Rs232_100T_Label, Dna_Rs232_100T_Desc,
+    // Log View
+    ClearLog,
+    
+    // Result Extras
+    OperationTook,
+    NoteFewerSectors,
+    NoteVerifySuccess,
+    ErrorDetails,
+    
+    // Progress
+    Initializing,
+    StartingOperation,
+    WritingImage,
+    ProbingFlash,
+    ResettingFpga,
+    LoadingBitstream,
+    InitJtag,
+    Verifying,
+    WritingSector, // "Writing sector {}..."
+    ReadingDeviceDna,
+    PleaseWaitDna,
+    DnaTakesSeconds,
+    FlashingFirmware,
+    PleaseWaitFlash,
+    FlashTakesMinutes,
+    FlashFailImmediate,
+    TechnicalInfo,
+    InterfaceLabel,
+    OperationTypeLabel,
+    TargetDeviceLabel,
+    // Result
+    DnaReadSuccess,
+    DnaReadFailed,
+    DnaReadUnexpected,
+    DeviceDnaHeader,
+    ClickToCopy,
+    FlashingSuccess,
+    FlashingFailed,
+    FlashingFailedConnection,
+    FlashingResultUnknown,
+    NextSteps,
+    NextStepsList, // Multiline string for the steps
+    Exit,
+    MainMenu,
+    TryAgainButton, // TryAgain exists?
+    
+    // Detailed Result Messages
+    DnaReadUnexpectedMsg,
+    DnaReadFailedPrefix,
+    OperationInProgress,
+    DnaStatusUnknownMsg,
+    ClickToCopyTooltip,
+    FlashingFailedConnectionMsg,
+    FlashingResultUnknownMsg,
+    UnexpectedStateMsg,
+    FlashingFailedPrefix,
+    FlashStatusUnknownMsg,
+
+    // DNA Backend & Status
+    DnaInvalidOption,
+    DnaCommandFailed,
+    DnaFileNotFound,
+    DnaExtractFailed,
+    DnaFileReadError,
+    DnaInfoNotFound,
+    DnaWaitingStart,
+    DnaRetrieving,
+    DnaReadSuccessStatus,
+    DnaOperationCompleted,
+    DnaReadFailedStatus,
+}
+
+pub fn translate(key: TextKey, lang: &Language) -> &'static str {
+    match lang {
+        Language::English => english::get_text(key),
+        Language::Chinese => chinese::get_text(key),
+        Language::German => german::get_text(key),
+        Language::Portuguese => portuguese::get_text(key),
+        Language::Arabic => arabic::get_text(key),
+    }
+}
