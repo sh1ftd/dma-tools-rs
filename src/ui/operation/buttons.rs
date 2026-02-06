@@ -1,4 +1,5 @@
 use super::types::OperationType;
+use crate::utils::localization::{translate, TextKey};
 use eframe::egui::{self, RichText, Ui, Widget};
 
 // Button styling constants
@@ -31,10 +32,14 @@ impl ButtonStyled for Ui {
 }
 
 /// Creates a button for the specified operation type with appropriate styling
-pub fn create_operation_button(ui: &mut Ui, operation_type: OperationType) -> egui::Response {
+pub fn create_operation_button(
+    ui: &mut Ui,
+    operation_type: OperationType,
+    lang: &crate::app::Language,
+) -> egui::Response {
     let (text, color) = match operation_type {
-        OperationType::FlashFirmware => ("Flash Firmware", colors::FLASH_FIRMWARE),
-        OperationType::ReadDNA => ("Read Device DNA", colors::READ_DNA),
+        OperationType::FlashFirmware => (translate(TextKey::FlashFirmware, lang), colors::FLASH_FIRMWARE),
+        OperationType::ReadDNA => (translate(TextKey::ReadDna, lang), colors::READ_DNA),
     };
 
     let button_size = egui::vec2(BUTTON_WIDTH, BUTTON_HEIGHT);

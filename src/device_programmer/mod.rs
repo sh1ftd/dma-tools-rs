@@ -11,6 +11,8 @@ pub use process::ProcessExecutor;
 pub use types::{CompletionStatus, DnaInfo, FlashingOption};
 
 use crate::utils::logger::Logger;
+use crate::utils::localization::{translate, TextKey};
+use crate::app::Language;
 use monitor::OperationMonitor;
 use std::path::Path;
 use std::path::PathBuf;
@@ -64,8 +66,8 @@ impl FlashingManager {
         self.cleanup_enabled = enabled;
     }
 
-    pub fn execute_flash(&mut self, firmware_path: &Path, option: &FlashingOption) {
-        self.initialize_operation(option.clone());
+    pub fn execute_flash(&mut self, firmware_path: &Path, option: &FlashingOption, lang: &Language) {
+        self.initialize_operation(option.clone(), lang);
         self.original_firmware_path = Some(firmware_path.to_path_buf());
 
         if let Err(e) = self.firmware_flasher.execute(
@@ -80,9 +82,9 @@ impl FlashingManager {
         }
     }
 
-    pub fn execute_dna_read(&mut self, option: &FlashingOption) {
-        self.initialize_operation(option.clone());
-        self.dna_reader.execute(option, &self.process_executor);
+    pub fn execute_dna_read(&mut self, option: &FlashingOption, lang: &Language) {
+        self.initialize_operation(option.clone(), lang);
+        self.dna_reader.execute(option, &self.process_executor, lang);
     }
 
     pub fn get_duration(&self) -> Option<Duration> {
@@ -110,7 +112,7 @@ impl FlashingManager {
     }
 
     // Private methods
-    fn initialize_operation(&mut self, option: FlashingOption) {
+    fn initialize_operation(&mut self, option: FlashingOption, lang: &Language) {
         self.monitor.stop_monitor_thread();
 
         self.start_time = Some(Instant::now());
@@ -122,18 +124,9 @@ impl FlashingManager {
         *self.last_status_change.lock().unwrap() = Some(Instant::now());
 
         // Set an explicit in-progress status to prevent flashing
-        let is_dna_read = option.is_dna_read();
-        if is_dna_read {
-            self.process_executor
-                .set_completion_status(CompletionStatus::InProgress(
-                    "Starting DNA read operation...".to_string(),
-                ));
-        } else {
-            self.process_executor
-                .set_completion_status(CompletionStatus::InProgress(
-                    "Starting flash operation...".to_string(),
-                ));
-        }
+        let msg = translate(TextKey::StartingOperation, lang).to_string();
+        
+        self.process_executor.set_completion_status(CompletionStatus::InProgress(msg));
     }
 
     pub fn get_status(&self) -> CompletionStatus {

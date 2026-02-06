@@ -2,6 +2,7 @@ use super::FileCheckRenderContext;
 use crate::APP_TITLE;
 use crate::ui::file_select::components::render_missing_file;
 use crate::utils::file_checker::{CheckStatus, FileCheckResult, SUCCESS_TRANSITION_DELAY};
+use crate::utils::localization::{translate, TextKey};
 use eframe::egui::{self, Color32, CornerRadius, Margin, RichText, Sense, Stroke, Ui, Vec2};
 
 // UI Constants
@@ -16,7 +17,6 @@ const SPACING_SECTION: f32 = 24.0;
 const CHECKMARK_SIZE: f32 = 48.0;
 const CHECKMARK_RADIUS: f32 = 24.0;
 const MISSING_FILES_MAX_HEIGHT: f32 = 250.0;
-const BUTTON_SPACER_WIDTH: f32 = 150.0;
 const SPINNER_OFFSET: f32 = 10.0;
 
 // Text sizes
@@ -35,12 +35,14 @@ const COLOR_WARNING_BG: Color32 = Color32::from_rgba_premultiplied(255, 160, 0, 
 struct FileCheckUiContext<'a> {
     ui: &'a mut Ui,
     check_status: &'a CheckStatus,
+    language: &'a crate::app::Language,
 }
 
 pub fn render_file_check(render_ctx: &mut FileCheckRenderContext<'_>) {
     let mut ui_ctx = FileCheckUiContext {
         ui: render_ctx.ui,
         check_status: render_ctx.check_status,
+        language: render_ctx.language,
     };
 
     render_file_check_internal(&mut ui_ctx, render_ctx.on_continue, render_ctx.on_rescan);
@@ -52,15 +54,15 @@ fn render_file_check_internal(
     on_rescan: &mut dyn FnMut(),
 ) {
     ctx.ui.vertical_centered(|ui| {
-        ui.heading("System Check");
+        ui.heading(translate(TextKey::SystemCheck, ctx.language));
 
         match ctx.check_status {
-            CheckStatus::NotStarted => render_not_started(ui),
-            CheckStatus::Checking(current_file) => render_checking(ui, current_file),
-            CheckStatus::Success(success_time) => render_success_state(ui, success_time),
+            CheckStatus::NotStarted => render_not_started(ui, ctx.language),
+            CheckStatus::Checking(current_file) => render_checking(ui, current_file, ctx.language),
+            CheckStatus::Success(success_time) => render_success_state(ui, success_time, ctx.language),
             CheckStatus::Complete(result) => {
                 if result.error_count > 0 {
-                    render_check_failed(ui, result, on_continue, on_rescan);
+                    render_check_failed(ui, result, on_continue, on_rescan, ctx.language);
                 }
             }
             CheckStatus::ReadyToTransition => {
@@ -71,28 +73,29 @@ fn render_file_check_internal(
 }
 
 // Status rendering functions
-fn render_not_started(ui: &mut Ui) {
+fn render_not_started(ui: &mut Ui, lang: &crate::app::Language) {
     ui.add_space(SPACING_XXLARGE);
-    ui.label(format!("Welcome to the {APP_TITLE} Tool"));
+    ui.add_space(SPACING_XXLARGE);
+    ui.label(translate(TextKey::WelcomeMessage, lang).replace("{}", APP_TITLE));
     ui.add_space(SPACING_LARGE);
-    ui.label("Checking system files...");
+    ui.label(translate(TextKey::CheckingFiles, lang));
     ui.add_space(SPACING_LARGE);
     render_centered_spinner(ui);
 }
 
-fn render_checking(ui: &mut Ui, current_file: &str) {
+fn render_checking(ui: &mut Ui, current_file: &str, lang: &crate::app::Language) {
     ui.add_space(SPACING_XXLARGE);
-    ui.label(RichText::new("Checking required files...").size(TEXT_SIZE_NORMAL));
+    ui.label(RichText::new(translate(TextKey::CheckingFiles, lang)).size(TEXT_SIZE_NORMAL));
     ui.add_space(SPACING_LARGE);
     render_centered_spinner(ui);
     ui.add_space(SPACING_XLARGE);
     ui.vertical_centered(|ui| {
-        ui.label(RichText::new(format!("Checking: {current_file}")).monospace());
+        ui.label(RichText::new(translate(TextKey::CheckingItem, lang).replace("{}", current_file)).monospace());
     });
     ui.add_space(SPACING_XXLARGE);
 }
 
-fn render_success_state(ui: &mut Ui, success_time: &std::time::Instant) {
+fn render_success_state(ui: &mut Ui, success_time: &std::time::Instant, lang: &crate::app::Language) {
     // Container frame for better spacing control
     egui::Frame::NONE
         .inner_margin(Margin::symmetric(0, SPACING_SECTION as i8))
@@ -106,13 +109,13 @@ fn render_success_state(ui: &mut Ui, success_time: &std::time::Instant) {
                 // Success message
                 ui.colored_label(
                     COLOR_SUCCESS,
-                    RichText::new("All required files are present!")
+                    RichText::new(translate(TextKey::FileCheckSuccess, lang))
                         .size(TEXT_SIZE_MEDIUM)
                         .strong(),
                 );
 
                 // Countdown message
-                render_countdown(ui, success_time);
+                render_countdown(ui, success_time, lang);
             });
         });
 }
@@ -122,12 +125,14 @@ fn render_check_failed(
     check_result: &FileCheckResult,
     on_continue: &mut dyn FnMut(bool),
     on_rescan: &mut dyn FnMut(),
+    lang: &crate::app::Language,
 ) {
     ui.vertical_centered(|ui| {
         ui.colored_label(
             COLOR_WARNING,
             RichText::new(format!(
-                "Missing {} required files:",
+                "{} {}",
+                translate(TextKey::MissingFiles, lang),
                 check_result.error_count
             ))
             .size(TEXT_SIZE_LARGE)
@@ -135,9 +140,10 @@ fn render_check_failed(
         );
 
         ui.add_space(SPACING_LARGE);
-        render_missing_files_list(ui, check_result);
+        ui.add_space(SPACING_LARGE);
+        render_missing_files_list(ui, check_result, lang);
         ui.separator();
-        render_action_buttons(ui, on_continue, on_rescan);
+        render_action_buttons(ui, on_continue, on_rescan, lang);
     });
 }
 
@@ -160,7 +166,7 @@ fn render_checkmark(ui: &mut Ui) {
     painter.line_segment([points[1], points[2]], stroke);
 }
 
-fn render_countdown(ui: &mut Ui, success_time: &std::time::Instant) {
+fn render_countdown(ui: &mut Ui, success_time: &std::time::Instant, lang: &crate::app::Language) {
     let elapsed = success_time.elapsed().as_secs();
 
     #[allow(clippy::absurd_extreme_comparisons)]
@@ -168,11 +174,10 @@ fn render_countdown(ui: &mut Ui, success_time: &std::time::Instant) {
         let remaining = SUCCESS_TRANSITION_DELAY - elapsed;
         ui.add_space(SPACING_MEDIUM);
 
-        let countdown_text = format!(
-            "Continuing automatically in {} second{}...",
-            remaining,
-            if remaining == 1 { "" } else { "s" }
-        );
+        let s_text = if remaining == 1 { "" } else { "s" };
+        let countdown_text = translate(TextKey::CountdownMessage, lang)
+            .replace("{}", &remaining.to_string())
+            .replacen("{}", s_text, 1);
 
         ui.with_layout(
             egui::Layout::top_down_justified(egui::Align::Center),
@@ -199,7 +204,7 @@ fn render_centered_spinner(ui: &mut Ui) {
     });
 }
 
-fn render_missing_files_list(ui: &mut Ui, check_result: &FileCheckResult) {
+fn render_missing_files_list(ui: &mut Ui, check_result: &FileCheckResult, lang: &crate::app::Language) {
     egui::Frame::dark_canvas(ui.style())
         .stroke(Stroke::new(1.0, COLOR_BORDER))
         .corner_radius(CornerRadius::same(SPACING_LARGE as u8))
@@ -208,7 +213,7 @@ fn render_missing_files_list(ui: &mut Ui, check_result: &FileCheckResult) {
             egui::ScrollArea::vertical()
                 .max_height(MISSING_FILES_MAX_HEIGHT)
                 .show(ui, |ui| {
-                    render_file_groups(ui, &check_result.missing_files);
+                    render_file_groups(ui, &check_result.missing_files, lang);
                 });
         });
 }
@@ -217,37 +222,38 @@ fn render_action_buttons(
     ui: &mut Ui,
     on_continue: &mut dyn FnMut(bool),
     on_rescan: &mut dyn FnMut(),
+    lang: &crate::app::Language,
 ) {
-    render_warning_box(ui);
+    render_warning_box(ui, lang);
     ui.add_space(SPACING_LARGE);
 
     ui.horizontal(|ui| {
         if ui
-            .button(RichText::new("Exit").size(TEXT_SIZE_MEDIUM))
+            .button(RichText::new(translate(TextKey::ExitButton, lang)).size(TEXT_SIZE_MEDIUM))
             .clicked()
         {
             on_continue(false);
         }
 
         if ui
-            .button(RichText::new("Rescan Files").size(TEXT_SIZE_MEDIUM))
+            .button(RichText::new(translate(TextKey::Rescan, lang)).size(TEXT_SIZE_MEDIUM))
             .clicked()
         {
             on_rescan();
         }
 
-        ui.add_space(ui.available_width() - BUTTON_SPACER_WIDTH);
-
-        if ui
-            .button(RichText::new("Continue Anyway").size(TEXT_SIZE_MEDIUM))
-            .clicked()
-        {
-            on_continue(true);
-        }
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            if ui
+                .button(RichText::new(translate(TextKey::ContinueAnyway, lang)).size(TEXT_SIZE_MEDIUM))
+                .clicked()
+            {
+                on_continue(true);
+            }
+        });
     });
 }
 
-fn render_warning_box(ui: &mut Ui) {
+fn render_warning_box(ui: &mut Ui, lang: &crate::app::Language) {
     egui::Frame::NONE
         .fill(COLOR_WARNING_BG)
         .stroke(Stroke::new(1.0, COLOR_WARNING_BORDER))
@@ -256,7 +262,7 @@ fn render_warning_box(ui: &mut Ui) {
         .show(ui, |ui| {
             ui.colored_label(
                 Color32::BLACK,
-                RichText::new("WARNING: Continuing without required files may cause errors")
+                RichText::new(translate(TextKey::MissingFilesWarning, lang))
                     .size(TEXT_SIZE_MEDIUM)
                     .strong(),
             );
@@ -289,23 +295,23 @@ fn group_files(files: &[String]) -> FileGroups<'_> {
     groups
 }
 
-fn render_file_groups(ui: &mut Ui, files: &[String]) {
+fn render_file_groups(ui: &mut Ui, files: &[String], lang: &crate::app::Language) {
     let groups = group_files(files);
 
     if !groups.executables.is_empty() {
-        render_file_group(ui, "Executables", &groups.executables);
+        render_file_group(ui, translate(TextKey::GroupExecutables, lang), &groups.executables);
     }
     if !groups.libraries.is_empty() {
-        render_file_group(ui, "Libraries", &groups.libraries);
+        render_file_group(ui, translate(TextKey::GroupLibraries, lang), &groups.libraries);
     }
     if !groups.bitstreams.is_empty() {
-        render_file_group(ui, "Bitstreams", &groups.bitstreams);
+        render_file_group(ui, translate(TextKey::GroupBitstreams, lang), &groups.bitstreams);
     }
     if !groups.configs.is_empty() {
-        render_file_group(ui, "Configuration Files", &groups.configs);
+        render_file_group(ui, translate(TextKey::GroupConfigs, lang), &groups.configs);
     }
     if !groups.others.is_empty() {
-        render_file_group(ui, "Other Files", &groups.others);
+        render_file_group(ui, translate(TextKey::GroupOther, lang), &groups.others);
     }
 }
 

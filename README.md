@@ -12,6 +12,21 @@ A Windows GUI tool for FPGA firmware flashing and DNA reading, supporting CH347 
 - Real-time operation logging
 - Progress tracking and status updates
 
+## Multi-Language Support
+
+The tool now supports five major languages:
+- English
+- Chinese (简体中文)
+- German (Deutsch)
+- Portuguese (Português)
+- Arabic (العربية)
+
+## Prerequisites
+
+- Windows 10/11
+- Appropriate USB Drivers (CH347/FTDI)
+- DMA Hardware connected via JTAG port
+
 ## Installation
 
 1. Download latest release
@@ -25,7 +40,7 @@ A Windows GUI tool for FPGA firmware flashing and DNA reading, supporting CH347 
 3. Launch as administrator
 4. Select operation (Flash/DNA Read)
 5. Choose interface (CH347/RS232)
-6. Monitor progress
+6. Wait for the operation to complete (flashing takes a few minutes)
 
 ## Building from Source
 
@@ -35,11 +50,6 @@ cd dma-tools-rs
 cargo build --release
 ```
 
-## Requirements
-
-- Windows 64-bit
-- CH347 or RS232 interface
-- Administrator privileges
 
 ## Credits
 

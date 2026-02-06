@@ -3,6 +3,8 @@ use crate::device_programmer::{
     CompletionStatus, DNA_OUTPUT_FILE, DnaInfo, FlashingOption, SCRIPT_DIR,
 };
 use crate::utils::logger::Logger;
+use crate::utils::localization::{translate, TextKey};
+use crate::app::Language;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -29,18 +31,18 @@ impl DnaReader {
         }
     }
 
-    pub fn execute(&self, option: &FlashingOption, executor: &ProcessExecutor) {
+    pub fn execute(&self, option: &FlashingOption, executor: &ProcessExecutor, lang: &Language) {
         if !option.is_dna_read() {
-            self.logger.error("Invalid option for DNA read operation");
+            self.logger.error(translate(TextKey::DnaInvalidOption, lang));
             executor.set_completion_status(CompletionStatus::Failed(
-                "Invalid option for DNA read".to_string(),
+                translate(TextKey::DnaInvalidOption, lang).to_string(),
             ));
             return;
         }
 
         // Mark operation as in progress right from the start
         executor.set_completion_status(CompletionStatus::InProgress(
-            "Initializing DNA read operation...".to_string(),
+            translate(TextKey::Initializing, lang).to_string(),
         ));
 
         // Clean up any existing DNA output file before starting
@@ -51,13 +53,13 @@ impl DnaReader {
         let config_path = format!("{SCRIPT_DIR}/{config}");
 
         // Start background processing thread first (only sets up the thread)
-        self.start_dna_processing_thread(executor);
+        self.start_dna_processing_thread(executor, lang);
 
         // Then execute the command - this ensures we don't miss any data
         if !self.run_dna_command(&exe_path, &config_path, executor) {
             self.stop_processing_thread(); // Signal thread to stop if it hasn't already
             executor.set_completion_status(CompletionStatus::Failed(
-                "Failed to execute DNA read command".to_string(),
+                translate(TextKey::DnaCommandFailed, lang).to_string(),
             ));
         }
     }
@@ -94,12 +96,14 @@ impl DnaReader {
         self.logger.debug("DNA processing thread stop requested");
     }
 
-    fn start_dna_processing_thread(&self, executor: &ProcessExecutor) {
+    fn start_dna_processing_thread(&self, executor: &ProcessExecutor, lang: &Language) {
         if self.thread_running.load(Ordering::SeqCst) {
             self.logger
                 .debug("DNA thread already running - not starting another");
             return;
         }
+
+        let lang = *lang; // Capture copy for thread
 
         let logger_clone = self.logger.clone();
         let completion_status = Arc::clone(&executor.get_completion_status_arc());
@@ -124,7 +128,7 @@ impl DnaReader {
 
             // Update status to "Waiting for device response"
             *completion_status.lock().unwrap() =
-                CompletionStatus::InProgress("Waiting for device response...".to_string());
+                CompletionStatus::InProgress(translate(TextKey::DnaRetrieving, &lang).to_string());
 
             thread::sleep(Duration::from_millis(DNA_READ_WAIT_MS));
 
@@ -142,7 +146,8 @@ impl DnaReader {
                 if let Some(path) = Self::find_dna_file(&dna_path, &logger_clone) {
                     found_dna_file = true;
                     // Process the file...
-                    Self::parse_dna_file(&path, &logger_clone, &completion_status);
+                    // Process the file...
+                    Self::parse_dna_file(&path, &logger_clone, &completion_status, &lang);
                     break; // Exit the loop if we found and processed the file
                 }
 
@@ -157,9 +162,10 @@ impl DnaReader {
                 if let CompletionStatus::Failed(_) = *completion_status.lock().unwrap() {
                     logger_clone.warning("Command failed while waiting for DNA file.");
                 } else {
-                    let error_msg =
+                    let error_msg_native =
                         format!("DNA output file not found after {DNA_MAX_ATTEMPTS} attempts");
-                    logger_clone.error(&error_msg);
+                    let error_msg = translate(TextKey::DnaFileNotFound, &lang).replace("{}", &DNA_MAX_ATTEMPTS.to_string());
+                    logger_clone.error(&error_msg_native);
                     *completion_status.lock().unwrap() = CompletionStatus::Failed(error_msg);
                 }
             }
@@ -208,6 +214,7 @@ impl DnaReader {
         path: &Path,
         logger: &Logger,
         completion_status: &Arc<Mutex<CompletionStatus>>,
+        lang: &Language,
     ) {
         match fs::read_to_string(path) {
             Ok(contents) => {
@@ -228,17 +235,21 @@ impl DnaReader {
                     Err(e) => {
                         logger.error(format!("Failed to extract DNA from contents: {e}"));
                         *completion_status.lock().unwrap() =
-                            CompletionStatus::Failed(format!("Failed to extract DNA: {e}"));
+                            CompletionStatus::Failed(translate(TextKey::DnaExtractFailed, lang).replace("{}", &e));
                     }
                 }
             }
             Err(e) => {
-                let error_msg = format!(
+                let error_msg_native = format!(
                     "Failed to read DNA output file at {}: {}",
                     path.to_string_lossy(),
                     e
                 );
-                logger.error(&error_msg);
+                let error_msg = translate(TextKey::DnaFileReadError, lang)
+                    .replace("{}", &path.to_string_lossy())
+                    .replacen("{}", &e.to_string(), 1);
+
+                logger.error(&error_msg_native);
                 *completion_status.lock().unwrap() = CompletionStatus::Failed(error_msg);
             }
         }
@@ -303,7 +314,7 @@ impl DnaReader {
             logger.debug("Did not find line starting with 'DNA ='");
         }
 
-        Err("Could not find DNA information in the output file".to_string())
+        Err(translate(TextKey::DnaInfoNotFound, &crate::app::Language::English).to_string())
     }
 
     pub fn cleanup_dna_output_file(logger: &Logger) {
@@ -321,14 +332,14 @@ impl DnaReader {
     }
 
     // Get user-friendly status message for the current DNA read stage
-    pub fn get_dna_read_stage(current_status: &CompletionStatus) -> String {
+    pub fn get_dna_read_stage(current_status: &CompletionStatus, lang: &Language) -> String {
         match current_status {
-            CompletionStatus::NotCompleted => "Waiting to start DNA read...".to_string(),
-            CompletionStatus::InProgress(_) => "Retrieving device DNA...".to_string(),
+            CompletionStatus::NotCompleted => translate(TextKey::DnaWaitingStart, lang).to_string(),
+            CompletionStatus::InProgress(_) => translate(TextKey::DnaRetrieving, lang).to_string(),
             // Handle the new status
-            CompletionStatus::DnaReadCompleted(_) => "DNA read successful!".to_string(),
-            CompletionStatus::Completed => "Operation completed (Non-DNA)".to_string(), // This won't happen in DNA context, but handle it just in case
-            CompletionStatus::Failed(err) => format!("DNA read failed: {err}"),
+            CompletionStatus::DnaReadCompleted(_) => translate(TextKey::DnaReadSuccessStatus, lang).to_string(),
+            CompletionStatus::Completed => translate(TextKey::DnaOperationCompleted, lang).to_string(),
+            CompletionStatus::Failed(err) => translate(TextKey::DnaReadFailedStatus, lang).replace("{}", err),
         }
     }
 

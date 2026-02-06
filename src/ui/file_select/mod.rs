@@ -11,6 +11,7 @@ pub struct FileCheckRenderContext<'a> {
     pub check_status: &'a CheckStatus,
     pub on_continue: &'a mut dyn FnMut(bool),
     pub on_rescan: &'a mut dyn FnMut(),
+    pub language: &'a crate::app::Language,
 }
 
 // Re-export the main entry points

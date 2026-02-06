@@ -1,6 +1,7 @@
 use super::types::ResultAction;
 use crate::assets::IconManager;
 use crate::device_programmer::{CompletionStatus, DnaInfo, FlashingManager};
+use crate::utils::localization::{translate, TextKey};
 use eframe::egui::{self, RichText, Ui};
 use std::time::Duration;
 
@@ -32,15 +33,16 @@ pub fn render_result_screen(
     manager: &FlashingManager,
     on_action: &mut dyn FnMut(ResultAction),
     icon_manager: &IconManager,
+    lang: &crate::app::Language,
 ) {
     let is_dna_read = manager
         .get_current_option()
         .is_some_and(|option| option.is_dna_read());
 
     if is_dna_read {
-        render_dna_result(ui, manager, on_action, icon_manager);
+        render_dna_result(ui, manager, on_action, icon_manager, lang);
     } else {
-        render_flashing_result(ui, manager, on_action, icon_manager);
+        render_flashing_result(ui, manager, on_action, icon_manager, lang);
     }
 }
 
@@ -49,45 +51,50 @@ fn render_dna_result(
     manager: &FlashingManager,
     on_action: &mut dyn FnMut(ResultAction),
     icon_manager: &IconManager,
+    lang: &crate::app::Language,
 ) {
     match manager.get_status() {
         CompletionStatus::DnaReadCompleted(dna_info) => {
-            render_dna_success(ui, &dna_info, icon_manager);
+            render_dna_success(ui, &dna_info, icon_manager, lang);
         }
         CompletionStatus::Completed => {
             render_error(
                 ui,
-                "DNA READ STATUS UNEXPECTED",
-                "The operation completed, but the DNA value could not be confirmed.\n\
-                 This might indicate an issue with the DNA extraction process.\n\
-                 Please check the log output for details.",
+                translate(TextKey::DnaReadUnexpected, lang),
+                translate(TextKey::DnaReadUnexpectedMsg, lang),
                 icon_manager,
+                lang,
             );
         }
         CompletionStatus::Failed(error) => {
             render_error(
                 ui,
-                "DNA READ FAILED",
-                &format!("Failed to read DNA from the device:\n\n{error}"),
+                translate(TextKey::DnaReadFailed, lang),
+                &format!("{}\n\n{error}", translate(TextKey::DnaReadFailedPrefix, lang)),
                 icon_manager,
+                lang,
             );
         }
         CompletionStatus::InProgress(status_msg) => {
             ui.vertical_centered(|ui| {
-                ui.label(format!("Operation in progress: {status_msg}"));
+                ui.label(format!("{} {status_msg}", translate(TextKey::OperationInProgress, lang)));
                 ui.spinner();
             });
         }
         CompletionStatus::NotCompleted => {
-            ui.label("DNA read operation status is unknown.");
-            ui.label("Please check the log for details.");
+            ui.label(translate(TextKey::DnaStatusUnknownMsg, lang));
         }
     }
 
-    render_dna_action_buttons(ui, on_action);
+    render_dna_action_buttons(ui, on_action, lang);
 }
 
-fn render_dna_success(ui: &mut Ui, dna_info: &DnaInfo, icon_manager: &IconManager) {
+fn render_dna_success(
+    ui: &mut Ui,
+    dna_info: &DnaInfo,
+    icon_manager: &IconManager,
+    lang: &crate::app::Language,
+) {
     ui.vertical_centered(|ui| {
         ui.add_space(SPACING_LARGE);
 
@@ -102,7 +109,7 @@ fn render_dna_success(ui: &mut Ui, dna_info: &DnaInfo, icon_manager: &IconManage
 
         ui.colored_label(
             SUCCESS_COLOR,
-            RichText::new("DNA READ SUCCESSFUL!")
+            RichText::new(translate(TextKey::DnaReadSuccess, lang))
                 .size(TITLE_FONT_SIZE)
                 .strong(),
         );
@@ -111,7 +118,7 @@ fn render_dna_success(ui: &mut Ui, dna_info: &DnaInfo, icon_manager: &IconManage
 
         render_framed_content(ui, SUCCESS_COLOR, |ui| {
             ui.vertical_centered(|ui| {
-                ui.label(RichText::new("Device DNA").size(SUBTITLE_FONT_SIZE));
+                ui.label(RichText::new(translate(TextKey::DeviceDnaHeader, lang)).size(SUBTITLE_FONT_SIZE));
                 ui.add_space(SPACING_MEDIUM);
 
                 let dna_text = RichText::new(&dna_info.dna_value)
@@ -136,10 +143,10 @@ fn render_dna_success(ui: &mut Ui, dna_info: &DnaInfo, icon_manager: &IconManage
                     ui.ctx().copy_text(copy_text);
                 }
 
-                response.on_hover_text("Click to copy RAW, HEX, and Verilog DNA values");
+                response.on_hover_text(translate(TextKey::ClickToCopyTooltip, lang));
 
                 ui.add_space(SPACING_SMALL);
-                ui.label("Click to copy");
+                ui.label(translate(TextKey::ClickToCopy, lang));
             });
         });
     });
@@ -150,6 +157,7 @@ fn render_flashing_result(
     manager: &FlashingManager,
     on_action: &mut dyn FnMut(ResultAction),
     icon_manager: &IconManager,
+    lang: &crate::app::Language,
 ) {
     let status = manager.get_status();
     let duration = manager.get_duration().unwrap_or(Duration::from_secs(0));
@@ -184,65 +192,54 @@ fn render_flashing_result(
     match status {
         CompletionStatus::Completed => {
             if has_enough_sectors && has_few_normal_writes {
+                let msg = translate(TextKey::FlashingFailedConnectionMsg, lang)
+                    .replacen("{}", &normal_writes.to_string(), 1)
+                    .replacen("{}", &total_sectors.to_string(), 1);
+
                 render_error(
                     ui,
-                    "FLASHING FAILED - CONNECTION ISSUE",
-                    &format!(
-                        "Insufficient normal sector writes detected: {normal_writes} out of {total_sectors} sectors.\n\n\
-                        This indicates a hardware connection issue. The device is accessible but \
-                        data is not being properly transferred.\n\n\
-                        Try:\n\
-                        1. Use a different USB port\n\
-                        2. Check cable connections\n\
-                        3. Ensure the device is powered correctly\n\
-                        4. Try a different USB cable"
-                    ),
+                    translate(TextKey::FlashingFailedConnection, lang),
+                    &msg,
                     icon_manager,
+                    lang,
                 );
             } else if has_proper_sector_times || operation_success {
-                render_success(ui, icon_manager);
+                render_success(ui, icon_manager, lang);
 
                 if duration_secs > 1 {
-                    render_duration(ui, duration_secs);
+                    render_duration(ui, duration_secs, lang);
                 }
             } else if total_sectors == 0 {
                 render_error(
                     ui,
-                    "FLASHING RESULT UNKNOWN",
-                    "Flashing process completed but no sector write information was found in logs.\n\n\
-                    1. You selected the correct board type\n\
-                    2. The appropriate USB driver is installed and in JTAG port.\n\
-                    3. Try a different USB cable and/or port\n\
-                    4. Make sure the device is properly seated in the PCIE slot.",
+                    translate(TextKey::FlashingResultUnknown, lang),
+                    translate(TextKey::FlashingResultUnknownMsg, lang),
                     icon_manager,
+                    lang,
                 );
             } else if total_sectors < 10 {
-                render_success(ui, icon_manager);
+                render_success(ui, icon_manager, lang);
 
                 ui.add_space(SPACING_SMALL);
                 ui.label(
-                    RichText::new(
-                        "Note: Operation completed with fewer than 10 sectors. Please verify manually or try again.",
-                    )
+                    RichText::new(translate(TextKey::NoteFewerSectors, lang))
                     .italics(),
                 );
 
                 if duration_secs > 1 {
-                    render_duration(ui, duration_secs);
+                    render_duration(ui, duration_secs, lang);
                 }
             } else {
-                render_success(ui, icon_manager);
+                render_success(ui, icon_manager, lang);
 
                 ui.add_space(SPACING_SMALL);
                 ui.label(
-                    RichText::new(
-                        "Note: Unable to verify complete success, but no errors were detected. Please verify manually or try again.",
-                    )
+                    RichText::new(translate(TextKey::NoteVerifySuccess, lang))
                     .italics(),
                 );
 
                 if duration_secs > 1 {
-                    render_duration(ui, duration_secs);
+                    render_duration(ui, duration_secs, lang);
                 }
             }
         }
@@ -250,23 +247,25 @@ fn render_flashing_result(
             render_error(
                 ui,
                 "UNEXPECTED STATE",
-                "This state should not be reached. Please report this bug.",
+                translate(TextKey::UnexpectedStateMsg, lang),
                 icon_manager,
+                lang,
             );
         }
         CompletionStatus::Failed(error) => {
             render_error(
                 ui,
-                "FLASHING FAILED",
-                &format!("Failed to flash firmware to the device:\n\n{error}"),
+                translate(TextKey::FlashingFailed, lang),
+                &format!("{}\n\n{error}", translate(TextKey::FlashingFailedPrefix, lang)),
                 icon_manager,
+                lang,
             );
         }
         CompletionStatus::InProgress(status_msg) => {
             // Display the current operation progress
             ui.vertical_centered(|ui| {
                 ui.label(
-                    RichText::new(format!("Operation in progress: {status_msg}"))
+                    RichText::new(format!("{} {status_msg}", translate(TextKey::OperationInProgress, lang)))
                         .size(18.0)
                         .color(egui::Color32::from_rgb(50, 150, 255)),
                 ); // Use a blue color for progress
@@ -276,12 +275,11 @@ fn render_flashing_result(
             });
         }
         CompletionStatus::NotCompleted => {
-            ui.label("Flash operation status is unknown.");
-            ui.label("Please check the log for details or try again.");
+            ui.label(translate(TextKey::FlashStatusUnknownMsg, lang));
         }
     }
 
-    render_action_buttons(ui, on_action);
+    render_action_buttons(ui, on_action, lang);
 }
 
 fn extract_sector_time(message: &str) -> Option<u64> {
@@ -298,10 +296,11 @@ fn extract_sector_time(message: &str) -> Option<u64> {
         .ok()
 }
 
-fn render_duration(ui: &mut Ui, duration_secs: u64) {
+fn render_duration(ui: &mut Ui, duration_secs: u64, lang: &crate::app::Language) {
     ui.add_space(SPACING_SMALL);
     ui.label(RichText::new(format!(
-        "Operation took: {}:{:02}",
+        "{}: {}:{:02}",
+        translate(TextKey::OperationTook, lang),
         duration_secs / 60,
         duration_secs % 60
     )));
@@ -343,7 +342,13 @@ fn render_framed_content(
         .show(ui, add_contents);
 }
 
-fn render_error(ui: &mut Ui, title: &str, message: &str, icon_manager: &IconManager) {
+fn render_error(
+    ui: &mut Ui,
+    title: &str,
+    message: &str,
+    icon_manager: &IconManager,
+    lang: &crate::app::Language,
+) {
     ui.vertical_centered(|ui| {
         ui.add_space(SPACING_LARGE);
 
@@ -363,7 +368,7 @@ fn render_error(ui: &mut Ui, title: &str, message: &str, icon_manager: &IconMana
         // Error message in a bordered frame
         render_framed_content(ui, ERROR_COLOR, |ui| {
             ui.vertical_centered(|ui| {
-                ui.label(RichText::new("Error Details").size(SUBTITLE_FONT_SIZE));
+                ui.label(RichText::new(translate(TextKey::ErrorDetails, lang)).size(SUBTITLE_FONT_SIZE));
                 ui.add_space(SPACING_MEDIUM);
 
                 // Split message by newlines and display each line
@@ -379,7 +384,11 @@ fn render_error(ui: &mut Ui, title: &str, message: &str, icon_manager: &IconMana
     });
 }
 
-fn render_success(ui: &mut Ui, icon_manager: &IconManager) {
+fn render_success(
+    ui: &mut Ui,
+    icon_manager: &IconManager,
+    lang: &crate::app::Language,
+) {
     ui.vertical_centered(|ui| {
         ui.add_space(SPACING_LARGE);
 
@@ -395,7 +404,7 @@ fn render_success(ui: &mut Ui, icon_manager: &IconManager) {
 
         ui.colored_label(
             SUCCESS_COLOR,
-            RichText::new("FLASHING SUCCESSFUL!")
+            RichText::new(translate(TextKey::FlashingSuccess, lang))
                 .size(TITLE_FONT_SIZE)
                 .strong(),
         );
@@ -405,14 +414,13 @@ fn render_success(ui: &mut Ui, icon_manager: &IconManager) {
         // Success message in a bordered frame
         render_framed_content(ui, SUCCESS_COLOR, |ui| {
             ui.vertical_centered(|ui| {
-                ui.label(RichText::new("Next Steps").size(SUBTITLE_FONT_SIZE));
+                ui.label(RichText::new(translate(TextKey::NextSteps, lang)).size(SUBTITLE_FONT_SIZE));
                 ui.add_space(SPACING_MEDIUM);
-                ui.label("1. Reboot both computers");
-                ui.label("2. Follow the next steps in the guide");
-                ui.label("   - Install firmware driver on host computer");
-                ui.label("   - Swap cable to DATA port");
-                ui.label("   - Activate using provided software and activation code");
-                ui.label("   - DNA locked firmware builds do not require activation");
+                let next_steps = translate(TextKey::NextStepsList, lang);
+                // Split by newlines to display each line
+                for line in next_steps.split('\n') {
+                     ui.label(line);
+                }
             });
         });
 
@@ -420,18 +428,27 @@ fn render_success(ui: &mut Ui, icon_manager: &IconManager) {
     });
 }
 
-fn render_dna_action_buttons(ui: &mut Ui, on_action: &mut dyn FnMut(ResultAction)) {
-    render_action_buttons_with_layout(ui, on_action, true);
+fn render_dna_action_buttons(
+    ui: &mut Ui,
+    on_action: &mut dyn FnMut(ResultAction),
+    lang: &crate::app::Language,
+) {
+    render_action_buttons_with_layout(ui, on_action, true, lang);
 }
 
-fn render_action_buttons(ui: &mut Ui, on_action: &mut dyn FnMut(ResultAction)) {
-    render_action_buttons_with_layout(ui, on_action, true);
+fn render_action_buttons(
+    ui: &mut Ui,
+    on_action: &mut dyn FnMut(ResultAction),
+    lang: &crate::app::Language,
+) {
+    render_action_buttons_with_layout(ui, on_action, true, lang);
 }
 
 fn render_action_buttons_with_layout(
     ui: &mut Ui,
     on_action: &mut dyn FnMut(ResultAction),
     include_main_menu: bool,
+    lang: &crate::app::Language,
 ) {
     ui.add_space(SPACING_MEDIUM);
     ui.separator();
@@ -445,7 +462,7 @@ fn render_action_buttons_with_layout(
         let button_width = (available_width - spacing) / button_count as f32;
 
         if ui
-            .add(egui::Button::new("Exit").min_size(egui::vec2(button_width, BUTTON_HEIGHT)))
+            .add(egui::Button::new(translate(TextKey::Exit, lang)).min_size(egui::vec2(button_width, BUTTON_HEIGHT)))
             .clicked()
         {
             on_action(ResultAction::Exit);
@@ -456,7 +473,7 @@ fn render_action_buttons_with_layout(
         if include_main_menu {
             if ui
                 .add(
-                    egui::Button::new("Main Menu")
+                    egui::Button::new(translate(TextKey::MainMenu, lang))
                         .min_size(egui::vec2(button_width, BUTTON_HEIGHT)),
                 )
                 .clicked()
@@ -467,7 +484,7 @@ fn render_action_buttons_with_layout(
         }
 
         if ui
-            .add(egui::Button::new("Try Again").min_size(egui::vec2(button_width, BUTTON_HEIGHT)))
+            .add(egui::Button::new(translate(TextKey::TryAgainButton, lang)).min_size(egui::vec2(button_width, BUTTON_HEIGHT)))
             .clicked()
         {
             on_action(ResultAction::TryAgain);

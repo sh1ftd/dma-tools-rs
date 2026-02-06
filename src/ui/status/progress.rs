@@ -1,4 +1,5 @@
 use crate::device_programmer::{FlashingManager, FlashingOption, dna::DnaReader};
+use crate::utils::localization::{translate, TextKey};
 use eframe::egui::{self, RichText, Ui};
 use std::collections::HashMap;
 use std::sync::LazyLock;
@@ -19,10 +20,14 @@ const EXTRA_LARGE_SPACING: f32 = 25.0;
 static SECTOR_TIMESTAMPS: LazyLock<Mutex<HashMap<u32, Instant>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
-pub fn render_flashing_progress(ui: &mut Ui, manager: &FlashingManager) {
+pub fn render_flashing_progress(
+    ui: &mut Ui,
+    manager: &FlashingManager,
+    lang: &crate::app::Language,
+) {
     let now = Instant::now();
 
-    let (_stage_message, _current_sector, _is_writing) = determine_current_stage(manager, now);
+    let (_stage_message, _current_sector, _is_writing) = determine_current_stage(manager, now, lang);
 
     if let Some(option) = manager.get_current_option() {
         let is_dna_read = option.is_dna_read();
@@ -31,14 +36,13 @@ pub fn render_flashing_progress(ui: &mut Ui, manager: &FlashingManager) {
         ui.vertical_centered(|ui| {
             ui.heading(format!(
                 "{} - {}",
-                operation_name,
+                if is_dna_read { translate(TextKey::ReadingDeviceDna, lang) } else { translate(TextKey::FlashingFirmware, lang) },
                 option.get_display_name()
             ));
 
             ui.add_space(MEDIUM_SPACING);
 
-            // Display the status more prominently
-            let status_text = get_user_friendly_status(manager);
+            let status_text = get_user_friendly_status(manager, lang);
 
             ui.label(
                 RichText::new(status_text)
@@ -51,21 +55,25 @@ pub fn render_flashing_progress(ui: &mut Ui, manager: &FlashingManager) {
             ui.add(egui::Spinner::new().size(SPINNER_SIZE));
             ui.add_space(EXTRA_LARGE_SPACING);
 
-            render_operation_info_frame(ui, is_dna_read);
+            render_operation_info_frame(ui, is_dna_read, lang);
             ui.add_space(EXTRA_LARGE_SPACING);
-            render_technical_info_frame(ui, option, operation_name);
+            render_technical_info_frame(ui, option, operation_name, lang);
         });
     } else {
         ui.heading("Operation");
-        ui.label("Initializing...");
+        ui.label(translate(TextKey::Initializing, lang));
     }
 }
 
-fn determine_current_stage(manager: &FlashingManager, now: Instant) -> (String, Option<u32>, bool) {
+fn determine_current_stage(
+    manager: &FlashingManager,
+    now: Instant,
+    lang: &crate::app::Language,
+) -> (String, Option<u32>, bool) {
     let logger = manager.logger();
     let entries = logger.get_entries();
 
-    let mut current_stage = "Starting operation...";
+    let mut current_stage = translate(TextKey::StartingOperation, lang).to_string();
     let mut current_sector = None;
     let mut is_writing = false;
     let mut is_finalizing = false;
@@ -91,20 +99,20 @@ fn determine_current_stage(manager: &FlashingManager, now: Instant) -> (String, 
                 break;
             }
         } else if msg.contains("Writing the image to the flash memory") {
-            current_stage = "Writing image to flash memory...";
+            current_stage = translate(TextKey::WritingImage, lang).to_string();
             is_writing = true;
             break;
         } else if msg.contains("Probing the flash memory") {
-            current_stage = "Probing flash memory...";
+            current_stage = translate(TextKey::ProbingFlash, lang).to_string();
             break;
         } else if msg.contains("Resetting and halting the FPGA") {
-            current_stage = "Resetting and halting FPGA...";
+            current_stage = translate(TextKey::ResettingFpga, lang).to_string();
             break;
         } else if msg.contains("Loading the bitstream") {
-            current_stage = "Loading bitstream...";
+            current_stage = translate(TextKey::LoadingBitstream, lang).to_string();
             break;
         } else if msg.contains("Initializing the JTAG interface") {
-            current_stage = "Initializing JTAG interface...";
+            current_stage = translate(TextKey::InitJtag, lang).to_string();
             break;
         }
     }
@@ -113,9 +121,9 @@ fn determine_current_stage(manager: &FlashingManager, now: Instant) -> (String, 
     let stage_message = if is_writing {
         if let Some(sector) = current_sector {
             if is_finalizing {
-                "Testing and verifying...".to_string()
+                translate(TextKey::Verifying, lang).to_string()
             } else {
-                format!("Writing sector {sector}...")
+                format!("{} {}...", translate(TextKey::WritingSector, lang), sector)
             }
         } else {
             current_stage.to_string()
@@ -135,7 +143,7 @@ fn extract_sector_from_log(message: &str) -> Option<u32> {
         .and_then(|sector_str| sector_str.trim().parse::<u32>().ok())
 }
 
-fn render_operation_info_frame(ui: &mut Ui, is_dna_read: bool) {
+fn render_operation_info_frame(ui: &mut Ui, is_dna_read: bool, lang: &crate::app::Language) {
     egui::Frame::NONE
         .fill(ui.style().visuals.extreme_bg_color)
         .corner_radius(egui::CornerRadius::same(12))
@@ -144,41 +152,46 @@ fn render_operation_info_frame(ui: &mut Ui, is_dna_read: bool) {
         .show(ui, |ui| {
             ui.vertical_centered(|ui| {
                 if is_dna_read {
-                    render_dna_read_info(ui);
+                    render_dna_read_info(ui, lang);
                 } else {
-                    render_flashing_info(ui);
+                    render_flashing_info(ui, lang);
                 }
             });
         });
 }
 
-fn render_dna_read_info(ui: &mut Ui) {
+fn render_dna_read_info(ui: &mut Ui, lang: &crate::app::Language) {
     ui.add(egui::Label::new(
-        RichText::new("Reading Device DNA")
+        RichText::new(translate(TextKey::ReadingDeviceDna, lang))
             .size(HEADING_SIZE)
             .strong(),
     ));
     ui.add_space(LARGE_SPACING);
-    ui.label("Please wait while we retrieve the unique ID from your device.");
+    ui.label(translate(TextKey::PleaseWaitDna, lang));
     ui.add_space(STANDARD_SPACING);
-    ui.label("This typically takes a few seconds to complete.");
+    ui.label(translate(TextKey::DnaTakesSeconds, lang));
 }
 
-fn render_flashing_info(ui: &mut Ui) {
+fn render_flashing_info(ui: &mut Ui, lang: &crate::app::Language) {
     ui.add(egui::Label::new(
-        RichText::new("Flashing Firmware")
+        RichText::new(translate(TextKey::FlashingFirmware, lang))
             .size(HEADING_SIZE)
             .strong(),
     ));
     ui.add_space(LARGE_SPACING);
-    ui.label("Please wait while the firmware is being written to your device.");
+    ui.label(translate(TextKey::PleaseWaitFlash, lang));
     ui.add_space(STANDARD_SPACING);
-    ui.label("This typically takes 1-2 minutes to complete.");
+    ui.label(translate(TextKey::FlashTakesMinutes, lang));
     ui.add_space(STANDARD_SPACING);
-    ui.label("If the process completes immediately, it likely failed.");
+    ui.label(translate(TextKey::FlashFailImmediate, lang));
 }
 
-fn render_technical_info_frame(ui: &mut Ui, option: &FlashingOption, operation_name: &str) {
+fn render_technical_info_frame(
+    ui: &mut Ui,
+    option: &FlashingOption,
+    _operation_name: &str,
+    lang: &crate::app::Language,
+) {
     egui::Frame::NONE
         .fill(ui.style().visuals.faint_bg_color)
         .corner_radius(egui::CornerRadius::same(12))
@@ -187,14 +200,16 @@ fn render_technical_info_frame(ui: &mut Ui, option: &FlashingOption, operation_n
         .show(ui, |ui| {
             ui.vertical_centered(|ui| {
                 ui.add(egui::Label::new(
-                    RichText::new("Technical Information").size(TECHNICAL_INFO_SIZE),
+                    RichText::new(translate(TextKey::TechnicalInfo, lang)).size(TECHNICAL_INFO_SIZE),
                 ));
                 ui.add_space(STANDARD_SPACING);
-                ui.label(format!("Interface: {}", option.get_driver_type()));
-                ui.label(format!("Operation Type: {operation_name}"));
+                ui.label(format!("{} {}", translate(TextKey::InterfaceLabel, lang), option.get_driver_type()));
+                
+                let op_type_str = if option.is_dna_read() { translate(TextKey::ReadingDeviceDna, lang) } else { translate(TextKey::FlashingFirmware, lang) };
+                ui.label(format!("{} {}", translate(TextKey::OperationTypeLabel, lang), op_type_str));
 
                 let device_type = get_device_type(option);
-                ui.label(format!("Target Device: {device_type}"));
+                ui.label(format!("{} {}", translate(TextKey::TargetDeviceLabel, lang), device_type));
             });
         });
 }
@@ -222,17 +237,16 @@ fn get_device_type(option: &FlashingOption) -> &'static str {
 }
 
 // Add this function to extract a user-friendly status
-fn get_user_friendly_status(manager: &FlashingManager) -> String {
+fn get_user_friendly_status(manager: &FlashingManager, lang: &crate::app::Language) -> String {
     // Check if it's a DNA read operation
     if manager
         .get_current_option()
         .is_some_and(|opt| opt.is_dna_read())
     {
-        DnaReader::get_dna_read_stage(&manager.get_status())
+        DnaReader::get_dna_read_stage(&manager.get_status(), lang)
     } else {
-        // The compiler error is here - we need to use the right function with the right parameters
         let now = std::time::Instant::now();
-        let (stage_message, _, _) = determine_current_stage(manager, now);
+        let (stage_message, _, _) = determine_current_stage(manager, now, lang);
         stage_message
     }
 }

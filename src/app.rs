@@ -11,6 +11,7 @@ use crate::utils::firmware_discovery::FirmwareManager;
 use crate::utils::logger::Logger;
 use crate::utils::win_utils::setup_window_controls;
 use crate::utils::window::{WindowManager, WindowSizeType};
+use crate::utils::localization::{translate, TextKey};
 use eframe::egui;
 use std::path::PathBuf;
 use std::thread;
@@ -42,6 +43,15 @@ pub enum AppState {
     Result,
 }
 
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
+pub enum Language {
+    English,
+    Chinese,
+    German,
+    Portuguese,
+    Arabic,
+}
+
 pub struct FirmwareToolApp {
     window_manager: WindowManager,
     state: AppState,
@@ -64,6 +74,7 @@ pub struct FirmwareToolApp {
     #[cfg(feature = "branding")]
     branding_manager: BrandingManager,
     contact_copy_notification: Option<(String, Instant)>,
+    language: Language,
 }
 
 impl FirmwareToolApp {
@@ -74,6 +85,7 @@ impl FirmwareToolApp {
         setup_window_controls();
 
         let window_manager = WindowManager::new();
+        window_manager.setup_fonts(&cc.egui_ctx);
         window_manager.setup_style(&cc.egui_ctx);
 
         Self {
@@ -98,6 +110,7 @@ impl FirmwareToolApp {
             #[cfg(feature = "branding")]
             branding_manager: BrandingManager::new(),
             contact_copy_notification: None,
+            language: Language::English,
         }
     }
 
@@ -108,17 +121,17 @@ impl FirmwareToolApp {
         icon: &egui::TextureHandle,
         copy_text: &str,
         tooltip: &str,
-        name: &str,
+        notification_msg: String,
         notification: &mut Option<(String, Instant)>,
     ) {
         // Allocate space for the icon button (fixed layout size to prevent jitter)
-        let button_size = egui::Vec2::splat(30.0);
+        let button_size = egui::Vec2::splat(34.0);
         let (rect, response) = ui.allocate_exact_size(button_size, egui::Sense::click());
 
         // Handle interactions
         if response.clicked() {
             ui.ctx().copy_text(copy_text.to_string());
-            *notification = Some((format!("Copied {}!", name), Instant::now()));
+            *notification = Some((notification_msg, Instant::now()));
         }
         let response = response.on_hover_text(tooltip);
 
@@ -126,7 +139,7 @@ impl FirmwareToolApp {
         let is_hovered = response.hovered();
         
         // Animate scale
-        let target_scale = if is_hovered { 1.2 } else { 1.0 };
+        let target_scale = if is_hovered { 1.15 } else { 1.0 };
         let scale = ui.ctx().animate_value_with_time(
             response.id.with("scale"),
             target_scale,
@@ -135,7 +148,7 @@ impl FirmwareToolApp {
         
         // Render icon
         if ui.is_rect_visible(rect) {
-            let icon_size = 24.0 * scale;
+            let icon_size = 28.0 * scale;
             let icon_rect = egui::Rect::from_center_size(rect.center(), egui::Vec2::splat(icon_size));
             
             // Tint: Light Gray by default, White on hover
@@ -382,11 +395,257 @@ impl FirmwareToolApp {
 
             self.handle_log_display(ui, ctx);
         });
+        
+        // Floating notification overlay
+        if let Some((msg, time)) = &self.contact_copy_notification
+            && time.elapsed() < Duration::from_secs(2) {
+                egui::Area::new(egui::Id::new("copy_notification"))
+                    .anchor(egui::Align2::RIGHT_BOTTOM, egui::vec2(-20.0, -85.0))
+                    .show(ctx, |ui| {
+                        egui::Frame::NONE
+                            .fill(egui::Color32::from_black_alpha(192)) // ~75% opacity
+                            .corner_radius(6.0)
+                            .inner_margin(8.0)
+                            .show(ui, |ui| {
+                                // Max width = (3 * 34.0) buttons + (2 * 4.0) spaces = 110.0
+                                ui.set_max_width(110.0);
+                                ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                                    ui.label(
+                                        egui::RichText::new(msg)
+                                            .color(egui::Color32::GREEN)
+                                            .size(14.0)
+                                    );
+                                });
+                            });
+                    });
+                ctx.request_repaint();
+            }
     }
 
     fn render_contact_info(&mut self, ui: &mut egui::Ui) {
         ui.add_space(4.0);
+        
         ui.horizontal(|ui| {
+            let base_flag_size = 28.0;
+
+            // US Flag
+            if let Some(icon) = self.icon_manager.us_flag() {
+                // Allocate space for the flag button
+                let button_size = egui::Vec2::splat(34.0);
+                let (rect, response) = ui.allocate_exact_size(button_size, egui::Sense::click());
+
+                // Handle click
+                if response.clicked() {
+                    self.language = Language::English;
+                }
+                let response = response.on_hover_text("English");
+
+                // Animate scale on hover
+                let is_hovered = response.hovered();
+                let target_scale = if is_hovered { 1.15 } else { 1.0 };
+                let scale = ui.ctx().animate_value_with_time(
+                    response.id.with("flag_scale"),
+                    target_scale,
+                    0.1
+                );
+
+                // Render flag
+                if ui.is_rect_visible(rect) {
+                    let flag_size = base_flag_size * scale;
+                    let flag_rect = egui::Rect::from_center_size(
+                        rect.center(),
+                        egui::Vec2::splat(flag_size)
+                    );
+
+                    // Dim the flag if not selected
+                    let tint = if self.language == Language::English {
+                        egui::Color32::WHITE
+                    } else {
+                        egui::Color32::from_white_alpha(100)
+                    };
+
+                    ui.painter().image(
+                        icon.id(),
+                        flag_rect,
+                        egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
+                        tint
+                    );
+                }
+            }
+
+            ui.add_space(8.0);
+
+            // CN Flag
+            if let Some(icon) = self.icon_manager.cn_flag() {
+                // Allocate space for the flag button
+                let button_size = egui::Vec2::splat(38.0);
+                let (rect, response) = ui.allocate_exact_size(button_size, egui::Sense::click());
+
+                // Handle click
+                if response.clicked() {
+                    self.language = Language::Chinese;
+                }
+                let response = response.on_hover_text("中文");
+
+                // Animate scale on hover
+                let is_hovered = response.hovered();
+                let target_scale = if is_hovered { 1.15 } else { 1.0 };
+                let scale = ui.ctx().animate_value_with_time(
+                    response.id.with("flag_scale"),
+                    target_scale,
+                    0.1
+                );
+
+                // Render flag
+                if ui.is_rect_visible(rect) {
+                    let flag_size = base_flag_size * scale;
+                    let flag_rect = egui::Rect::from_center_size(
+                        rect.center(),
+                        egui::Vec2::splat(flag_size)
+                    );
+
+                    // Dim the flag if not selected
+                    let tint = if self.language == Language::Chinese {
+                        egui::Color32::WHITE
+                    } else {
+                        egui::Color32::from_white_alpha(100)
+                    };
+
+                    ui.painter().image(
+                        icon.id(),
+                        flag_rect,
+                        egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
+                        tint
+                    );
+                }
+            }
+
+            ui.add_space(8.0);
+
+            // German Flag
+            if let Some(icon) = self.icon_manager.de_flag() {
+                let button_size = egui::Vec2::splat(34.0);
+                let (rect, response) = ui.allocate_exact_size(button_size, egui::Sense::click());
+
+                if response.clicked() {
+                    self.language = Language::German;
+                }
+                let response = response.on_hover_text("Deutsch");
+
+                let is_hovered = response.hovered();
+                let target_scale = if is_hovered { 1.15 } else { 1.0 };
+                let scale = ui.ctx().animate_value_with_time(
+                    response.id.with("flag_scale"),
+                    target_scale,
+                    0.1
+                );
+
+                if ui.is_rect_visible(rect) {
+                    let flag_size = base_flag_size * scale;
+                    let flag_rect = egui::Rect::from_center_size(
+                        rect.center(),
+                        egui::Vec2::splat(flag_size)
+                    );
+
+                    let tint = if self.language == Language::German {
+                        egui::Color32::WHITE
+                    } else {
+                        egui::Color32::from_white_alpha(100)
+                    };
+
+                    ui.painter().image(
+                        icon.id(),
+                        flag_rect,
+                        egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
+                        tint
+                    );
+                }
+            }
+
+            ui.add_space(8.0);
+
+            // Brazilian Flag
+            if let Some(icon) = self.icon_manager.br_flag() {
+                let button_size = egui::Vec2::splat(34.0);
+                let (rect, response) = ui.allocate_exact_size(button_size, egui::Sense::click());
+
+                if response.clicked() {
+                    self.language = Language::Portuguese;
+                }
+                let response = response.on_hover_text("Português");
+
+                let is_hovered = response.hovered();
+                let target_scale = if is_hovered { 1.15 } else { 1.0 };
+                let scale = ui.ctx().animate_value_with_time(
+                    response.id.with("flag_scale"),
+                    target_scale,
+                    0.1
+                );
+
+                if ui.is_rect_visible(rect) {
+                    let flag_size = base_flag_size * scale;
+                    let flag_rect = egui::Rect::from_center_size(
+                        rect.center(),
+                        egui::Vec2::splat(flag_size)
+                    );
+
+                    let tint = if self.language == Language::Portuguese {
+                        egui::Color32::WHITE
+                    } else {
+                        egui::Color32::from_white_alpha(100)
+                    };
+
+                    ui.painter().image(
+                        icon.id(),
+                        flag_rect,
+                        egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
+                        tint
+                    );
+                }
+            }
+
+            ui.add_space(8.0);
+
+            // Yemen Flag
+            if let Some(icon) = self.icon_manager.ar_flag() {
+                let button_size = egui::Vec2::splat(34.0);
+                let (rect, response) = ui.allocate_exact_size(button_size, egui::Sense::click());
+
+                if response.clicked() {
+                    self.language = Language::Arabic;
+                }
+                let response = response.on_hover_text("العربية");
+
+                let is_hovered = response.hovered();
+                let target_scale = if is_hovered { 1.15 } else { 1.0 };
+                let scale = ui.ctx().animate_value_with_time(
+                    response.id.with("flag_scale"),
+                    target_scale,
+                    0.1
+                );
+
+                if ui.is_rect_visible(rect) {
+                    let flag_size = base_flag_size * scale;
+                    let flag_rect = egui::Rect::from_center_size(
+                        rect.center(),
+                        egui::Vec2::splat(flag_size)
+                    );
+
+                    let tint = if self.language == Language::Arabic {
+                        egui::Color32::WHITE
+                    } else {
+                        egui::Color32::from_white_alpha(100)
+                    };
+
+                    ui.painter().image(
+                        icon.id(),
+                        flag_rect,
+                        egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
+                        tint
+                    );
+                }
+            }
+
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 ui.add_space(10.0);
 
@@ -396,8 +655,9 @@ impl FirmwareToolApp {
                         ui, 
                         icon, 
                         "https://t.me/shifty_1337", 
-                        "Copy Telegram Link", 
-                        "Telegram",
+                        translate(TextKey::CopyTelegram, &self.language), 
+                        translate(TextKey::Copied, &self.language)
+                            .replace("{}", translate(TextKey::TelegramLink, &self.language)),
                         &mut self.contact_copy_notification
                     );
                 }
@@ -410,8 +670,9 @@ impl FirmwareToolApp {
                         ui, 
                         icon, 
                         "shifty1337", 
-                        "Copy WeChat ID", 
-                        "WeChat",
+                        translate(TextKey::CopyWeChat, &self.language), 
+                        translate(TextKey::Copied, &self.language)
+                            .replace("{}", translate(TextKey::WeChatID, &self.language)),
                         &mut self.contact_copy_notification
                     );
                 }
@@ -424,27 +685,14 @@ impl FirmwareToolApp {
                         ui, 
                         icon, 
                         "_shifty1337", 
-                        "Copy Discord ID", 
-                        "Discord",
+                        translate(TextKey::CopyDiscord, &self.language), 
+                        translate(TextKey::Copied, &self.language)
+                            .replace("{}", translate(TextKey::DiscordID, &self.language)),
                         &mut self.contact_copy_notification
                     );
                 }
 
-                ui.label("Contact:");
-                ui.add_space(8.0); // Space between label and notification
-
-                 // Show notification if active (Left of everything else)
-                if let Some((msg, time)) = &self.contact_copy_notification {
-                    if time.elapsed() < Duration::from_secs(2) {
-                        ui.label(
-                            egui::RichText::new(msg)
-                                .color(egui::Color32::GREEN)
-                                .size(16.0)
-                        );
-                        // Request repaint to handle animation/timeout
-                        ui.ctx().request_repaint(); 
-                    }
-                }
+                ui.label(translate(TextKey::Contact, &self.language));
             });
         });
         ui.add_space(4.0);
@@ -492,6 +740,7 @@ impl FirmwareToolApp {
             check_status: &check_status,
             on_continue: &mut continue_callback,
             on_rescan: &mut rescan_callback,
+            language: &self.language,
         });
     }
 
@@ -510,7 +759,7 @@ impl FirmwareToolApp {
             }
         };
 
-        ui::operation::render_operation_selection(ui, &mut operation_callback);
+        ui::operation::render_operation_selection(ui, &mut operation_callback, &self.language);
     }
 
     fn render_firmware_selection(&mut self, ui: &mut egui::Ui) {
@@ -533,6 +782,7 @@ impl FirmwareToolApp {
             &mut self.firmware_manager,
             &mut select_callback,
             is_scanning,
+            &self.language,
         );
     }
 
@@ -544,6 +794,7 @@ impl FirmwareToolApp {
         let flashing_manager = &mut self.flashing_manager;
         let dna_read_start_time = &mut self.dna_read_start_time;
         let dna_read_in_progress = &mut self.dna_read_in_progress;
+        let language = &self.language;
 
         let mut option_callback = |option: FlashingOption| {
             *selected_option = Some(option.clone());
@@ -555,24 +806,24 @@ impl FirmwareToolApp {
                 *dna_read_start_time = Some(Instant::now());
                 *dna_read_in_progress = true;
 
-                flashing_manager.execute_dna_read(&option);
+                flashing_manager.execute_dna_read(&option, language);
             } else if let Some(firmware) = selected_firmware {
                 *app_state = AppState::Flashing;
-                flashing_manager.execute_flash(firmware, &option);
+                flashing_manager.execute_flash(firmware, &option, language);
             }
         };
 
         // Use the appropriate render function based on operation type
         if selected_firmware.is_some() {
-            ui::options::render_flash_options(ui, &mut option_callback);
+            ui::options::render_flash_options(ui, &mut option_callback, &self.language);
         } else {
-            ui::options::render_dna_read_options(ui, &mut option_callback);
+            ui::options::render_dna_read_options(ui, &mut option_callback, &self.language);
         }
     }
 
     fn render_flashing(&mut self, ui: &mut egui::Ui) {
         // Render the progress UI
-        ui::status::render_flashing_progress(ui, &self.flashing_manager);
+        ui::status::render_flashing_progress(ui, &self.flashing_manager, &self.language);
     }
 
     fn render_result(&mut self, ui: &mut egui::Ui) {
@@ -589,6 +840,7 @@ impl FirmwareToolApp {
                 &self.flashing_manager,
                 &mut action_callback,
                 &self.icon_manager,
+                &self.language,
             );
         }
 
@@ -626,11 +878,11 @@ impl FirmwareToolApp {
                         // Clean up any existing DNA file before retrying
                         DnaReader::cleanup_dna_output_file(&self.logger);
 
-                        self.flashing_manager.execute_dna_read(option);
+                        self.flashing_manager.execute_dna_read(option, &self.language);
                     } else if let Some(firmware) = &self.selected_firmware {
                         // Re-run flashing with the same firmware and option
                         self.state = AppState::Flashing;
-                        self.flashing_manager.execute_flash(firmware, option);
+                        self.flashing_manager.execute_flash(firmware, option, &self.language);
                     }
                 }
             }
@@ -654,7 +906,7 @@ impl FirmwareToolApp {
             ui.separator();
 
             // Show log view at the bottom of all screens
-            ui::log_view::render_log_view(ui, &self.logger);
+            ui::log_view::render_log_view(ui, &self.logger, &self.language);
         } else {
             // Add some padding at the bottom for consistent UI
             ui.add_space(BOTTOM_PADDING);

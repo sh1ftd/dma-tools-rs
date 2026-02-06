@@ -34,7 +34,7 @@ fn main() -> Result<(), eframe::Error> {
     let window_title = branding::get_branded_title(APP_TITLE, VERSION);
 
     #[cfg(not(feature = "branding"))]
-    let window_title = format!("{APP_TITLE} v{VERSION}");
+    let window_title = format!("{APP_TITLE} v{VERSION} - by Shifty");
 
     // Try with WGPU first (better for AMD on Windows usually)
     let result = run_app(&window_title, eframe::Renderer::Wgpu);

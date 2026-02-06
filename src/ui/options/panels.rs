@@ -1,5 +1,6 @@
 use super::buttons::render_colored_option_button;
 use crate::device_programmer::FlashingOption;
+use crate::utils::localization::{translate, TextKey};
 use eframe::egui::{self, RichText, Ui};
 
 // UI styling constants
@@ -16,24 +17,32 @@ const STROKE_COLOR: egui::Color32 = egui::Color32::from_rgb(60, 60, 70);
 const CH347_COLOR: egui::Color32 = egui::Color32::from_rgb(50, 70, 90);
 const RS232_COLOR: egui::Color32 = egui::Color32::from_rgb(70, 60, 90);
 
-pub fn render_flash_section(ui: &mut Ui, on_select: &mut dyn FnMut(FlashingOption)) {
+pub fn render_flash_section(
+    ui: &mut Ui,
+    on_select: &mut dyn FnMut(FlashingOption),
+    lang: &crate::app::Language,
+) {
     render_panel(ui, |ui| {
-        render_section_header(ui, "CH347 Options");
-        render_ch347_options(ui, on_select);
+        render_section_header(ui, translate(TextKey::Ch347Options, lang));
+        render_ch347_options(ui, on_select, lang);
 
         ui.add_space(SECTION_BOTTOM_SPACE);
 
-        render_section_header(ui, "RS232 Options");
-        render_rs232_options(ui, on_select);
+        render_section_header(ui, translate(TextKey::Rs232Options, lang));
+        render_rs232_options(ui, on_select, lang);
     });
 }
 
-pub fn render_dna_section(ui: &mut Ui, on_select: &mut dyn FnMut(FlashingOption)) {
+pub fn render_dna_section(
+    ui: &mut Ui,
+    on_select: &mut dyn FnMut(FlashingOption),
+    lang: &crate::app::Language,
+) {
     render_panel(ui, |ui| {
         render_colored_option_button(
             ui,
-            "CH347 - DNA Read: 35T, 75T, 100T",
-            "Read DNA from 35T, 75T, or 100T using CH347 interface",
+            translate(TextKey::Dna_Ch347_Label, lang),
+            translate(TextKey::Dna_Ch347_Desc, lang),
             CH347_COLOR,
             || FlashingOption::DnaCH347,
             on_select,
@@ -43,8 +52,8 @@ pub fn render_dna_section(ui: &mut Ui, on_select: &mut dyn FnMut(FlashingOption)
 
         render_colored_option_button(
             ui,
-            "RS232 - DNA Read: 35T",
-            "Read DNA from 35T boards using RS232 interface",
+            translate(TextKey::Dna_Rs232_35T_Label, lang),
+            translate(TextKey::Dna_Rs232_35T_Desc, lang),
             RS232_COLOR,
             || FlashingOption::DnaRS232_35T,
             on_select,
@@ -54,8 +63,8 @@ pub fn render_dna_section(ui: &mut Ui, on_select: &mut dyn FnMut(FlashingOption)
 
         render_colored_option_button(
             ui,
-            "RS232 - DNA Read: 75T",
-            "Read DNA from 75T boards using RS232 interface",
+            translate(TextKey::Dna_Rs232_75T_Label, lang),
+            translate(TextKey::Dna_Rs232_75T_Desc, lang),
             RS232_COLOR,
             || FlashingOption::DnaRS232_75T,
             on_select,
@@ -65,8 +74,8 @@ pub fn render_dna_section(ui: &mut Ui, on_select: &mut dyn FnMut(FlashingOption)
 
         render_colored_option_button(
             ui,
-            "RS232 - DNA Read: 100T",
-            "Read DNA from 100T boards using RS232 interface",
+            translate(TextKey::Dna_Rs232_100T_Label, lang),
+            translate(TextKey::Dna_Rs232_100T_Desc, lang),
             RS232_COLOR,
             || FlashingOption::DnaRS232_100T,
             on_select,
@@ -96,11 +105,15 @@ fn render_section_header(ui: &mut Ui, title: &str) {
     ui.add_space(BUTTON_SPACE);
 }
 
-fn render_ch347_options(ui: &mut Ui, on_select: &mut dyn FnMut(FlashingOption)) {
+fn render_ch347_options(
+    ui: &mut Ui,
+    on_select: &mut dyn FnMut(FlashingOption),
+    lang: &crate::app::Language,
+) {
     render_colored_option_button(
         ui,
-        "CH347 - 35T",
-        "For 35T boards using CH347 interface",
+        translate(TextKey::Ch347_35T_Label, lang),
+        translate(TextKey::Ch347_35T_Desc, lang),
         CH347_COLOR,
         || FlashingOption::CH347_35T,
         on_select,
@@ -110,8 +123,8 @@ fn render_ch347_options(ui: &mut Ui, on_select: &mut dyn FnMut(FlashingOption)) 
 
     render_colored_option_button(
         ui,
-        "CH347 - 75T",
-        "For 75T boards using CH347 interface",
+        translate(TextKey::Ch347_75T_Label, lang),
+        translate(TextKey::Ch347_75T_Desc, lang),
         CH347_COLOR,
         || FlashingOption::CH347_75T,
         on_select,
@@ -121,19 +134,23 @@ fn render_ch347_options(ui: &mut Ui, on_select: &mut dyn FnMut(FlashingOption)) 
 
     render_colored_option_button(
         ui,
-        "CH347 - 100T",
-        "For 100T boards using CH347 interface",
+        translate(TextKey::Ch347_100T_Label, lang),
+        translate(TextKey::Ch347_100T_Desc, lang),
         CH347_COLOR,
         || FlashingOption::CH347_100T,
         on_select,
     );
 }
 
-fn render_rs232_options(ui: &mut Ui, on_select: &mut dyn FnMut(FlashingOption)) {
+fn render_rs232_options(
+    ui: &mut Ui,
+    on_select: &mut dyn FnMut(FlashingOption),
+    lang: &crate::app::Language,
+) {
     render_colored_option_button(
         ui,
-        "RS232 - 35T",
-        "For 35T boards using RS232 interface",
+        translate(TextKey::Rs232_35T_Label, lang),
+        translate(TextKey::Rs232_35T_Desc, lang),
         RS232_COLOR,
         || FlashingOption::RS232_35T,
         on_select,
@@ -143,8 +160,8 @@ fn render_rs232_options(ui: &mut Ui, on_select: &mut dyn FnMut(FlashingOption)) 
 
     render_colored_option_button(
         ui,
-        "RS232 - 75T",
-        "For 75T boards using RS232 interface",
+        translate(TextKey::Rs232_75T_Label, lang),
+        translate(TextKey::Rs232_75T_Desc, lang),
         RS232_COLOR,
         || FlashingOption::RS232_75T,
         on_select,
@@ -154,8 +171,8 @@ fn render_rs232_options(ui: &mut Ui, on_select: &mut dyn FnMut(FlashingOption)) 
 
     render_colored_option_button(
         ui,
-        "RS232 - 100T",
-        "For 100T boards using RS232 interface",
+        translate(TextKey::Rs232_100T_Label, lang),
+        translate(TextKey::Rs232_100T_Desc, lang),
         RS232_COLOR,
         || FlashingOption::RS232_100T,
         on_select,
