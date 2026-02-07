@@ -10,9 +10,9 @@ pub use firmware::FirmwareFlasher;
 pub use process::ProcessExecutor;
 pub use types::{CompletionStatus, DnaInfo, FlashingOption};
 
-use crate::utils::logger::Logger;
-use crate::utils::localization::{translate, TextKey};
 use crate::app::Language;
+use crate::utils::localization::{TextKey, translate};
+use crate::utils::logger::Logger;
 use monitor::OperationMonitor;
 use std::path::Path;
 use std::path::PathBuf;
@@ -66,7 +66,12 @@ impl FlashingManager {
         self.cleanup_enabled = enabled;
     }
 
-    pub fn execute_flash(&mut self, firmware_path: &Path, option: &FlashingOption, lang: &Language) {
+    pub fn execute_flash(
+        &mut self,
+        firmware_path: &Path,
+        option: &FlashingOption,
+        lang: &Language,
+    ) {
         self.initialize_operation(option.clone(), lang);
         self.original_firmware_path = Some(firmware_path.to_path_buf());
 
@@ -84,7 +89,8 @@ impl FlashingManager {
 
     pub fn execute_dna_read(&mut self, option: &FlashingOption, lang: &Language) {
         self.initialize_operation(option.clone(), lang);
-        self.dna_reader.execute(option, &self.process_executor, lang);
+        self.dna_reader
+            .execute(option, &self.process_executor, lang);
     }
 
     pub fn get_duration(&self) -> Option<Duration> {
@@ -125,8 +131,9 @@ impl FlashingManager {
 
         // Set an explicit in-progress status to prevent flashing
         let msg = translate(TextKey::StartingOperation, lang).to_string();
-        
-        self.process_executor.set_completion_status(CompletionStatus::InProgress(msg));
+
+        self.process_executor
+            .set_completion_status(CompletionStatus::InProgress(msg));
     }
 
     pub fn get_status(&self) -> CompletionStatus {

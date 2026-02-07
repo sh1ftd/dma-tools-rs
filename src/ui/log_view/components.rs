@@ -23,7 +23,13 @@ pub fn render_log_entries(ui: &mut Ui, logger: &Logger) {
 
 pub fn render_clear_button(ui: &mut Ui, logger: &Logger, lang: &crate::app::Language) {
     ui.horizontal(|ui| {
-        if ui.button(crate::utils::localization::translate(crate::utils::localization::TextKey::ClearLog, lang)).clicked() {
+        if ui
+            .button(crate::utils::localization::translate(
+                crate::utils::localization::TextKey::ClearLog,
+                lang,
+            ))
+            .clicked()
+        {
             logger.clear();
         }
     });

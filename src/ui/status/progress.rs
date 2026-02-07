@@ -1,5 +1,5 @@
 use crate::device_programmer::{FlashingManager, FlashingOption, dna::DnaReader};
-use crate::utils::localization::{translate, TextKey};
+use crate::utils::localization::{TextKey, translate};
 use eframe::egui::{self, RichText, Ui};
 use std::collections::HashMap;
 use std::sync::LazyLock;
@@ -27,7 +27,8 @@ pub fn render_flashing_progress(
 ) {
     let now = Instant::now();
 
-    let (_stage_message, _current_sector, _is_writing) = determine_current_stage(manager, now, lang);
+    let (_stage_message, _current_sector, _is_writing) =
+        determine_current_stage(manager, now, lang);
 
     if let Some(option) = manager.get_current_option() {
         let is_dna_read = option.is_dna_read();
@@ -36,7 +37,11 @@ pub fn render_flashing_progress(
         ui.vertical_centered(|ui| {
             ui.heading(format!(
                 "{} - {}",
-                if is_dna_read { translate(TextKey::ReadingDeviceDna, lang) } else { translate(TextKey::FlashingFirmware, lang) },
+                if is_dna_read {
+                    translate(TextKey::ReadingDeviceDna, lang)
+                } else {
+                    translate(TextKey::FlashingFirmware, lang)
+                },
                 option.get_display_name()
             ));
 
@@ -200,16 +205,33 @@ fn render_technical_info_frame(
         .show(ui, |ui| {
             ui.vertical_centered(|ui| {
                 ui.add(egui::Label::new(
-                    RichText::new(translate(TextKey::TechnicalInfo, lang)).size(TECHNICAL_INFO_SIZE),
+                    RichText::new(translate(TextKey::TechnicalInfo, lang))
+                        .size(TECHNICAL_INFO_SIZE),
                 ));
                 ui.add_space(STANDARD_SPACING);
-                ui.label(format!("{} {}", translate(TextKey::InterfaceLabel, lang), option.get_driver_type()));
-                
-                let op_type_str = if option.is_dna_read() { translate(TextKey::ReadingDeviceDna, lang) } else { translate(TextKey::FlashingFirmware, lang) };
-                ui.label(format!("{} {}", translate(TextKey::OperationTypeLabel, lang), op_type_str));
+                ui.label(format!(
+                    "{} {}",
+                    translate(TextKey::InterfaceLabel, lang),
+                    option.get_driver_type()
+                ));
+
+                let op_type_str = if option.is_dna_read() {
+                    translate(TextKey::ReadingDeviceDna, lang)
+                } else {
+                    translate(TextKey::FlashingFirmware, lang)
+                };
+                ui.label(format!(
+                    "{} {}",
+                    translate(TextKey::OperationTypeLabel, lang),
+                    op_type_str
+                ));
 
                 let device_type = get_device_type(option);
-                ui.label(format!("{} {}", translate(TextKey::TargetDeviceLabel, lang), device_type));
+                ui.label(format!(
+                    "{} {}",
+                    translate(TextKey::TargetDeviceLabel, lang),
+                    device_type
+                ));
             });
         });
 }

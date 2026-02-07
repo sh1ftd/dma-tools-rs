@@ -19,7 +19,9 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::CheckingItem => "Überprüfe: {}",
         TextKey::CountdownMessage => "Wird in {} Sekunde{} automatisch fortgesetzt...",
         TextKey::ExitButton => "Beenden",
-        TextKey::MissingFilesWarning => "WARNUNG: Das Fortfahren ohne erforderliche Dateien kann zu Fehlern führen",
+        TextKey::MissingFilesWarning => {
+            "WARNUNG: Das Fortfahren ohne erforderliche Dateien kann zu Fehlern führen"
+        }
         TextKey::GroupExecutables => "Ausführbare Dateien",
         TextKey::GroupLibraries => "Bibliotheken",
         TextKey::GroupBitstreams => "Bitstreams",
@@ -45,7 +47,9 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::DownloadHere => "Hier herunterladen",
         TextKey::UpdateAvailable => "Update verfügbar",
         TextKey::NoFirmwareFound => "Keine Firmware-Dateien im aktuellen Verzeichnis gefunden",
-        TextKey::PlaceFirmwareHere => "Bitte legen Sie .bin-Firmware-Dateien in das Anwendungsverzeichnis",
+        TextKey::PlaceFirmwareHere => {
+            "Bitte legen Sie .bin-Firmware-Dateien in das Anwendungsverzeichnis"
+        }
         TextKey::AutoScanning => "Automatischer Scan alle 3 Sekunden",
         TextKey::AutoRefreshing => "Automatische Aktualisierung",
         TextKey::PerformCleanup => "Bereinigung durchführen",
@@ -58,7 +62,7 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::SelectDnaReadOption => "DNA-Leseoption auswählen",
         TextKey::Ch347Options => "CH347-Optionen",
         TextKey::Rs232Options => "RS232-Optionen",
-        
+
         TextKey::Ch347_35T_Label => "CH347 - 35T",
         TextKey::Ch347_35T_Desc => "Für 35T-Boards mit CH347-Schnittstelle",
         TextKey::Ch347_75T_Label => "CH347 - 75T",
@@ -81,12 +85,16 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::Dna_Rs232_75T_Desc => "DNA von 75T-Boards mit RS232-Schnittstelle lesen",
         TextKey::Dna_Rs232_100T_Label => "RS232 - DNA-Lesung: 100T",
         TextKey::Dna_Rs232_100T_Desc => "DNA von 100T-Boards mit RS232-Schnittstelle lesen",
-        
+
         TextKey::ClearLog => "Protokoll löschen",
-        
+
         TextKey::OperationTook => "Vorgang dauerte",
-        TextKey::NoteFewerSectors => "Hinweis: Vorgang mit weniger als 10 Sektoren abgeschlossen. Bitte manuell überprüfen oder erneut versuchen.",
-        TextKey::NoteVerifySuccess => "Hinweis: Vollständiger Erfolg konnte nicht verifiziert werden, aber es wurden keine Fehler erkannt. Bitte manuell überprüfen oder erneut versuchen.",
+        TextKey::NoteFewerSectors => {
+            "Hinweis: Vorgang mit weniger als 10 Sektoren abgeschlossen. Bitte manuell überprüfen oder erneut versuchen."
+        }
+        TextKey::NoteVerifySuccess => {
+            "Hinweis: Vollständiger Erfolg konnte nicht verifiziert werden, aber es wurden keine Fehler erkannt. Bitte manuell überprüfen oder erneut versuchen."
+        }
         TextKey::ErrorDetails => "Fehlerdetails",
 
         TextKey::Initializing => "Initialisierung...",
@@ -99,17 +107,23 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::Verifying => "Testen und Verifizieren...",
         TextKey::WritingSector => "Sektor wird geschrieben",
         TextKey::ReadingDeviceDna => "Geräte-DNA wird gelesen",
-        TextKey::PleaseWaitDna => "Bitte warten Sie, während wir die eindeutige ID von Ihrem Gerät abrufen.",
+        TextKey::PleaseWaitDna => {
+            "Bitte warten Sie, während wir die eindeutige ID von Ihrem Gerät abrufen."
+        }
         TextKey::DnaTakesSeconds => "Dies dauert normalerweise einige Sekunden.",
         TextKey::FlashingFirmware => "Firmware wird geflasht",
-        TextKey::PleaseWaitFlash => "Bitte warten Sie, während die Firmware auf Ihr Gerät geschrieben wird.",
+        TextKey::PleaseWaitFlash => {
+            "Bitte warten Sie, während die Firmware auf Ihr Gerät geschrieben wird."
+        }
         TextKey::FlashTakesMinutes => "Dies dauert normalerweise 1-2 Minuten.",
-        TextKey::FlashFailImmediate => "Wenn der Vorgang sofort abgeschlossen wird, ist er wahrscheinlich fehlgeschlagen.",
+        TextKey::FlashFailImmediate => {
+            "Wenn der Vorgang sofort abgeschlossen wird, ist er wahrscheinlich fehlgeschlagen."
+        }
         TextKey::TechnicalInfo => "Technische Informationen",
         TextKey::InterfaceLabel => "Schnittstelle:",
         TextKey::OperationTypeLabel => "Vorgangstyp:",
         TextKey::TargetDeviceLabel => "Zielgerät:",
-        
+
         TextKey::DnaReadSuccess => "DNA-LESUNG ERFOLGREICH!",
         TextKey::DnaReadFailed => "DNA-LESUNG FEHLGESCHLAGEN",
         TextKey::DnaReadUnexpected => "DNA-LESUNGSSTATUS UNERWARTET",
@@ -120,26 +134,40 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::FlashingFailedConnection => "FLASHEN FEHLGESCHLAGEN - VERBINDUNGSPROBLEM",
         TextKey::FlashingResultUnknown => "FLASHERGEBNIS UNBEKANNT",
         TextKey::NextSteps => "Nächste Schritte",
-        TextKey::NextStepsList => "1. Beide Computer neu starten\\n2. Die nächsten Schritte in der Anleitung befolgen\\n   - Firmware-Treiber auf Host-Computer installieren\\n   - Kabel auf DATA-Port umstecken\\n   - Mit bereitgestellter Software und Aktivierungscode aktivieren\\n   - DNA-gesperrte Firmware-Builds erfordern keine Aktivierung",
+        TextKey::NextStepsList => {
+            "1. Beide Computer neu starten\\n2. Die nächsten Schritte in der Anleitung befolgen\\n   - Firmware-Treiber auf Host-Computer installieren\\n   - Kabel auf DATA-Port umstecken\\n   - Mit bereitgestellter Software und Aktivierungscode aktivieren\\n   - DNA-gesperrte Firmware-Builds erfordern keine Aktivierung"
+        }
         TextKey::Exit => "Beenden",
         TextKey::MainMenu => "Hauptmenü",
         TextKey::TryAgainButton => "Erneut versuchen",
-        
-        TextKey::DnaReadUnexpectedMsg => "Der Vorgang wurde abgeschlossen, aber der DNA-Wert konnte nicht bestätigt werden.\\nDies könnte auf ein Problem mit dem DNA-Extraktionsprozess hinweisen.\\nBitte überprüfen Sie die Protokollausgabe für Details.",
+
+        TextKey::DnaReadUnexpectedMsg => {
+            "Der Vorgang wurde abgeschlossen, aber der DNA-Wert konnte nicht bestätigt werden.\\nDies könnte auf ein Problem mit dem DNA-Extraktionsprozess hinweisen.\\nBitte überprüfen Sie die Protokollausgabe für Details."
+        }
         TextKey::DnaReadFailedPrefix => "Fehler beim Lesen der DNA vom Gerät:",
         TextKey::OperationInProgress => "Vorgang läuft:",
-        TextKey::DnaStatusUnknownMsg => "DNA-Lesevorgangs status ist unbekannt.\\nBitte überprüfen Sie das Protokoll für Details.",
+        TextKey::DnaStatusUnknownMsg => {
+            "DNA-Lesevorgangs status ist unbekannt.\\nBitte überprüfen Sie das Protokoll für Details."
+        }
         TextKey::ClickToCopyTooltip => "Klicken, um RAW-, HEX- und Verilog-DNA-Werte zu kopieren",
-        TextKey::FlashingFailedConnectionMsg => "Unzureichende normale Sektorschreibvorgänge erkannt: {} von {} Sektoren.\\n\\nDies weist auf ein Hardware-Verbindungsproblem hin. Das Gerät ist erreichbar, aber die Daten werden nicht korrekt übertragen.\\n\\nVersuchen Sie:\\n1. Einen anderen USB-Port verwenden\\n2. Kabelverbindungen prüfen\\n3. Sicherstellen, dass das Gerät korrekt mit Strom versorgt wird\\n4. Ein anderes USB-Kabel versuchen",
-        TextKey::FlashingResultUnknownMsg => "Flash-Vorgang abgeschlossen, aber keine Sektorschreibinformationen in den Protokollen gefunden.\\n\\n1. Sie haben den richtigen Board-Typ ausgewählt\\n2. Der entsprechende USB-Treiber ist installiert und im JTAG-Port\\n3. Versuchen Sie ein anderes USB-Kabel und/oder Port\\n4. Stellen Sie sicher, dass das Gerät richtig im PCIE-Steckplatz sitzt.",
-        TextKey::UnexpectedStateMsg => "Dieser Zustand sollte nicht erreicht werden. Bitte melden Sie diesen Fehler.",
+        TextKey::FlashingFailedConnectionMsg => {
+            "Unzureichende normale Sektorschreibvorgänge erkannt: {} von {} Sektoren.\\n\\nDies weist auf ein Hardware-Verbindungsproblem hin. Das Gerät ist erreichbar, aber die Daten werden nicht korrekt übertragen.\\n\\nVersuchen Sie:\\n1. Einen anderen USB-Port verwenden\\n2. Kabelverbindungen prüfen\\n3. Sicherstellen, dass das Gerät korrekt mit Strom versorgt wird\\n4. Ein anderes USB-Kabel versuchen"
+        }
+        TextKey::FlashingResultUnknownMsg => {
+            "Flash-Vorgang abgeschlossen, aber keine Sektorschreibinformationen in den Protokollen gefunden.\\n\\n1. Sie haben den richtigen Board-Typ ausgewählt\\n2. Der entsprechende USB-Treiber ist installiert und im JTAG-Port\\n3. Versuchen Sie ein anderes USB-Kabel und/oder Port\\n4. Stellen Sie sicher, dass das Gerät richtig im PCIE-Steckplatz sitzt."
+        }
+        TextKey::UnexpectedStateMsg => {
+            "Dieser Zustand sollte nicht erreicht werden. Bitte melden Sie diesen Fehler."
+        }
         TextKey::FlashingFailedPrefix => "Fehler beim Flashen der Firmware auf das Gerät:",
-        TextKey::FlashStatusUnknownMsg => "Flash-Vorgangsstatus ist unbekannt.\\nBitte überprüfen Sie das Protokoll für Details oder versuchen Sie es erneut.",
+        TextKey::FlashStatusUnknownMsg => {
+            "Flash-Vorgangsstatus ist unbekannt.\\nBitte überprüfen Sie das Protokoll für Details oder versuchen Sie es erneut."
+        }
 
         TextKey::DnaInvalidOption => "Ungültige Option für DNA-Lesung",
         TextKey::DnaCommandFailed => "Fehler beim Ausführen des DNA-Lesebefehls",
         TextKey::DnaFileNotFound => "DNA-Ausgabedatei nach {} Versuchen nicht gefunden",
-        TextKey::DnaExtractFailed=> "Fehler beim Extrahieren der DNA: {}",
+        TextKey::DnaExtractFailed => "Fehler beim Extrahieren der DNA: {}",
         TextKey::DnaFileReadError => "Fehler beim Lesen der DNA-Ausgabedatei bei {}: {}",
         TextKey::DnaInfoNotFound => "DNA-Informationen in der Ausgabedatei nicht gefunden",
         TextKey::DnaWaitingStart => "Warten auf Start der DNA-Lesung...",

@@ -1,10 +1,10 @@
+use crate::app::Language;
 use crate::device_programmer::process::{CommandOptions, ProcessExecutor};
 use crate::device_programmer::{
     CompletionStatus, DNA_OUTPUT_FILE, DnaInfo, FlashingOption, SCRIPT_DIR,
 };
+use crate::utils::localization::{TextKey, translate};
 use crate::utils::logger::Logger;
-use crate::utils::localization::{translate, TextKey};
-use crate::app::Language;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -33,7 +33,8 @@ impl DnaReader {
 
     pub fn execute(&self, option: &FlashingOption, executor: &ProcessExecutor, lang: &Language) {
         if !option.is_dna_read() {
-            self.logger.error(translate(TextKey::DnaInvalidOption, lang));
+            self.logger
+                .error(translate(TextKey::DnaInvalidOption, lang));
             executor.set_completion_status(CompletionStatus::Failed(
                 translate(TextKey::DnaInvalidOption, lang).to_string(),
             ));
@@ -164,7 +165,8 @@ impl DnaReader {
                 } else {
                     let error_msg_native =
                         format!("DNA output file not found after {DNA_MAX_ATTEMPTS} attempts");
-                    let error_msg = translate(TextKey::DnaFileNotFound, &lang).replace("{}", &DNA_MAX_ATTEMPTS.to_string());
+                    let error_msg = translate(TextKey::DnaFileNotFound, &lang)
+                        .replace("{}", &DNA_MAX_ATTEMPTS.to_string());
                     logger_clone.error(&error_msg_native);
                     *completion_status.lock().unwrap() = CompletionStatus::Failed(error_msg);
                 }
@@ -234,8 +236,9 @@ impl DnaReader {
                     }
                     Err(e) => {
                         logger.error(format!("Failed to extract DNA from contents: {e}"));
-                        *completion_status.lock().unwrap() =
-                            CompletionStatus::Failed(translate(TextKey::DnaExtractFailed, lang).replace("{}", &e));
+                        *completion_status.lock().unwrap() = CompletionStatus::Failed(
+                            translate(TextKey::DnaExtractFailed, lang).replace("{}", &e),
+                        );
                     }
                 }
             }
@@ -337,9 +340,15 @@ impl DnaReader {
             CompletionStatus::NotCompleted => translate(TextKey::DnaWaitingStart, lang).to_string(),
             CompletionStatus::InProgress(_) => translate(TextKey::DnaRetrieving, lang).to_string(),
             // Handle the new status
-            CompletionStatus::DnaReadCompleted(_) => translate(TextKey::DnaReadSuccessStatus, lang).to_string(),
-            CompletionStatus::Completed => translate(TextKey::DnaOperationCompleted, lang).to_string(),
-            CompletionStatus::Failed(err) => translate(TextKey::DnaReadFailedStatus, lang).replace("{}", err),
+            CompletionStatus::DnaReadCompleted(_) => {
+                translate(TextKey::DnaReadSuccessStatus, lang).to_string()
+            }
+            CompletionStatus::Completed => {
+                translate(TextKey::DnaOperationCompleted, lang).to_string()
+            }
+            CompletionStatus::Failed(err) => {
+                translate(TextKey::DnaReadFailedStatus, lang).replace("{}", err)
+            }
         }
     }
 

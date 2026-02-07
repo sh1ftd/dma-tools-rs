@@ -19,7 +19,9 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::CheckingItem => "Checking: {}",
         TextKey::CountdownMessage => "Continuing automatically in {} second{}...",
         TextKey::ExitButton => "Exit",
-        TextKey::MissingFilesWarning => "WARNING: Continuing without required files may cause errors",
+        TextKey::MissingFilesWarning => {
+            "WARNING: Continuing without required files may cause errors"
+        }
         TextKey::GroupExecutables => "Executables",
         TextKey::GroupLibraries => "Libraries",
         TextKey::GroupBitstreams => "Bitstreams",
@@ -46,7 +48,9 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::UpdateAvailable => "Update Available",
         // Firmware Selection
         TextKey::NoFirmwareFound => "No firmware files found in current directory",
-        TextKey::PlaceFirmwareHere => "Please place .bin firmware files in the application directory",
+        TextKey::PlaceFirmwareHere => {
+            "Please place .bin firmware files in the application directory"
+        }
         TextKey::AutoScanning => "Auto-scanning every 3 seconds",
         TextKey::AutoRefreshing => "Auto-refreshing",
         TextKey::PerformCleanup => "Perform Clean up",
@@ -60,7 +64,7 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::SelectDnaReadOption => "Select DNA Read Option",
         TextKey::Ch347Options => "CH347 Options",
         TextKey::Rs232Options => "RS232 Options",
-        
+
         TextKey::Ch347_35T_Label => "CH347 - 35T",
         TextKey::Ch347_35T_Desc => "For 35T boards using CH347 interface",
         TextKey::Ch347_75T_Label => "CH347 - 75T",
@@ -83,14 +87,18 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::Dna_Rs232_75T_Desc => "Read DNA from 75T boards using RS232 interface",
         TextKey::Dna_Rs232_100T_Label => "RS232 - DNA Read: 100T",
         TextKey::Dna_Rs232_100T_Desc => "Read DNA from 100T boards using RS232 interface",
-        
+
         // Log View
         TextKey::ClearLog => "Clear Log",
-        
+
         // Result Extras
         TextKey::OperationTook => "Operation took",
-        TextKey::NoteFewerSectors => "Note: Operation completed with fewer than 10 sectors. Please verify manually or try again.",
-        TextKey::NoteVerifySuccess => "Note: Unable to verify complete success, but no errors were detected. Please verify manually or try again.",
+        TextKey::NoteFewerSectors => {
+            "Note: Operation completed with fewer than 10 sectors. Please verify manually or try again."
+        }
+        TextKey::NoteVerifySuccess => {
+            "Note: Unable to verify complete success, but no errors were detected. Please verify manually or try again."
+        }
         TextKey::ErrorDetails => "Error Details",
 
         // Progress
@@ -107,14 +115,16 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::PleaseWaitDna => "Please wait while we retrieve the unique ID from your device.",
         TextKey::DnaTakesSeconds => "This typically takes a few seconds to complete.",
         TextKey::FlashingFirmware => "Flashing Firmware",
-        TextKey::PleaseWaitFlash => "Please wait while the firmware is being written to your device.",
+        TextKey::PleaseWaitFlash => {
+            "Please wait while the firmware is being written to your device."
+        }
         TextKey::FlashTakesMinutes => "This typically takes 1-2 minutes to complete.",
         TextKey::FlashFailImmediate => "If the process completes immediately, it likely failed.",
         TextKey::TechnicalInfo => "Technical Information",
         TextKey::InterfaceLabel => "Interface:",
         TextKey::OperationTypeLabel => "Operation Type:",
         TextKey::TargetDeviceLabel => "Target Device:",
-        
+
         // Result
         TextKey::DnaReadSuccess => "DNA READ SUCCESSFUL!",
         TextKey::DnaReadFailed => "DNA READ FAILED",
@@ -126,22 +136,34 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::FlashingFailedConnection => "FLASHING FAILED - CONNECTION ISSUE",
         TextKey::FlashingResultUnknown => "FLASHING RESULT UNKNOWN",
         TextKey::NextSteps => "Next Steps",
-        TextKey::NextStepsList => "1. Reboot both computers\n2. Follow the next steps in the guide\n   - Install firmware driver on host computer\n   - Swap cable to DATA port\n   - Activate using provided software and activation code\n   - DNA locked firmware builds do not require activation",
+        TextKey::NextStepsList => {
+            "1. Reboot both computers\n2. Follow the next steps in the guide\n   - Install firmware driver on host computer\n   - Swap cable to DATA port\n   - Activate using provided software and activation code\n   - DNA locked firmware builds do not require activation"
+        }
         TextKey::Exit => "Exit",
         TextKey::MainMenu => "Main Menu",
         TextKey::TryAgainButton => "Try Again",
-        
+
         // Detailed Result Messages
-        TextKey::DnaReadUnexpectedMsg => "The operation completed, but the DNA value could not be confirmed.\nThis might indicate an issue with the DNA extraction process.\nPlease check the log output for details.",
+        TextKey::DnaReadUnexpectedMsg => {
+            "The operation completed, but the DNA value could not be confirmed.\nThis might indicate an issue with the DNA extraction process.\nPlease check the log output for details."
+        }
         TextKey::DnaReadFailedPrefix => "Failed to read DNA from the device:",
         TextKey::OperationInProgress => "Operation in progress:",
-        TextKey::DnaStatusUnknownMsg => "DNA read operation status is unknown.\nPlease check the log for details.",
+        TextKey::DnaStatusUnknownMsg => {
+            "DNA read operation status is unknown.\nPlease check the log for details."
+        }
         TextKey::ClickToCopyTooltip => "Click to copy RAW, HEX, and Verilog DNA values",
-        TextKey::FlashingFailedConnectionMsg => "Insufficient normal sector writes detected: {} out of {} sectors.\n\nThis indicates a hardware connection issue. The device is accessible but data is not being properly transferred.\n\nTry:\n1. Use a different USB port\n2. Check cable connections\n3. Ensure the device is powered correctly\n4. Try a different USB cable",
-        TextKey::FlashingResultUnknownMsg => "Flashing process completed but no sector write information was found in logs.\n\n1. You selected the correct board type\n2. The appropriate USB driver is installed and in JTAG port.\n3. Try a different USB cable and/or port\n4. Make sure the device is properly seated in the PCIE slot.",
+        TextKey::FlashingFailedConnectionMsg => {
+            "Insufficient normal sector writes detected: {} out of {} sectors.\n\nThis indicates a hardware connection issue. The device is accessible but data is not being properly transferred.\n\nTry:\n1. Use a different USB port\n2. Check cable connections\n3. Ensure the device is powered correctly\n4. Try a different USB cable"
+        }
+        TextKey::FlashingResultUnknownMsg => {
+            "Flashing process completed but no sector write information was found in logs.\n\n1. You selected the correct board type\n2. The appropriate USB driver is installed and in JTAG port.\n3. Try a different USB cable and/or port\n4. Make sure the device is properly seated in the PCIE slot."
+        }
         TextKey::UnexpectedStateMsg => "This state should not be reached. Please report this bug.",
         TextKey::FlashingFailedPrefix => "Failed to flash firmware to the device:",
-        TextKey::FlashStatusUnknownMsg => "Flash operation status is unknown.\nPlease check the log for details or try again.",
+        TextKey::FlashStatusUnknownMsg => {
+            "Flash operation status is unknown.\nPlease check the log for details or try again."
+        }
 
         // DNA Backend & Status
         TextKey::DnaInvalidOption => "Invalid option for DNA read",

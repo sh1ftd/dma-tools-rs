@@ -8,10 +8,10 @@ use crate::ui::file_select::FileCheckRenderContext;
 use crate::ui::status::ResultAction;
 use crate::utils::file_checker::{CheckStatus, FileChecker, SUCCESS_TRANSITION_DELAY};
 use crate::utils::firmware_discovery::FirmwareManager;
+use crate::utils::localization::{TextKey, translate};
 use crate::utils::logger::Logger;
 use crate::utils::win_utils::setup_window_controls;
 use crate::utils::window::{WindowManager, WindowSizeType};
-use crate::utils::localization::{translate, TextKey};
 use eframe::egui;
 use std::path::PathBuf;
 use std::thread;
@@ -114,7 +114,7 @@ impl FirmwareToolApp {
         }
     }
 
-// ... existing helper methods ...
+    // ... existing helper methods ...
 
     fn render_contact_icon(
         ui: &mut egui::Ui,
@@ -137,20 +137,19 @@ impl FirmwareToolApp {
 
         // Determine visual properties
         let is_hovered = response.hovered();
-        
+
         // Animate scale
         let target_scale = if is_hovered { 1.15 } else { 1.0 };
-        let scale = ui.ctx().animate_value_with_time(
-            response.id.with("scale"),
-            target_scale,
-            0.1
-        );
-        
+        let scale = ui
+            .ctx()
+            .animate_value_with_time(response.id.with("scale"), target_scale, 0.1);
+
         // Render icon
         if ui.is_rect_visible(rect) {
             let icon_size = 28.0 * scale;
-            let icon_rect = egui::Rect::from_center_size(rect.center(), egui::Vec2::splat(icon_size));
-            
+            let icon_rect =
+                egui::Rect::from_center_size(rect.center(), egui::Vec2::splat(icon_size));
+
             // Tint: Light Gray by default, White on hover
             let tint = if is_hovered {
                 egui::Color32::WHITE
@@ -162,12 +161,10 @@ impl FirmwareToolApp {
                 icon.id(),
                 icon_rect,
                 egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
-                tint
+                tint,
             );
         }
     }
-
-
 
     fn is_dna_read_operation(&self) -> bool {
         self.selected_option
@@ -395,36 +392,37 @@ impl FirmwareToolApp {
 
             self.handle_log_display(ui, ctx);
         });
-        
+
         // Floating notification overlay
         if let Some((msg, time)) = &self.contact_copy_notification
-            && time.elapsed() < Duration::from_secs(2) {
-                egui::Area::new(egui::Id::new("copy_notification"))
-                    .anchor(egui::Align2::RIGHT_BOTTOM, egui::vec2(-20.0, -85.0))
-                    .show(ctx, |ui| {
-                        egui::Frame::NONE
-                            .fill(egui::Color32::from_black_alpha(192)) // ~75% opacity
-                            .corner_radius(6.0)
-                            .inner_margin(8.0)
-                            .show(ui, |ui| {
-                                // Max width = (3 * 34.0) buttons + (2 * 4.0) spaces = 110.0
-                                ui.set_max_width(110.0);
-                                ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-                                    ui.label(
-                                        egui::RichText::new(msg)
-                                            .color(egui::Color32::GREEN)
-                                            .size(14.0)
-                                    );
-                                });
+            && time.elapsed() < Duration::from_secs(2)
+        {
+            egui::Area::new(egui::Id::new("copy_notification"))
+                .anchor(egui::Align2::RIGHT_BOTTOM, egui::vec2(-20.0, -85.0))
+                .show(ctx, |ui| {
+                    egui::Frame::NONE
+                        .fill(egui::Color32::from_black_alpha(192)) // ~75% opacity
+                        .corner_radius(6.0)
+                        .inner_margin(8.0)
+                        .show(ui, |ui| {
+                            // Max width = (3 * 34.0) buttons + (2 * 4.0) spaces = 110.0
+                            ui.set_max_width(110.0);
+                            ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
+                                ui.label(
+                                    egui::RichText::new(msg)
+                                        .color(egui::Color32::GREEN)
+                                        .size(14.0),
+                                );
                             });
-                    });
-                ctx.request_repaint();
-            }
+                        });
+                });
+            ctx.request_repaint();
+        }
     }
 
     fn render_contact_info(&mut self, ui: &mut egui::Ui) {
         ui.add_space(4.0);
-        
+
         ui.horizontal(|ui| {
             let base_flag_size = 28.0;
 
@@ -446,16 +444,14 @@ impl FirmwareToolApp {
                 let scale = ui.ctx().animate_value_with_time(
                     response.id.with("flag_scale"),
                     target_scale,
-                    0.1
+                    0.1,
                 );
 
                 // Render flag
                 if ui.is_rect_visible(rect) {
                     let flag_size = base_flag_size * scale;
-                    let flag_rect = egui::Rect::from_center_size(
-                        rect.center(),
-                        egui::Vec2::splat(flag_size)
-                    );
+                    let flag_rect =
+                        egui::Rect::from_center_size(rect.center(), egui::Vec2::splat(flag_size));
 
                     // Dim the flag if not selected
                     let tint = if self.language == Language::English {
@@ -468,7 +464,7 @@ impl FirmwareToolApp {
                         icon.id(),
                         flag_rect,
                         egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
-                        tint
+                        tint,
                     );
                 }
             }
@@ -493,16 +489,14 @@ impl FirmwareToolApp {
                 let scale = ui.ctx().animate_value_with_time(
                     response.id.with("flag_scale"),
                     target_scale,
-                    0.1
+                    0.1,
                 );
 
                 // Render flag
                 if ui.is_rect_visible(rect) {
                     let flag_size = base_flag_size * scale;
-                    let flag_rect = egui::Rect::from_center_size(
-                        rect.center(),
-                        egui::Vec2::splat(flag_size)
-                    );
+                    let flag_rect =
+                        egui::Rect::from_center_size(rect.center(), egui::Vec2::splat(flag_size));
 
                     // Dim the flag if not selected
                     let tint = if self.language == Language::Chinese {
@@ -515,7 +509,7 @@ impl FirmwareToolApp {
                         icon.id(),
                         flag_rect,
                         egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
-                        tint
+                        tint,
                     );
                 }
             }
@@ -537,15 +531,13 @@ impl FirmwareToolApp {
                 let scale = ui.ctx().animate_value_with_time(
                     response.id.with("flag_scale"),
                     target_scale,
-                    0.1
+                    0.1,
                 );
 
                 if ui.is_rect_visible(rect) {
                     let flag_size = base_flag_size * scale;
-                    let flag_rect = egui::Rect::from_center_size(
-                        rect.center(),
-                        egui::Vec2::splat(flag_size)
-                    );
+                    let flag_rect =
+                        egui::Rect::from_center_size(rect.center(), egui::Vec2::splat(flag_size));
 
                     let tint = if self.language == Language::German {
                         egui::Color32::WHITE
@@ -557,7 +549,7 @@ impl FirmwareToolApp {
                         icon.id(),
                         flag_rect,
                         egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
-                        tint
+                        tint,
                     );
                 }
             }
@@ -579,15 +571,13 @@ impl FirmwareToolApp {
                 let scale = ui.ctx().animate_value_with_time(
                     response.id.with("flag_scale"),
                     target_scale,
-                    0.1
+                    0.1,
                 );
 
                 if ui.is_rect_visible(rect) {
                     let flag_size = base_flag_size * scale;
-                    let flag_rect = egui::Rect::from_center_size(
-                        rect.center(),
-                        egui::Vec2::splat(flag_size)
-                    );
+                    let flag_rect =
+                        egui::Rect::from_center_size(rect.center(), egui::Vec2::splat(flag_size));
 
                     let tint = if self.language == Language::Portuguese {
                         egui::Color32::WHITE
@@ -599,7 +589,7 @@ impl FirmwareToolApp {
                         icon.id(),
                         flag_rect,
                         egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
-                        tint
+                        tint,
                     );
                 }
             }
@@ -621,15 +611,13 @@ impl FirmwareToolApp {
                 let scale = ui.ctx().animate_value_with_time(
                     response.id.with("flag_scale"),
                     target_scale,
-                    0.1
+                    0.1,
                 );
 
                 if ui.is_rect_visible(rect) {
                     let flag_size = base_flag_size * scale;
-                    let flag_rect = egui::Rect::from_center_size(
-                        rect.center(),
-                        egui::Vec2::splat(flag_size)
-                    );
+                    let flag_rect =
+                        egui::Rect::from_center_size(rect.center(), egui::Vec2::splat(flag_size));
 
                     let tint = if self.language == Language::Arabic {
                         egui::Color32::WHITE
@@ -641,7 +629,7 @@ impl FirmwareToolApp {
                         icon.id(),
                         flag_rect,
                         egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
-                        tint
+                        tint,
                     );
                 }
             }
@@ -652,13 +640,13 @@ impl FirmwareToolApp {
                 // Telegram
                 if let Some(icon) = self.icon_manager.telegram_icon() {
                     Self::render_contact_icon(
-                        ui, 
-                        icon, 
-                        "https://t.me/shifty_1337", 
-                        translate(TextKey::CopyTelegram, &self.language), 
+                        ui,
+                        icon,
+                        "https://t.me/shifty_1337",
+                        translate(TextKey::CopyTelegram, &self.language),
                         translate(TextKey::Copied, &self.language)
                             .replace("{}", translate(TextKey::TelegramLink, &self.language)),
-                        &mut self.contact_copy_notification
+                        &mut self.contact_copy_notification,
                     );
                 }
 
@@ -667,13 +655,13 @@ impl FirmwareToolApp {
                 // Wechat
                 if let Some(icon) = self.icon_manager.wechat_icon() {
                     Self::render_contact_icon(
-                        ui, 
-                        icon, 
-                        "shifty1337", 
-                        translate(TextKey::CopyWeChat, &self.language), 
+                        ui,
+                        icon,
+                        "shifty1337",
+                        translate(TextKey::CopyWeChat, &self.language),
                         translate(TextKey::Copied, &self.language)
                             .replace("{}", translate(TextKey::WeChatID, &self.language)),
-                        &mut self.contact_copy_notification
+                        &mut self.contact_copy_notification,
                     );
                 }
 
@@ -682,13 +670,13 @@ impl FirmwareToolApp {
                 // Discord
                 if let Some(icon) = self.icon_manager.discord_icon() {
                     Self::render_contact_icon(
-                        ui, 
-                        icon, 
-                        "_shifty1337", 
-                        translate(TextKey::CopyDiscord, &self.language), 
+                        ui,
+                        icon,
+                        "_shifty1337",
+                        translate(TextKey::CopyDiscord, &self.language),
                         translate(TextKey::Copied, &self.language)
                             .replace("{}", translate(TextKey::DiscordID, &self.language)),
-                        &mut self.contact_copy_notification
+                        &mut self.contact_copy_notification,
                     );
                 }
 
@@ -878,11 +866,13 @@ impl FirmwareToolApp {
                         // Clean up any existing DNA file before retrying
                         DnaReader::cleanup_dna_output_file(&self.logger);
 
-                        self.flashing_manager.execute_dna_read(option, &self.language);
+                        self.flashing_manager
+                            .execute_dna_read(option, &self.language);
                     } else if let Some(firmware) = &self.selected_firmware {
                         // Re-run flashing with the same firmware and option
                         self.state = AppState::Flashing;
-                        self.flashing_manager.execute_flash(firmware, option, &self.language);
+                        self.flashing_manager
+                            .execute_flash(firmware, option, &self.language);
                     }
                 }
             }

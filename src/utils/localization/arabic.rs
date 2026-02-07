@@ -19,7 +19,9 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::CheckingItem => "}{:جارٍ الفحص",
         TextKey::CountdownMessage => "...}{ ثانية}{سيتم المتابعة تلقائيًا في ",
         TextKey::ExitButton => "خروج",
-        TextKey::MissingFilesWarning => "تحذير: قد يتسبب المتابعة بدون الملفات المطلوبة في حدوث أخطاء",
+        TextKey::MissingFilesWarning => {
+            "تحذير: قد يتسبب المتابعة بدون الملفات المطلوبة في حدوث أخطاء"
+        }
         TextKey::GroupExecutables => "الملفات التنفيذية",
         TextKey::GroupLibraries => "المكتبات",
         TextKey::GroupBitstreams => "Bitstreams",
@@ -52,13 +54,13 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::CleanupDescription => "(.bin حذف ملف الهدف إذا نجح الفلاش)",
         TextKey::Continue => "متابعة",
         TextKey::SelectFirmwareToContinue => "اختر ملف برنامج ثابت للمتابعة",
-        TextKey::FlashFirmwareDesc => "حرق البرنامج الثابت على جهازك", 
+        TextKey::FlashFirmwareDesc => "حرق البرنامج الثابت على جهازك",
         TextKey::ReadDnaDesc => "استرداد المعرف الفريد من جهازك",
         TextKey::SelectFlashingOption => "اختر خيار الفلاش",
         TextKey::SelectDnaReadOption => "DNA اختر خيار قراءة",
         TextKey::Ch347Options => "CH347 خيارات",
         TextKey::Rs232Options => "RS232 خيارات",
-        
+
         TextKey::Ch347_35T_Label => "CH347 - 35T",
         TextKey::Ch347_35T_Desc => "CH347 باستخدام واجهة 35T للوحات",
         TextKey::Ch347_75T_Label => "CH347 - 75T",
@@ -81,12 +83,16 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::Dna_Rs232_75T_Desc => "RS232 باستخدام واجهة 75T من لوحات DNA قراءة",
         TextKey::Dna_Rs232_100T_Label => "RS232 - DNA :100T :قراءة",
         TextKey::Dna_Rs232_100T_Desc => "RS232 باستخدام واجهة 100T من لوحات DNA قراءة",
-        
+
         TextKey::ClearLog => "مسح السجل",
-        
+
         TextKey::OperationTook => "استغرقت العملية",
-        TextKey::NoteFewerSectors => ".ملاحظة: تم إتمام العملية بأقل من 10 قطاعات. يرجى التحقق يدويًا أو المحاولة مرة أخرى",
-        TextKey::NoteVerifySuccess => ".ملاحظة: لم يتمكن من التحقق من النجاح الكامل، ولكن لم يتم الكشف عن أخطاء. يرجى التحقق يدويًا أو المحاولة مرة أخرى",
+        TextKey::NoteFewerSectors => {
+            ".ملاحظة: تم إتمام العملية بأقل من 10 قطاعات. يرجى التحقق يدويًا أو المحاولة مرة أخرى"
+        }
+        TextKey::NoteVerifySuccess => {
+            ".ملاحظة: لم يتمكن من التحقق من النجاح الكامل، ولكن لم يتم الكشف عن أخطاء. يرجى التحقق يدويًا أو المحاولة مرة أخرى"
+        }
         TextKey::ErrorDetails => "تفاصيل الخطأ",
 
         TextKey::Initializing => "...جارٍ التهيئة",
@@ -109,7 +115,7 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::InterfaceLabel => ":الواجهة",
         TextKey::OperationTypeLabel => ":نوع العملية",
         TextKey::TargetDeviceLabel => ":الجهاز المستهدف",
-        
+
         TextKey::DnaReadSuccess => "!DNA نجحت قراءة",
         TextKey::DnaReadFailed => "DNA فشلت قراءة",
         TextKey::DnaReadUnexpected => "DNA حالة غير متوقعة لقراءة",
@@ -120,21 +126,33 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::FlashingFailedConnection => "فشل الفلاش - مشكلة في الاتصال",
         TextKey::FlashingResultUnknown => "نتيجة الفلاش غير معروفة",
         TextKey::NextSteps => "الخطوات التالية",
-        TextKey::NextStepsList => "\\n1. إعادة تشغيل كلا الكمبيوترين\\n2. اتبع الخطوات التالية في الدليل\\n   - تثبيت برنامج تشغيل البرنامج الثابت على كمبيوتر المضيف\\n   DATA ستبدل الكابل إلى منفذ - \\n   تنشيط باستخدام البرنامج المقدم ورمز التنشيط -\\n   DNA لا تتطلب إصدارات البرنامج الثابت المقفلة بواسطة تنشيطًا -",
+        TextKey::NextStepsList => {
+            "\\n1. إعادة تشغيل كلا الكمبيوترين\\n2. اتبع الخطوات التالية في الدليل\\n   - تثبيت برنامج تشغيل البرنامج الثابت على كمبيوتر المضيف\\n   DATA ستبدل الكابل إلى منفذ - \\n   تنشيط باستخدام البرنامج المقدم ورمز التنشيط -\\n   DNA لا تتطلب إصدارات البرنامج الثابت المقفلة بواسطة تنشيطًا -"
+        }
         TextKey::Exit => "خروج",
         TextKey::MainMenu => "القائمة الرئيسية",
         TextKey::TryAgainButton => "حاول مرة أخرى",
-        
-        TextKey::DnaReadUnexpectedMsg => ".DNA\\nقد يشير هذا إلى مشكلة في عملية استخراج .DNA اكتملت العملية، ولكن لم يكن من الممكن تأكيد قيمة\\n.يرجى التحقق من مخرجات السجل للحصول على التفاصيل",
+
+        TextKey::DnaReadUnexpectedMsg => {
+            ".DNA\\nقد يشير هذا إلى مشكلة في عملية استخراج .DNA اكتملت العملية، ولكن لم يكن من الممكن تأكيد قيمة\\n.يرجى التحقق من مخرجات السجل للحصول على التفاصيل"
+        }
         TextKey::DnaReadFailedPrefix => ":DNA من الجهاز DNA فشل في قراءة",
         TextKey::OperationInProgress => ":جارٍ االعملية",
-        TextKey::DnaStatusUnknownMsg => ".DNA\\nيرجى التحقق من السجل للحصول على التفاصيل .حالة عملية قراءة غير معروفة",
+        TextKey::DnaStatusUnknownMsg => {
+            ".DNA\\nيرجى التحقق من السجل للحصول على التفاصيل .حالة عملية قراءة غير معروفة"
+        }
         TextKey::ClickToCopyTooltip => "Verilog و HEX و RAW قيم DNA انقر لنسخ",
-        TextKey::FlashingFailedConnectionMsg => "\\n.}{ من }{ :الكتابات العاديةغير كافية للقطاعات\\n\\nهذا يشير إلى مشكلة في اتصال الأجهزة. الجهاز قابل للوصول، ولكن البيانات لا\\n.يتم نقلها بشكل صحيح\\n\\n:جرب\\n1. استخدام منفذ USB مختلف\\n2. التحقق من توصيلات الكابل\\n3. التأكد من أن الجهاز يعمل بالطاقة بشكل صحيح\\n4. تجربة كابل USB مختلف",
-        TextKey::FlashingResultUnknownMsg => ".\\n\\n اكتملت عملية الفلاش، ولكن لم يتم العثور على معلومات كتابة القطاع في السجلات\\n\\n1. قمت بتحديد نوع اللوحة الصحيح\\n JTAG مثبت وفي منفذ USB برنامج تشغيل 2. ال\\n USB مختلف و/أو منفذ USB 3. جرب كابل\\n.PCIE 4. تأكد من أن الجهاز متموضع بشكل صحيح في فتحة",
+        TextKey::FlashingFailedConnectionMsg => {
+            "\\n.}{ من }{ :الكتابات العاديةغير كافية للقطاعات\\n\\nهذا يشير إلى مشكلة في اتصال الأجهزة. الجهاز قابل للوصول، ولكن البيانات لا\\n.يتم نقلها بشكل صحيح\\n\\n:جرب\\n1. استخدام منفذ USB مختلف\\n2. التحقق من توصيلات الكابل\\n3. التأكد من أن الجهاز يعمل بالطاقة بشكل صحيح\\n4. تجربة كابل USB مختلف"
+        }
+        TextKey::FlashingResultUnknownMsg => {
+            ".\\n\\n اكتملت عملية الفلاش، ولكن لم يتم العثور على معلومات كتابة القطاع في السجلات\\n\\n1. قمت بتحديد نوع اللوحة الصحيح\\n JTAG مثبت وفي منفذ USB برنامج تشغيل 2. ال\\n USB مختلف و/أو منفذ USB 3. جرب كابل\\n.PCIE 4. تأكد من أن الجهاز متموضع بشكل صحيح في فتحة"
+        }
         TextKey::UnexpectedStateMsg => ".لا ينبغي الوصول إلى هذه الحالة. يرجى الإبلاغ عن هذا الخطأ",
         TextKey::FlashingFailedPrefix => ":فشل في فلاش البرنامج الثابت على الجهاز",
-        TextKey::FlashStatusUnknownMsg => ".حالة عملية الفلاش غير معروفة\\n.يرجى التحقق من السجل للحصول على التفاصيل أو المحاولة مرة أخرى",
+        TextKey::FlashStatusUnknownMsg => {
+            ".حالة عملية الفلاش غير معروفة\\n.يرجى التحقق من السجل للحصول على التفاصيل أو المحاولة مرة أخرى"
+        }
 
         TextKey::DnaInvalidOption => "DNA خيار غير صالح لقراءة",
         TextKey::DnaCommandFailed => "DNA فشل في تنفيذ أمر قراءة",

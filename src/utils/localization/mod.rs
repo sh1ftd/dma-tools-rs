@@ -1,16 +1,15 @@
 use crate::app::Language;
 
-pub mod english;
+pub mod arabic;
 pub mod chinese;
+pub mod english;
 pub mod german;
 pub mod portuguese;
-pub mod arabic;
 pub mod reshaper;
 
-use std::sync::OnceLock;
 use std::collections::HashMap;
 use std::sync::Mutex;
-
+use std::sync::OnceLock;
 
 #[allow(non_camel_case_types)]
 #[allow(dead_code)]
@@ -75,26 +74,36 @@ pub enum TextKey {
     Ch347Options,
     Rs232Options,
     // Option Labels & Descriptions
-    Ch347_35T_Label, Ch347_35T_Desc,
-    Ch347_75T_Label, Ch347_75T_Desc,
-    Ch347_100T_Label, Ch347_100T_Desc,
-    Rs232_35T_Label, Rs232_35T_Desc,
-    Rs232_75T_Label, Rs232_75T_Desc,
-    Rs232_100T_Label, Rs232_100T_Desc,
+    Ch347_35T_Label,
+    Ch347_35T_Desc,
+    Ch347_75T_Label,
+    Ch347_75T_Desc,
+    Ch347_100T_Label,
+    Ch347_100T_Desc,
+    Rs232_35T_Label,
+    Rs232_35T_Desc,
+    Rs232_75T_Label,
+    Rs232_75T_Desc,
+    Rs232_100T_Label,
+    Rs232_100T_Desc,
     // DNA Read Labels & Descriptions
-    Dna_Ch347_Label, Dna_Ch347_Desc,
-    Dna_Rs232_35T_Label, Dna_Rs232_35T_Desc,
-    Dna_Rs232_75T_Label, Dna_Rs232_75T_Desc,
-    Dna_Rs232_100T_Label, Dna_Rs232_100T_Desc,
+    Dna_Ch347_Label,
+    Dna_Ch347_Desc,
+    Dna_Rs232_35T_Label,
+    Dna_Rs232_35T_Desc,
+    Dna_Rs232_75T_Label,
+    Dna_Rs232_75T_Desc,
+    Dna_Rs232_100T_Label,
+    Dna_Rs232_100T_Desc,
     // Log View
     ClearLog,
-    
+
     // Result Extras
     OperationTook,
     NoteFewerSectors,
     NoteVerifySuccess,
     ErrorDetails,
-    
+
     // Progress
     Initializing,
     StartingOperation,
@@ -131,7 +140,7 @@ pub enum TextKey {
     Exit,
     MainMenu,
     TryAgainButton, // TryAgain exists?
-    
+
     // Detailed Result Messages
     DnaReadUnexpectedMsg,
     DnaReadFailedPrefix,

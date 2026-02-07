@@ -1,6 +1,6 @@
 use super::buttons::render_colored_option_button;
 use crate::device_programmer::FlashingOption;
-use crate::utils::localization::{translate, TextKey};
+use crate::utils::localization::{TextKey, translate};
 use eframe::egui::{self, RichText, Ui};
 
 // UI styling constants

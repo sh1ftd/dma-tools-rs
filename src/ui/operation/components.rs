@@ -1,6 +1,6 @@
 use super::buttons::create_operation_button;
 use super::types::OperationType;
-use crate::utils::localization::{translate, TextKey};
+use crate::utils::localization::{TextKey, translate};
 use eframe::egui::Ui;
 
 // Spacing constants
@@ -17,7 +17,7 @@ pub fn render_operation_header(ui: &mut Ui, lang: &crate::app::Language) {
 
 /// Renders operation buttons that trigger the provided callback when clicked
 pub fn render_operation_buttons(
-    ui: &mut Ui, 
+    ui: &mut Ui,
     on_select: &mut dyn FnMut(OperationType),
     lang: &crate::app::Language,
 ) {

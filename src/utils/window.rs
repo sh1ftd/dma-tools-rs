@@ -41,28 +41,31 @@ impl WindowManager {
 
         let font_paths = [
             "C:\\Windows\\Fonts\\msyh.ttc",
-            "C:\\Windows\\Fonts\\msyh.ttf", 
-            "C:\\Windows\\Fonts\\simhei.ttf"
+            "C:\\Windows\\Fonts\\msyh.ttf",
+            "C:\\Windows\\Fonts\\simhei.ttf",
         ];
 
         for path in font_paths {
             if let Ok(font_data) = std::fs::read(path) {
                 // Determine name based on path
                 let font_name = "Microsoft YaHei".to_string();
-                
+
                 fonts.font_data.insert(
                     font_name.clone(),
                     std::sync::Arc::new(eframe::egui::FontData::from_owned(font_data)),
                 );
 
                 // Insert into families
-                if let Some(vec) = fonts.families.get_mut(&eframe::egui::FontFamily::Proportional) {
+                if let Some(vec) = fonts
+                    .families
+                    .get_mut(&eframe::egui::FontFamily::Proportional)
+                {
                     vec.insert(0, font_name.clone());
                 }
                 if let Some(vec) = fonts.families.get_mut(&eframe::egui::FontFamily::Monospace) {
                     vec.insert(0, font_name);
                 }
-                
+
                 break;
             }
         }
@@ -77,19 +80,22 @@ impl WindowManager {
         for path in arabic_font_paths {
             if let Ok(font_data) = std::fs::read(path) {
                 let font_name = "Arabic Font".to_string();
-                
+
                 fonts.font_data.insert(
                     font_name.clone(),
                     std::sync::Arc::new(eframe::egui::FontData::from_owned(font_data)),
                 );
 
-                if let Some(vec) = fonts.families.get_mut(&eframe::egui::FontFamily::Proportional) {
+                if let Some(vec) = fonts
+                    .families
+                    .get_mut(&eframe::egui::FontFamily::Proportional)
+                {
                     vec.insert(1, font_name.clone());
                 }
                 if let Some(vec) = fonts.families.get_mut(&eframe::egui::FontFamily::Monospace) {
                     vec.insert(1, font_name);
                 }
-                
+
                 break;
             }
         }

@@ -1,6 +1,6 @@
 use super::panels::{render_dna_section, render_flash_section};
 use crate::device_programmer::FlashingOption;
-use crate::utils::localization::{translate, TextKey};
+use crate::utils::localization::{TextKey, translate};
 use eframe::egui::Ui;
 
 pub fn render_flash_options(

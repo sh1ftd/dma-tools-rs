@@ -2,7 +2,7 @@ use super::FileCheckRenderContext;
 use crate::APP_TITLE;
 use crate::ui::file_select::components::render_missing_file;
 use crate::utils::file_checker::{CheckStatus, FileCheckResult, SUCCESS_TRANSITION_DELAY};
-use crate::utils::localization::{translate, TextKey};
+use crate::utils::localization::{TextKey, translate};
 use eframe::egui::{self, Color32, CornerRadius, Margin, RichText, Sense, Stroke, Ui, Vec2};
 
 // UI Constants
@@ -59,7 +59,9 @@ fn render_file_check_internal(
         match ctx.check_status {
             CheckStatus::NotStarted => render_not_started(ui, ctx.language),
             CheckStatus::Checking(current_file) => render_checking(ui, current_file, ctx.language),
-            CheckStatus::Success(success_time) => render_success_state(ui, success_time, ctx.language),
+            CheckStatus::Success(success_time) => {
+                render_success_state(ui, success_time, ctx.language)
+            }
             CheckStatus::Complete(result) => {
                 if result.error_count > 0 {
                     render_check_failed(ui, result, on_continue, on_rescan, ctx.language);
@@ -90,12 +92,19 @@ fn render_checking(ui: &mut Ui, current_file: &str, lang: &crate::app::Language)
     render_centered_spinner(ui);
     ui.add_space(SPACING_XLARGE);
     ui.vertical_centered(|ui| {
-        ui.label(RichText::new(translate(TextKey::CheckingItem, lang).replace("{}", current_file)).monospace());
+        ui.label(
+            RichText::new(translate(TextKey::CheckingItem, lang).replace("{}", current_file))
+                .monospace(),
+        );
     });
     ui.add_space(SPACING_XXLARGE);
 }
 
-fn render_success_state(ui: &mut Ui, success_time: &std::time::Instant, lang: &crate::app::Language) {
+fn render_success_state(
+    ui: &mut Ui,
+    success_time: &std::time::Instant,
+    lang: &crate::app::Language,
+) {
     // Container frame for better spacing control
     egui::Frame::NONE
         .inner_margin(Margin::symmetric(0, SPACING_SECTION as i8))
@@ -204,7 +213,11 @@ fn render_centered_spinner(ui: &mut Ui) {
     });
 }
 
-fn render_missing_files_list(ui: &mut Ui, check_result: &FileCheckResult, lang: &crate::app::Language) {
+fn render_missing_files_list(
+    ui: &mut Ui,
+    check_result: &FileCheckResult,
+    lang: &crate::app::Language,
+) {
     egui::Frame::dark_canvas(ui.style())
         .stroke(Stroke::new(1.0, COLOR_BORDER))
         .corner_radius(CornerRadius::same(SPACING_LARGE as u8))
@@ -244,7 +257,9 @@ fn render_action_buttons(
 
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             if ui
-                .button(RichText::new(translate(TextKey::ContinueAnyway, lang)).size(TEXT_SIZE_MEDIUM))
+                .button(
+                    RichText::new(translate(TextKey::ContinueAnyway, lang)).size(TEXT_SIZE_MEDIUM),
+                )
                 .clicked()
             {
                 on_continue(true);
@@ -299,13 +314,25 @@ fn render_file_groups(ui: &mut Ui, files: &[String], lang: &crate::app::Language
     let groups = group_files(files);
 
     if !groups.executables.is_empty() {
-        render_file_group(ui, translate(TextKey::GroupExecutables, lang), &groups.executables);
+        render_file_group(
+            ui,
+            translate(TextKey::GroupExecutables, lang),
+            &groups.executables,
+        );
     }
     if !groups.libraries.is_empty() {
-        render_file_group(ui, translate(TextKey::GroupLibraries, lang), &groups.libraries);
+        render_file_group(
+            ui,
+            translate(TextKey::GroupLibraries, lang),
+            &groups.libraries,
+        );
     }
     if !groups.bitstreams.is_empty() {
-        render_file_group(ui, translate(TextKey::GroupBitstreams, lang), &groups.bitstreams);
+        render_file_group(
+            ui,
+            translate(TextKey::GroupBitstreams, lang),
+            &groups.bitstreams,
+        );
     }
     if !groups.configs.is_empty() {
         render_file_group(ui, translate(TextKey::GroupConfigs, lang), &groups.configs);

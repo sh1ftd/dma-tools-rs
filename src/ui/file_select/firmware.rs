@@ -1,5 +1,5 @@
 use crate::utils::firmware_discovery::FirmwareManager;
-use crate::utils::localization::{translate, TextKey};
+use crate::utils::localization::{TextKey, translate};
 use eframe::egui::{
     self, Color32, CornerRadius, Frame, Layout, Margin, RichText, Stroke, Ui, Vec2,
 };
@@ -61,10 +61,7 @@ fn render_firmware_status(ui: &mut Ui, status_message: &str, lang: &crate::app::
         ui.label(RichText::new(status_message).size(HEADING_SIZE).strong());
 
         ui.add_space(8.0);
-        ui.label(
-            RichText::new(translate(TextKey::PlaceFirmwareHere, lang))
-                .size(NORMAL_SIZE),
-        );
+        ui.label(RichText::new(translate(TextKey::PlaceFirmwareHere, lang)).size(NORMAL_SIZE));
 
         ui.add_space(18.0);
         ui.label(
@@ -90,7 +87,10 @@ fn render_firmware_list(
         let mut cleanup_enabled = firmware_manager.get_cleanup_enabled();
         ui.horizontal(|ui| {
             if ui
-                .checkbox(&mut cleanup_enabled, translate(TextKey::PerformCleanup, lang))
+                .checkbox(
+                    &mut cleanup_enabled,
+                    translate(TextKey::PerformCleanup, lang),
+                )
                 .changed()
             {
                 firmware_manager.set_cleanup_enabled(cleanup_enabled);
@@ -165,9 +165,10 @@ fn render_continue_button(
     ui.add_space(16.0);
 
     if let Some(selected) = firmware_manager.get_selected_firmware() {
-        let button = egui::Button::new(RichText::new(translate(TextKey::Continue, lang)).size(HEADING_SIZE))
-            .min_size(BUTTON_SIZE)
-            .fill(PRIMARY_COLOR);
+        let button =
+            egui::Button::new(RichText::new(translate(TextKey::Continue, lang)).size(HEADING_SIZE))
+                .min_size(BUTTON_SIZE)
+                .fill(PRIMARY_COLOR);
 
         if ui.add(button).clicked() {
             on_select(Some(selected.clone()));

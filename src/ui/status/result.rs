@@ -1,7 +1,7 @@
 use super::types::ResultAction;
 use crate::assets::IconManager;
 use crate::device_programmer::{CompletionStatus, DnaInfo, FlashingManager};
-use crate::utils::localization::{translate, TextKey};
+use crate::utils::localization::{TextKey, translate};
 use eframe::egui::{self, RichText, Ui};
 use std::time::Duration;
 
@@ -70,14 +70,20 @@ fn render_dna_result(
             render_error(
                 ui,
                 translate(TextKey::DnaReadFailed, lang),
-                &format!("{}\n\n{error}", translate(TextKey::DnaReadFailedPrefix, lang)),
+                &format!(
+                    "{}\n\n{error}",
+                    translate(TextKey::DnaReadFailedPrefix, lang)
+                ),
                 icon_manager,
                 lang,
             );
         }
         CompletionStatus::InProgress(status_msg) => {
             ui.vertical_centered(|ui| {
-                ui.label(format!("{} {status_msg}", translate(TextKey::OperationInProgress, lang)));
+                ui.label(format!(
+                    "{} {status_msg}",
+                    translate(TextKey::OperationInProgress, lang)
+                ));
                 ui.spinner();
             });
         }
@@ -118,7 +124,10 @@ fn render_dna_success(
 
         render_framed_content(ui, SUCCESS_COLOR, |ui| {
             ui.vertical_centered(|ui| {
-                ui.label(RichText::new(translate(TextKey::DeviceDnaHeader, lang)).size(SUBTITLE_FONT_SIZE));
+                ui.label(
+                    RichText::new(translate(TextKey::DeviceDnaHeader, lang))
+                        .size(SUBTITLE_FONT_SIZE),
+                );
                 ui.add_space(SPACING_MEDIUM);
 
                 let dna_text = RichText::new(&dna_info.dna_value)
@@ -221,10 +230,7 @@ fn render_flashing_result(
                 render_success(ui, icon_manager, lang);
 
                 ui.add_space(SPACING_SMALL);
-                ui.label(
-                    RichText::new(translate(TextKey::NoteFewerSectors, lang))
-                    .italics(),
-                );
+                ui.label(RichText::new(translate(TextKey::NoteFewerSectors, lang)).italics());
 
                 if duration_secs > 1 {
                     render_duration(ui, duration_secs, lang);
@@ -233,10 +239,7 @@ fn render_flashing_result(
                 render_success(ui, icon_manager, lang);
 
                 ui.add_space(SPACING_SMALL);
-                ui.label(
-                    RichText::new(translate(TextKey::NoteVerifySuccess, lang))
-                    .italics(),
-                );
+                ui.label(RichText::new(translate(TextKey::NoteVerifySuccess, lang)).italics());
 
                 if duration_secs > 1 {
                     render_duration(ui, duration_secs, lang);
@@ -256,7 +259,10 @@ fn render_flashing_result(
             render_error(
                 ui,
                 translate(TextKey::FlashingFailed, lang),
-                &format!("{}\n\n{error}", translate(TextKey::FlashingFailedPrefix, lang)),
+                &format!(
+                    "{}\n\n{error}",
+                    translate(TextKey::FlashingFailedPrefix, lang)
+                ),
                 icon_manager,
                 lang,
             );
@@ -265,9 +271,12 @@ fn render_flashing_result(
             // Display the current operation progress
             ui.vertical_centered(|ui| {
                 ui.label(
-                    RichText::new(format!("{} {status_msg}", translate(TextKey::OperationInProgress, lang)))
-                        .size(18.0)
-                        .color(egui::Color32::from_rgb(50, 150, 255)),
+                    RichText::new(format!(
+                        "{} {status_msg}",
+                        translate(TextKey::OperationInProgress, lang)
+                    ))
+                    .size(18.0)
+                    .color(egui::Color32::from_rgb(50, 150, 255)),
                 ); // Use a blue color for progress
 
                 ui.add_space(10.0);
@@ -368,7 +377,9 @@ fn render_error(
         // Error message in a bordered frame
         render_framed_content(ui, ERROR_COLOR, |ui| {
             ui.vertical_centered(|ui| {
-                ui.label(RichText::new(translate(TextKey::ErrorDetails, lang)).size(SUBTITLE_FONT_SIZE));
+                ui.label(
+                    RichText::new(translate(TextKey::ErrorDetails, lang)).size(SUBTITLE_FONT_SIZE),
+                );
                 ui.add_space(SPACING_MEDIUM);
 
                 // Split message by newlines and display each line
@@ -384,11 +395,7 @@ fn render_error(
     });
 }
 
-fn render_success(
-    ui: &mut Ui,
-    icon_manager: &IconManager,
-    lang: &crate::app::Language,
-) {
+fn render_success(ui: &mut Ui, icon_manager: &IconManager, lang: &crate::app::Language) {
     ui.vertical_centered(|ui| {
         ui.add_space(SPACING_LARGE);
 
@@ -414,12 +421,14 @@ fn render_success(
         // Success message in a bordered frame
         render_framed_content(ui, SUCCESS_COLOR, |ui| {
             ui.vertical_centered(|ui| {
-                ui.label(RichText::new(translate(TextKey::NextSteps, lang)).size(SUBTITLE_FONT_SIZE));
+                ui.label(
+                    RichText::new(translate(TextKey::NextSteps, lang)).size(SUBTITLE_FONT_SIZE),
+                );
                 ui.add_space(SPACING_MEDIUM);
                 let next_steps = translate(TextKey::NextStepsList, lang);
                 // Split by newlines to display each line
                 for line in next_steps.split('\n') {
-                     ui.label(line);
+                    ui.label(line);
                 }
             });
         });
@@ -462,7 +471,10 @@ fn render_action_buttons_with_layout(
         let button_width = (available_width - spacing) / button_count as f32;
 
         if ui
-            .add(egui::Button::new(translate(TextKey::Exit, lang)).min_size(egui::vec2(button_width, BUTTON_HEIGHT)))
+            .add(
+                egui::Button::new(translate(TextKey::Exit, lang))
+                    .min_size(egui::vec2(button_width, BUTTON_HEIGHT)),
+            )
             .clicked()
         {
             on_action(ResultAction::Exit);
@@ -484,7 +496,10 @@ fn render_action_buttons_with_layout(
         }
 
         if ui
-            .add(egui::Button::new(translate(TextKey::TryAgainButton, lang)).min_size(egui::vec2(button_width, BUTTON_HEIGHT)))
+            .add(
+                egui::Button::new(translate(TextKey::TryAgainButton, lang))
+                    .min_size(egui::vec2(button_width, BUTTON_HEIGHT)),
+            )
             .clicked()
         {
             on_action(ResultAction::TryAgain);
