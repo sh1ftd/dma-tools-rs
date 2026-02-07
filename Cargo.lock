@@ -188,6 +188,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5f0e0fee31ef5ed1ba1316088939cea399010ed7731dba877ed44aeb407a75ea"
 
 [[package]]
+name = "arabic_reshaper"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eb963411bc62b3888e69ad0d821ac03a3176ec7d74c2096bb5555a4cc419545b"
+
+[[package]]
 name = "arbitrary"
 version = "1.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -920,11 +926,13 @@ dependencies = [
 
 [[package]]
 name = "dma-tools-rs"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
+ "arabic_reshaper",
  "eframe",
  "image",
  "resvg",
+ "unicode-bidi",
  "usvg",
  "winapi",
 ]

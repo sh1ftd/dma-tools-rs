@@ -29,7 +29,7 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::Rescan => "Rescan Files",
         TextKey::SelectOperation => "Select Operation",
         TextKey::FlashFirmware => "Flash Firmware",
-        TextKey::ReadDna => "Read Box DNA",
+        TextKey::ReadDna => "Read board DNA",
         TextKey::SelectFirmware => "Select Firmware File",
         TextKey::ScanningFirmware => "Scanning for firmware files...",
         TextKey::SelectOption => "Select Option",
@@ -53,7 +53,7 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::CleanupDescription => "(Delete target .bin file if flash successful)",
         TextKey::Continue => "Continue",
         TextKey::SelectFirmwareToContinue => "Select a firmware file to continue",
-        TextKey::FlashFirmwareDesc => "Upload firmware to your device",
+        TextKey::FlashFirmwareDesc => "Flash firmware to your device",
         TextKey::ReadDnaDesc => "Retrieve the unique ID from your device",
         // Flashing Options
         TextKey::SelectFlashingOption => "Select Flashing Option",

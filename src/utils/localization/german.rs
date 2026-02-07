@@ -52,7 +52,7 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::CleanupDescription => "(Ziel-.bin-Datei löschen, wenn Flashvorgang erfolgreich)",
         TextKey::Continue => "Fortfahren",
         TextKey::SelectFirmwareToContinue => "Wählen Sie eine Firmware-Datei zum Fortfahren",
-        TextKey::FlashFirmwareDesc => "Firmware auf Ihr Gerät hochladen",
+        TextKey::FlashFirmwareDesc => "Firmware auf Ihr Gerät flashen",
         TextKey::ReadDnaDesc => "Eindeutige ID von Ihrem Gerät abrufen",
         TextKey::SelectFlashingOption => "Flash-Option auswählen",
         TextKey::SelectDnaReadOption => "DNA-Leseoption auswählen",

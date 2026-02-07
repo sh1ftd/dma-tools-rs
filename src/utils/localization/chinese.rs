@@ -29,7 +29,7 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::Rescan => "重新扫描",
         TextKey::SelectOperation => "选择操作",
         TextKey::FlashFirmware => "烧录固件",
-        TextKey::ReadDna => "读取设备 DNA",
+        TextKey::ReadDna => "读取板卡 DNA",
         TextKey::SelectFirmware => "选择固件文件",
         TextKey::ScanningFirmware => "正在扫描固件文件...",
         TextKey::SelectOption => "选择选项",
@@ -53,7 +53,7 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::CleanupDescription => "(烧录成功后删除目标 .bin 文件)",
         TextKey::Continue => "继续",
         TextKey::SelectFirmwareToContinue => "请选择固件文件以继续",
-        TextKey::FlashFirmwareDesc => "将固件上传到您的设备",
+        TextKey::FlashFirmwareDesc => "烧录固件到您的设备", 
         TextKey::ReadDnaDesc => "获取设备的唯一标识符 (DNA)",
         // Flashing Options
         TextKey::SelectFlashingOption => "选择烧录选项",

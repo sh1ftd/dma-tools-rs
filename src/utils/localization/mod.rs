@@ -5,6 +5,11 @@ pub mod chinese;
 pub mod german;
 pub mod portuguese;
 pub mod arabic;
+pub mod reshaper;
+
+use std::sync::OnceLock;
+use std::collections::HashMap;
+use std::sync::Mutex;
 
 
 #[allow(non_camel_case_types)]
@@ -153,12 +158,29 @@ pub enum TextKey {
     DnaReadFailedStatus,
 }
 
+// Use a static cache to store reshaped Arabic strings so we can return &'static str.
+// This is acceptable because the number of labels is small and fixed.
+static ARABIC_CACHE: OnceLock<Mutex<HashMap<TextKey, &'static str>>> = OnceLock::new();
+
 pub fn translate(key: TextKey, lang: &Language) -> &'static str {
-    match lang {
+    let text = match lang {
         Language::English => english::get_text(key),
         Language::Chinese => chinese::get_text(key),
         Language::German => german::get_text(key),
         Language::Portuguese => portuguese::get_text(key),
         Language::Arabic => arabic::get_text(key),
+    };
+
+    if *lang == Language::Arabic {
+        let cache_mutex = ARABIC_CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+        let mut cache = cache_mutex.lock().unwrap();
+        if let Some(reshaped) = cache.get(&key) {
+            return reshaped;
+        }
+        let reshaped: &'static str = Box::leak(reshaper::reshape_arabic(text).into_boxed_str());
+        cache.insert(key, reshaped);
+        reshaped
+    } else {
+        text
     }
 }

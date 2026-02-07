@@ -52,7 +52,7 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::CleanupDescription => "(Excluir arquivo .bin de destino se a gravação for bem-sucedida)",
         TextKey::Continue => "Continuar",
         TextKey::SelectFirmwareToContinue => "Selecione um arquivo de firmware para continuar",
-        TextKey::FlashFirmwareDesc => "Enviar firmware para seu dispositivo",
+        TextKey::FlashFirmwareDesc => "Gravar firmware no seu dispositivo",
         TextKey::ReadDnaDesc => "Recuperar o ID único do seu dispositivo",
         TextKey::SelectFlashingOption => "Selecionar Opção de Gravação",
         TextKey::SelectDnaReadOption => "Selecionar Opção de Leitura de DNA",
