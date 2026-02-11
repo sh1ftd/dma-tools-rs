@@ -62,27 +62,27 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::Rs232Options => "RS232 خيارات",
 
         TextKey::Ch347_35T_Label => "CH347 - 35T",
-        TextKey::Ch347_35T_Desc => "CH347 باستخدام واجهة 35T للوحات",
+        TextKey::Ch347_35T_Desc => "CH347 باستخدام واجهة 53T للوحات",
         TextKey::Ch347_75T_Label => "CH347 - 75T",
-        TextKey::Ch347_75T_Desc => "CH347 باستخدام واجهة 75T للوحات",
+        TextKey::Ch347_75T_Desc => "CH347 باستخدام واجهة 57T للوحات",
         TextKey::Ch347_100T_Label => "CH347 - 100T",
-        TextKey::Ch347_100T_Desc => "CH347 باستخدام واجهة 100T للوحات",
+        TextKey::Ch347_100T_Desc => "CH347 باستخدام واجهة 001T للوحات",
 
         TextKey::Rs232_35T_Label => "RS232 - 35T",
-        TextKey::Rs232_35T_Desc => "RS232 باستخدام واجهة 35T للوحات",
+        TextKey::Rs232_35T_Desc => "RS232 باستخدام واجهة 53T للوحات",
         TextKey::Rs232_75T_Label => "RS232 - 75T",
-        TextKey::Rs232_75T_Desc => "RS232 باستخدام واجهة 75T للوحات",
+        TextKey::Rs232_75T_Desc => "RS232 باستخدام واجهة 57T للوحات",
         TextKey::Rs232_100T_Label => "RS232 - 100T",
-        TextKey::Rs232_100T_Desc => "RS232 باستخدام واجهة 100T للوحات",
+        TextKey::Rs232_100T_Desc => "RS232 باستخدام واجهة 001T للوحات",
 
         TextKey::Dna_Ch347_Label => "CH347 - DNA :100T ،75T ،35T :قراءة",
-        TextKey::Dna_Ch347_Desc => "CH347 باستخدام واجهة 100T أو 75T أو 35T من DNA قراءة",
+        TextKey::Dna_Ch347_Desc => "CH347 باستخدام واجهة 001T أو 57T أو 53T من AND قراءة",
         TextKey::Dna_Rs232_35T_Label => "RS232 - DNA :35T :قراءة",
-        TextKey::Dna_Rs232_35T_Desc => "RS232 باستخدام واجهة 35T من لوحات DNA قراءة",
+        TextKey::Dna_Rs232_35T_Desc => "RS232 باستخدام واجهة 53T من لوحات AND قراءة",
         TextKey::Dna_Rs232_75T_Label => "RS232 - DNA :75T :قراءة",
-        TextKey::Dna_Rs232_75T_Desc => "RS232 باستخدام واجهة 75T من لوحات DNA قراءة",
+        TextKey::Dna_Rs232_75T_Desc => "RS232 باستخدام واجهة 57T من لوحات AND قراءة",
         TextKey::Dna_Rs232_100T_Label => "RS232 - DNA :100T :قراءة",
-        TextKey::Dna_Rs232_100T_Desc => "RS232 باستخدام واجهة 100T من لوحات DNA قراءة",
+        TextKey::Dna_Rs232_100T_Desc => "RS232 باستخدام واجهة 001T من لوحات AND قراءة",
 
         TextKey::ClearLog => "مسح السجل",
 
@@ -136,7 +136,7 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::DnaReadUnexpectedMsg => {
             ".DNA\\nقد يشير هذا إلى مشكلة في عملية استخراج .DNA اكتملت العملية، ولكن لم يكن من الممكن تأكيد قيمة\\n.يرجى التحقق من مخرجات السجل للحصول على التفاصيل"
         }
-        TextKey::DnaReadFailedPrefix => ":DNA من الجهاز DNA فشل في قراءة",
+        TextKey::DnaReadFailedPrefix => ":DNA من الجهاز AND فشل في قراءة",
         TextKey::OperationInProgress => ":جارٍ االعملية",
         TextKey::DnaStatusUnknownMsg => {
             ".DNA\\nيرجى التحقق من السجل للحصول على التفاصيل .حالة عملية قراءة غير معروفة"
