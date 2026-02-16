@@ -1,7 +1,9 @@
 use crate::APP_TITLE;
 use crate::assets::IconManager;
+
 #[cfg(feature = "branding")]
 use crate::branding::BrandingManager;
+
 use crate::device_programmer::{CompletionStatus, FlashingManager, FlashingOption, dna::DnaReader};
 use crate::ui;
 use crate::ui::file_select::FileCheckRenderContext;
@@ -16,6 +18,9 @@ use eframe::egui;
 use std::path::PathBuf;
 use std::thread;
 use std::time::{Duration, Instant};
+
+#[allow(unused_imports)]
+use crate::utils::contact;
 
 // Constants for timing
 const ANIMATION_FRAME_RATE_MS: u64 = 16;
@@ -637,12 +642,33 @@ impl FirmwareToolApp {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 ui.add_space(10.0);
 
+                // Determine contact info
+                #[cfg(feature = "branding")]
+                let (show_tg, tg_contact, show_wc, wc_contact, show_dc, dc_contact) = (
+                    crate::branding::SHOW_TELEGRAM,
+                    crate::branding::TELEGRAM_CONTACT,
+                    crate::branding::SHOW_WECHAT,
+                    crate::branding::WECHAT_CONTACT,
+                    crate::branding::SHOW_DISCORD,
+                    crate::branding::DISCORD_CONTACT,
+                );
+
+                #[cfg(not(feature = "branding"))]
+                let (show_tg, tg_contact, show_wc, wc_contact, show_dc, dc_contact) = (
+                    contact::SHOW_TELEGRAM,
+                    contact::TELEGRAM_CONTACT,
+                    contact::SHOW_WECHAT,
+                    contact::WECHAT_CONTACT,
+                    contact::SHOW_DISCORD,
+                    contact::DISCORD_CONTACT,
+                );
+
                 // Telegram
-                if let Some(icon) = self.icon_manager.telegram_icon() {
+                if show_tg && let Some(icon) = self.icon_manager.telegram_icon() {
                     Self::render_contact_icon(
                         ui,
                         icon,
-                        "https://t.me/shifty_1337",
+                        tg_contact,
                         translate(TextKey::CopyTelegram, &self.language),
                         translate(TextKey::Copied, &self.language)
                             .replace("{}", translate(TextKey::TelegramLink, &self.language)),
@@ -650,14 +676,16 @@ impl FirmwareToolApp {
                     );
                 }
 
-                ui.add_space(4.0);
+                if show_tg && (show_wc || show_dc) {
+                    ui.add_space(4.0);
+                }
 
                 // Wechat
-                if let Some(icon) = self.icon_manager.wechat_icon() {
+                if show_wc && let Some(icon) = self.icon_manager.wechat_icon() {
                     Self::render_contact_icon(
                         ui,
                         icon,
-                        "shifty1337",
+                        wc_contact,
                         translate(TextKey::CopyWeChat, &self.language),
                         translate(TextKey::Copied, &self.language)
                             .replace("{}", translate(TextKey::WeChatID, &self.language)),
@@ -665,14 +693,16 @@ impl FirmwareToolApp {
                     );
                 }
 
-                ui.add_space(4.0);
+                if show_wc && show_dc {
+                    ui.add_space(4.0);
+                }
 
                 // Discord
-                if let Some(icon) = self.icon_manager.discord_icon() {
+                if show_dc && let Some(icon) = self.icon_manager.discord_icon() {
                     Self::render_contact_icon(
                         ui,
                         icon,
-                        "_shifty1337",
+                        dc_contact,
                         translate(TextKey::CopyDiscord, &self.language),
                         translate(TextKey::Copied, &self.language)
                             .replace("{}", translate(TextKey::DiscordID, &self.language)),
@@ -680,7 +710,9 @@ impl FirmwareToolApp {
                     );
                 }
 
-                ui.label(translate(TextKey::Contact, &self.language));
+                if show_tg || show_wc || show_dc {
+                    ui.label(translate(TextKey::Contact, &self.language));
+                }
             });
         });
         ui.add_space(4.0);

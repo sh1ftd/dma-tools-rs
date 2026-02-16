@@ -1,4 +1,5 @@
 pub mod cleanup;
+pub mod contact;
 pub mod file_checker;
 pub mod firmware_discovery;
 pub mod localization;
