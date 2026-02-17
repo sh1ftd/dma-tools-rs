@@ -926,7 +926,7 @@ dependencies = [
 
 [[package]]
 name = "dma-tools-rs"
-version = "0.2.6"
+version = "0.2.7"
 dependencies = [
  "arabic_reshaper",
  "eframe",
