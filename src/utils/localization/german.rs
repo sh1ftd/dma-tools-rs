@@ -135,33 +135,33 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::FlashingResultUnknown => "FLASHERGEBNIS UNBEKANNT",
         TextKey::NextSteps => "Nächste Schritte",
         TextKey::NextStepsList => {
-            "1. Beide Computer neu starten\\n2. Die nächsten Schritte in der Anleitung befolgen\\n   - Firmware-Treiber auf Host-Computer installieren\\n   - Kabel auf DATA-Port umstecken\\n   - Mit bereitgestellter Software und Aktivierungscode aktivieren\\n   - DNA-gesperrte Firmware-Builds erfordern keine Aktivierung"
+            "1. Beide Computer neu starten\n2. Die nächsten Schritte in der Anleitung befolgen\n   - Firmware-Treiber auf Host-Computer installieren\n   - Kabel auf DATA-Port umstecken\n   - Mit bereitgestellter Software und Aktivierungscode aktivieren\n   - DNA-gesperrte Firmware-Builds erfordern keine Aktivierung"
         }
         TextKey::Exit => "Beenden",
         TextKey::MainMenu => "Hauptmenü",
         TextKey::TryAgainButton => "Erneut versuchen",
 
         TextKey::DnaReadUnexpectedMsg => {
-            "Der Vorgang wurde abgeschlossen, aber der DNA-Wert konnte nicht bestätigt werden.\\nDies könnte auf ein Problem mit dem DNA-Extraktionsprozess hinweisen.\\nBitte überprüfen Sie die Protokollausgabe für Details."
+            "Der Vorgang wurde abgeschlossen, aber der DNA-Wert konnte nicht bestätigt werden.\nDies könnte auf ein Problem mit dem DNA-Extraktionsprozess hinweisen.\nBitte überprüfen Sie die Protokollausgabe für Details."
         }
         TextKey::DnaReadFailedPrefix => "Fehler beim Lesen der DNA vom Gerät:",
         TextKey::OperationInProgress => "Vorgang läuft:",
         TextKey::DnaStatusUnknownMsg => {
-            "DNA-Lesevorgangs status ist unbekannt.\\nBitte überprüfen Sie das Protokoll für Details."
+            "DNA-Lesevorgangs status ist unbekannt.\nBitte überprüfen Sie das Protokoll für Details."
         }
         TextKey::ClickToCopyTooltip => "Klicken, um RAW-, HEX- und Verilog-DNA-Werte zu kopieren",
         TextKey::FlashingFailedConnectionMsg => {
-            "Unzureichende normale Sektorschreibvorgänge erkannt: {} von {} Sektoren.\\n\\nDies weist auf ein Hardware-Verbindungsproblem hin. Das Gerät ist erreichbar, aber die Daten werden nicht korrekt übertragen.\\n\\nVersuchen Sie:\\n1. Einen anderen USB-Port verwenden\\n2. Kabelverbindungen prüfen\\n3. Sicherstellen, dass das Gerät korrekt mit Strom versorgt wird\\n4. Ein anderes USB-Kabel versuchen"
+            "Unzureichende normale Sektorschreibvorgänge erkannt: {} von {} Sektoren.\n\nDies weist auf ein Hardware-Verbindungsproblem hin. Das Gerät ist erreichbar, aber die Daten werden nicht korrekt übertragen.\n\nVersuchen Sie:\n1. Einen anderen USB-Port verwenden\n2. Kabelverbindungen prüfen\n3. Sicherstellen, dass das Gerät korrekt mit Strom versorgt wird\n4. Ein anderes USB-Kabel versuchen"
         }
         TextKey::FlashingResultUnknownMsg => {
-            "Flash-Vorgang abgeschlossen, aber keine Sektorschreibinformationen in den Protokollen gefunden.\\n\\n1. Sie haben den richtigen Board-Typ ausgewählt\\n2. Der entsprechende USB-Treiber ist installiert und im JTAG-Port\\n3. Versuchen Sie ein anderes USB-Kabel und/oder Port\\n4. Stellen Sie sicher, dass das Gerät richtig im PCIE-Steckplatz sitzt."
+            "Flash-Vorgang abgeschlossen, aber keine Sektorschreibinformationen in den Protokollen gefunden.\n\n1. Sie haben den richtigen Board-Typ ausgewählt\n2. Der entsprechende USB-Treiber ist installiert und im JTAG-Port\n3. Versuchen Sie ein anderes USB-Kabel und/oder Port\n4. Stellen Sie sicher, dass das Gerät richtig im PCIE-Steckplatz sitzt."
         }
         TextKey::UnexpectedStateMsg => {
             "Dieser Zustand sollte nicht erreicht werden. Bitte melden Sie diesen Fehler."
         }
         TextKey::FlashingFailedPrefix => "Fehler beim Flashen der Firmware auf das Gerät:",
         TextKey::FlashStatusUnknownMsg => {
-            "Flash-Vorgangsstatus ist unbekannt.\\nBitte überprüfen Sie das Protokoll für Details oder versuchen Sie es erneut."
+            "Flash-Vorgangsstatus ist unbekannt.\nBitte überprüfen Sie das Protokoll für Details oder versuchen Sie es erneut."
         }
 
         TextKey::DnaInvalidOption => "Ungültige Option für DNA-Lesung",

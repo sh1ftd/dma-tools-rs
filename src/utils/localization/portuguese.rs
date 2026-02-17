@@ -102,7 +102,7 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::Initializing => "Inicializando...",
         TextKey::StartingOperation => "Iniciando operação...",
         TextKey::WritingImage => "Gravando imagem na memória flash...",
-        TextKey::ProbingFlash => "Sondando memória flash...",
+        TextKey::ProbingFlash => "Examinando memória flash...",
         TextKey::ResettingFpga => "Reiniciando e interrompendo FPGA...",
         TextKey::LoadingBitstream => "Carregando bitstream...",
         TextKey::InitJtag => "Inicializando interface JTAG...",
@@ -137,33 +137,33 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::FlashingResultUnknown => "RESULTADO DA GRAVAÇÃO DESCONHECIDO",
         TextKey::NextSteps => "Próximos Passos",
         TextKey::NextStepsList => {
-            "1. Reiniciar ambos os computadores\\n2. Seguir os próximos passos no guia\\n   - Instalar driver de firmware no computador host\\n   - Trocar cabo para porta DATA\\n   - Ativar usando software fornecido e código de ativação\\n   - Builds de firmware bloqueados por DNA não requerem ativação"
+            "1. Reiniciar ambos os computadores\n2. Seguir os próximos passos no guia\n   - Instalar driver de firmware no computador host\n   - Trocar cabo para porta DATA\n   - Ativar usando software fornecido e código de ativação\n   - Construção de firmware bloqueados por DNA não requerem ativação"
         }
         TextKey::Exit => "Sair",
         TextKey::MainMenu => "Menu Principal",
         TextKey::TryAgainButton => "Tentar Novamente",
 
         TextKey::DnaReadUnexpectedMsg => {
-            "A operação foi concluída, mas o valor do DNA não pôde ser confirmado.\\nIsso pode indicar um problema com o processo de extração de DNA.\\nPor favor, verifique a saída do registro para detalhes."
+            "A operação foi concluída, mas o valor do DNA não pôde ser confirmado.\nIsso pode indicar um problema com o processo de extração de DNA.\nPor favor, verifique a saída do registro para detalhes."
         }
         TextKey::DnaReadFailedPrefix => "Falha ao ler DNA do dispositivo:",
         TextKey::OperationInProgress => "Operação em andamento:",
         TextKey::DnaStatusUnknownMsg => {
-            "Status da operação de leitura de DNA é desconhecido.\\nPor favor, verifique o registro para detalhes."
+            "Status da operação de leitura de DNA é desconhecido.\nPor favor, verifique o registro para detalhes."
         }
         TextKey::ClickToCopyTooltip => "Clique para copiar valores de DNA RAW, HEX e Verilog",
         TextKey::FlashingFailedConnectionMsg => {
-            "Gravações normais de setor insuficientes detectadas: {} de {} setores.\\n\\nIsso indica um problema de conexão de hardware. O dispositivo está acessível, mas os dados não estão sendo transferidos corretamente.\\n\\nTente:\\n1. Usar uma porta USB diferente\\n2. Verificar as conexões de cabo\\n3. Garantir que o dispositivo esteja alimentado corretamente\\n4. Tentar um cabo USB diferente"
+            "Gravações normais de setor insuficientes detectadas: {} de {} setores.\n\nIsso indica um problema de conexão de hardware. O dispositivo está acessível, mas os dados não estão sendo transferidos corretamente.\n\nTente:\n1. Usar uma porta USB diferente\n2. Verificar as conexões de cabo\n3. Garantir que o dispositivo esteja alimentado corretamente\n4. Tentar um cabo USB diferente"
         }
         TextKey::FlashingResultUnknownMsg => {
-            "Processo de gravação concluído, mas nenhuma informação de gravação de setor foi encontrada nos registros.\\n\\n1. Você selecionou o tipo de placa correto\\n2. O driver USB apropriado está instalado e na porta JTAG\\n3. Tente um cabo USB e/ou porta diferente\\n4. Certifique-se de que o dispositivo esteja devidamente encaixado no slot PCIE."
+            "Processo de gravação concluído, mas nenhuma informação de gravação de setor foi encontrada nos registros.\n\n1. Você selecionou o tipo de placa correto\n2. O driver USB apropriado está instalado e na porta JTAG\n3. Tente um cabo USB e/ou porta diferente\n4. Certifique-se de que o dispositivo esteja devidamente encaixado no slot PCIE."
         }
         TextKey::UnexpectedStateMsg => {
             "Este estado não deveria ser alcançado. Por favor, relate este bug."
         }
         TextKey::FlashingFailedPrefix => "Falha ao gravar firmware no dispositivo:",
         TextKey::FlashStatusUnknownMsg => {
-            "Status da operação de gravação é desconhecido.\\nPor favor, verifique o registro para detalhes ou tente novamente."
+            "Status da operação de gravação é desconhecido.\nPor favor, verifique o registro para detalhes ou tente novamente."
         }
 
         TextKey::DnaInvalidOption => "Opção inválida para leitura de DNA",
