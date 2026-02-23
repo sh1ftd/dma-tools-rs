@@ -131,10 +131,10 @@ fn determine_current_stage(
                 format!("{} {}...", translate(TextKey::WritingSector, lang), sector)
             }
         } else {
-            current_stage.to_string()
+            current_stage
         }
     } else {
-        current_stage.to_string()
+        current_stage
     };
 
     (stage_message, current_sector, is_writing)
