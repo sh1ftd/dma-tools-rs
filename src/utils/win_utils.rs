@@ -11,6 +11,58 @@ use winapi::um::winuser::{
     SWP_NOSIZE, SWP_NOZORDER, SetWindowLongA, SetWindowPos, WS_MAXIMIZEBOX,
 };
 
+#[cfg(target_os = "windows")]
+pub fn play_success_beep() {
+    #[cfg(debug_assertions)]
+    println!("Playing success sound");
+    std::thread::spawn(|| {
+        // SAFETY: Beep is a safe-to-call Windows API function.
+        unsafe {
+            use winapi::um::utilapiset::Beep;
+            Beep(440, 200);
+            Beep(554, 100);
+            Beep(554, 100);
+            Beep(440, 200);
+            Beep(554, 200);
+            std::thread::sleep(Duration::from_millis(200));
+            Beep(440, 200);
+            Beep(554, 200);
+        }
+    });
+}
+
+#[cfg(target_os = "windows")]
+pub fn play_error_beep() {
+    #[cfg(debug_assertions)]
+    println!("Playing error sound");
+    std::thread::spawn(|| {
+        // SAFETY: Beep is a safe-to-call Windows API function.
+        unsafe {
+            use winapi::um::utilapiset::Beep;
+            Beep(440, 400);
+            Beep(415, 400);
+            Beep(392, 400);
+            Beep(311, 1000);
+        }
+    });
+}
+
+#[cfg(target_os = "windows")]
+pub fn play_file_found_beep() {
+    #[cfg(debug_assertions)]
+    println!("Playing file found sound");
+    std::thread::spawn(|| {
+        // SAFETY: Beep is a safe-to-call Windows API function.
+        unsafe {
+            use winapi::um::utilapiset::Beep;
+            Beep(400, 50);
+            Beep(800, 50);
+            Beep(1200, 50);
+            Beep(1600, 100);
+        }
+    });
+}
+
 /// Disables the maximize button and enables dark mode for all windows containing APP_TITLE in their title.
 /// Returns Some message on success, None if no matching window was found.
 pub fn disable_maximize_button_for_all() -> Option<&'static str> {

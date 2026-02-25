@@ -353,6 +353,19 @@ impl FirmwareToolApp {
 
                 self.logger
                     .debug("State changing to Result after all conditions met");
+
+                #[cfg(target_os = "windows")]
+                {
+                    use crate::utils::win_utils::{play_error_beep, play_success_beep};
+                    match status {
+                        CompletionStatus::Completed | CompletionStatus::DnaReadCompleted(_) => {
+                            play_success_beep()
+                        }
+                        CompletionStatus::Failed(_) => play_error_beep(),
+                        _ => {}
+                    }
+                }
+
                 self.state = AppState::Result;
                 self.dna_read_in_progress = false;
                 self.waiting_message_logged = false;
