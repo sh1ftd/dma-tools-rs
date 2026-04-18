@@ -4,7 +4,6 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-#[cfg(target_os = "windows")]
 use crate::utils::win_utils::play_file_found_beep;
 
 pub struct FirmwareManager {
@@ -54,7 +53,6 @@ impl FirmwareManager {
                 .iter()
                 .any(|f| !previous_files.contains(f));
             if has_new_file {
-                #[cfg(target_os = "windows")]
                 play_file_found_beep();
             }
         }
@@ -87,7 +85,7 @@ impl FirmwareManager {
 
     /// Returns the currently selected firmware file, if any
     pub fn get_selected_firmware(&self) -> Option<&PathBuf> {
-        self.selected_index.map(|i| &self.firmware_files[i])
+        self.selected_index.and_then(|i| self.firmware_files.get(i))
     }
 
     /// Returns the number of scans performed

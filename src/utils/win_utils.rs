@@ -11,7 +11,6 @@ use winapi::um::winuser::{
     SWP_NOSIZE, SWP_NOZORDER, SetWindowLongA, SetWindowPos, WS_MAXIMIZEBOX,
 };
 
-#[cfg(target_os = "windows")]
 pub fn play_success_beep() {
     #[cfg(debug_assertions)]
     println!("Playing success sound");
@@ -19,19 +18,12 @@ pub fn play_success_beep() {
         // SAFETY: Beep is a safe-to-call Windows API function.
         unsafe {
             use winapi::um::utilapiset::Beep;
-            Beep(440, 200);
-            Beep(554, 100);
-            Beep(554, 100);
-            Beep(440, 200);
-            Beep(554, 200);
-            std::thread::sleep(Duration::from_millis(200));
-            Beep(440, 200);
-            Beep(554, 200);
+            Beep(880, 100);
+            Beep(1108, 150);
         }
     });
 }
 
-#[cfg(target_os = "windows")]
 pub fn play_error_beep() {
     #[cfg(debug_assertions)]
     println!("Playing error sound");
@@ -39,15 +31,12 @@ pub fn play_error_beep() {
         // SAFETY: Beep is a safe-to-call Windows API function.
         unsafe {
             use winapi::um::utilapiset::Beep;
-            Beep(440, 400);
-            Beep(415, 400);
-            Beep(392, 400);
-            Beep(311, 1000);
+            Beep(250, 150);
+            Beep(150, 250);
         }
     });
 }
 
-#[cfg(target_os = "windows")]
 pub fn play_file_found_beep() {
     #[cfg(debug_assertions)]
     println!("Playing file found sound");
@@ -55,10 +44,8 @@ pub fn play_file_found_beep() {
         // SAFETY: Beep is a safe-to-call Windows API function.
         unsafe {
             use winapi::um::utilapiset::Beep;
-            Beep(400, 50);
-            Beep(800, 50);
-            Beep(1200, 50);
-            Beep(1600, 100);
+            Beep(1500, 50);
+            Beep(2000, 100);
         }
     });
 }

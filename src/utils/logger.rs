@@ -137,11 +137,11 @@ impl Logger {
         self.debug_mode.store(debug, Ordering::SeqCst);
     }
 
-    /// In the debug method, respect the enabled flag
-    pub fn debug(&self, message: impl AsRef<str>) {
+    /// Debug-level logging — only outputs when debug mode is enabled.
+    pub fn debug(&self, message: impl Into<String>) {
         // Only log if debug mode is enabled AND logger is enabled
         if self.enabled && self.debug_mode.load(Ordering::SeqCst) {
-            self.log(message.as_ref(), LogLevel::Info);
+            self.log(message, LogLevel::Info);
         }
     }
 }
@@ -150,5 +150,139 @@ impl Logger {
 impl Default for Logger {
     fn default() -> Self {
         Self::new("DefaultLogger")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_logger_starts_empty() {
+        let logger = Logger::new("Test");
+        assert!(logger.get_entries().is_empty());
+    }
+
+    #[test]
+    fn logs_are_recorded() {
+        let logger = Logger::new("Test");
+        logger.info("Hello");
+        logger.error("Oops");
+        logger.warning("Careful");
+        assert_eq!(logger.get_entries().len(), 3);
+    }
+
+    #[test]
+    fn clear_removes_all() {
+        let logger = Logger::new("Test");
+        logger.info("1");
+        logger.info("2");
+        logger.clear();
+        assert!(logger.get_entries().is_empty());
+    }
+
+    #[test]
+    fn levels_are_correct() {
+        let logger = Logger::new("Test");
+        logger.info("a");
+        logger.error("b");
+        logger.success("c");
+        logger.warning("d");
+        logger.command("e");
+        logger.output("f");
+
+        let entries = logger.get_entries();
+        assert_eq!(entries[0].level, LogLevel::Info);
+        assert_eq!(entries[1].level, LogLevel::Error);
+        assert_eq!(entries[2].level, LogLevel::Success);
+        assert_eq!(entries[3].level, LogLevel::Warning);
+        assert_eq!(entries[4].level, LogLevel::Command);
+        assert_eq!(entries[5].level, LogLevel::Output);
+    }
+
+    #[test]
+    fn message_preserved() {
+        let logger = Logger::new("Test");
+        logger.info("exact content 123");
+        assert_eq!(logger.get_entries()[0].message, "exact content 123");
+    }
+
+    #[test]
+    fn clone_shares_entries() {
+        let a = Logger::new("Shared");
+        let b = a.clone();
+        a.info("from a");
+        b.info("from b");
+        assert_eq!(a.get_entries().len(), 2);
+        assert_eq!(b.get_entries().len(), 2);
+    }
+
+    #[test]
+    fn respects_max_capacity() {
+        let logger = Logger::new("Cap");
+        for i in 0..600 {
+            logger.info(format!("msg-{i}"));
+        }
+        let entries = logger.get_entries();
+        assert!(entries.len() <= MAX_LOG_ENTRIES);
+        // Oldest entries evicted — first entry should NOT be msg-0
+        assert!(!entries[0].message.contains("msg-0"));
+    }
+
+    #[test]
+    fn debug_suppressed_by_default() {
+        let logger = Logger::new("Test");
+        logger.debug("invisible");
+        assert!(logger.get_entries().is_empty());
+    }
+
+    #[test]
+    fn debug_visible_when_enabled() {
+        let logger = Logger::new("Test");
+        logger.set_debug_mode(true);
+        logger.debug("visible");
+        assert_eq!(logger.get_entries().len(), 1);
+        assert_eq!(logger.get_entries()[0].message, "visible");
+    }
+
+    #[test]
+    fn timestamp_format_ends_with_s() {
+        let logger = Logger::new("Ts");
+        logger.info("t");
+        let ts = logger.format_timestamp(logger.get_entries()[0].timestamp);
+        assert!(ts.ends_with('s'), "Got: {ts}");
+    }
+
+    #[test]
+    fn thread_safety() {
+        use std::sync::Arc;
+        use std::thread;
+
+        let logger = Arc::new(Logger::new("Thread"));
+        let mut handles = vec![];
+
+        for i in 0..10 {
+            let log = Arc::clone(&logger);
+            handles.push(thread::spawn(move || {
+                for j in 0..50 {
+                    log.info(format!("t{i}-{j}"));
+                }
+            }));
+        }
+        for h in handles {
+            h.join().unwrap();
+        }
+
+        assert_eq!(logger.get_entries().len(), 500);
+    }
+
+    #[test]
+    fn loglevel_display() {
+        assert_eq!(format!("{}", LogLevel::Error), "ERROR");
+        assert_eq!(format!("{}", LogLevel::Warning), "WARN");
+        assert_eq!(format!("{}", LogLevel::Info), "INFO");
+        assert_eq!(format!("{}", LogLevel::Success), "SUCCESS");
+        assert_eq!(format!("{}", LogLevel::Command), "CMD");
+        assert_eq!(format!("{}", LogLevel::Output), "OUTPUT");
     }
 }

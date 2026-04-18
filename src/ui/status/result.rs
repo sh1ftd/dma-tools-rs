@@ -1,5 +1,4 @@
 use super::types::ResultAction;
-use crate::assets::IconManager;
 use crate::device_programmer::{CompletionStatus, DnaInfo, FlashingManager};
 use crate::utils::localization::{TextKey, translate};
 use eframe::egui::{self, RichText, Ui};
@@ -17,7 +16,6 @@ const BUTTON_HEIGHT: f32 = 32.0;
 const TITLE_FONT_SIZE: f32 = 24.0;
 const SUBTITLE_FONT_SIZE: f32 = 16.0;
 const DNA_VALUE_FONT_SIZE: f32 = 22.0;
-const FALLBACK_ICON_SIZE: f32 = 50.0;
 
 const FRAME_ROUNDING: u8 = 12;
 const FRAME_STROKE_WIDTH: f32 = 1.0;
@@ -32,7 +30,6 @@ pub fn render_result_screen(
     ui: &mut Ui,
     manager: &FlashingManager,
     on_action: &mut dyn FnMut(ResultAction),
-    icon_manager: &IconManager,
     lang: &crate::app::Language,
 ) {
     let is_dna_read = manager
@@ -40,9 +37,9 @@ pub fn render_result_screen(
         .is_some_and(|option| option.is_dna_read());
 
     if is_dna_read {
-        render_dna_result(ui, manager, on_action, icon_manager, lang);
+        render_dna_result(ui, manager, on_action, lang);
     } else {
-        render_flashing_result(ui, manager, on_action, icon_manager, lang);
+        render_flashing_result(ui, manager, on_action, lang);
     }
 }
 
@@ -50,19 +47,17 @@ fn render_dna_result(
     ui: &mut Ui,
     manager: &FlashingManager,
     on_action: &mut dyn FnMut(ResultAction),
-    icon_manager: &IconManager,
     lang: &crate::app::Language,
 ) {
     match manager.get_status() {
         CompletionStatus::DnaReadCompleted(dna_info) => {
-            render_dna_success(ui, &dna_info, icon_manager, lang);
+            render_dna_success(ui, &dna_info, lang);
         }
         CompletionStatus::Completed => {
             render_error(
                 ui,
                 translate(TextKey::DnaReadUnexpected, lang),
                 translate(TextKey::DnaReadUnexpectedMsg, lang),
-                icon_manager,
                 lang,
             );
         }
@@ -74,7 +69,6 @@ fn render_dna_result(
                     "{}\n\n{error}",
                     translate(TextKey::DnaReadFailedPrefix, lang)
                 ),
-                icon_manager,
                 lang,
             );
         }
@@ -92,24 +86,14 @@ fn render_dna_result(
         }
     }
 
-    render_dna_action_buttons(ui, on_action, lang);
+    render_action_buttons(ui, on_action, lang);
 }
 
-fn render_dna_success(
-    ui: &mut Ui,
-    dna_info: &DnaInfo,
-    icon_manager: &IconManager,
-    lang: &crate::app::Language,
-) {
+fn render_dna_success(ui: &mut Ui, dna_info: &DnaInfo, lang: &crate::app::Language) {
     ui.vertical_centered(|ui| {
         ui.add_space(SPACING_LARGE);
 
-        render_icon(
-            ui,
-            icon_manager.checkmark_icon().cloned(),
-            '✓',
-            SUCCESS_COLOR,
-        );
+        render_icon(ui, egui_phosphor::regular::CHECK_CIRCLE, SUCCESS_COLOR);
 
         ui.add_space(SPACING_MEDIUM);
 
@@ -138,16 +122,10 @@ fn render_dna_success(
                 let response = ui.selectable_label(false, dna_text);
 
                 if response.clicked() {
-                    // Get the Verilog format
-                    let verilog_hex =
-                        crate::device_programmer::dna::DnaReader::convert_dna_to_verilog_hex(
-                            &dna_info.dna_raw_value,
-                        );
-
-                    // Create a multi-line string with all formats
+                    // Copy DNA RAW and HEX values
                     let copy_text = format!(
-                        "DNA RAW: {}\nDNA HEX: {}\nVERILOG: {}",
-                        dna_info.dna_raw_value, dna_info.dna_value, verilog_hex
+                        "DNA RAW: {}\nDNA HEX: {}",
+                        dna_info.dna_raw_value, dna_info.dna_value
                     );
                     ui.ctx().copy_text(copy_text);
                 }
@@ -165,7 +143,6 @@ fn render_flashing_result(
     ui: &mut Ui,
     manager: &FlashingManager,
     on_action: &mut dyn FnMut(ResultAction),
-    icon_manager: &IconManager,
     lang: &crate::app::Language,
 ) {
     let status = manager.get_status();
@@ -209,11 +186,10 @@ fn render_flashing_result(
                     ui,
                     translate(TextKey::FlashingFailedConnection, lang),
                     &msg,
-                    icon_manager,
                     lang,
                 );
             } else if has_proper_sector_times || operation_success {
-                render_success(ui, icon_manager, lang);
+                render_success(ui, lang);
 
                 if duration_secs > 1 {
                     render_duration(ui, duration_secs, lang);
@@ -223,11 +199,10 @@ fn render_flashing_result(
                     ui,
                     translate(TextKey::FlashingResultUnknown, lang),
                     translate(TextKey::FlashingResultUnknownMsg, lang),
-                    icon_manager,
                     lang,
                 );
             } else if total_sectors < 10 {
-                render_success(ui, icon_manager, lang);
+                render_success(ui, lang);
 
                 ui.add_space(SPACING_SMALL);
                 ui.label(RichText::new(translate(TextKey::NoteFewerSectors, lang)).italics());
@@ -236,7 +211,7 @@ fn render_flashing_result(
                     render_duration(ui, duration_secs, lang);
                 }
             } else {
-                render_success(ui, icon_manager, lang);
+                render_success(ui, lang);
 
                 ui.add_space(SPACING_SMALL);
                 ui.label(RichText::new(translate(TextKey::NoteVerifySuccess, lang)).italics());
@@ -251,7 +226,6 @@ fn render_flashing_result(
                 ui,
                 "UNEXPECTED STATE",
                 translate(TextKey::UnexpectedStateMsg, lang),
-                icon_manager,
                 lang,
             );
         }
@@ -263,7 +237,6 @@ fn render_flashing_result(
                     "{}\n\n{error}",
                     translate(TextKey::FlashingFailedPrefix, lang)
                 ),
-                icon_manager,
                 lang,
             );
         }
@@ -315,26 +288,10 @@ fn render_duration(ui: &mut Ui, duration_secs: u64, lang: &crate::app::Language)
     )));
 }
 
-fn render_icon(
-    ui: &mut Ui,
-    icon_option: Option<egui::TextureHandle>,
-    fallback_char: char,
-    color: egui::Color32,
-) {
-    if let Some(icon) = icon_option {
-        let icon_size = egui::vec2(ICON_SIZE, ICON_SIZE);
-        ui.add(
-            egui::Image::new(&icon)
-                .fit_to_exact_size(icon_size)
-                .tint(color),
-        );
-    } else {
-        ui.add(egui::Label::new(
-            RichText::new(fallback_char.to_string())
-                .size(FALLBACK_ICON_SIZE)
-                .color(color),
-        ));
-    }
+fn render_icon(ui: &mut Ui, icon: &str, color: egui::Color32) {
+    ui.add(egui::Label::new(
+        RichText::new(icon).size(ICON_SIZE).color(color),
+    ));
 }
 
 fn render_framed_content(
@@ -351,18 +308,12 @@ fn render_framed_content(
         .show(ui, add_contents);
 }
 
-fn render_error(
-    ui: &mut Ui,
-    title: &str,
-    message: &str,
-    icon_manager: &IconManager,
-    lang: &crate::app::Language,
-) {
+fn render_error(ui: &mut Ui, title: &str, message: &str, lang: &crate::app::Language) {
     ui.vertical_centered(|ui| {
         ui.add_space(SPACING_LARGE);
 
         // Add error icon
-        render_icon(ui, icon_manager.x_icon().cloned(), 'X', ERROR_COLOR);
+        render_icon(ui, egui_phosphor::regular::X_CIRCLE, ERROR_COLOR);
 
         ui.add_space(SPACING_MEDIUM);
 
@@ -395,17 +346,12 @@ fn render_error(
     });
 }
 
-fn render_success(ui: &mut Ui, icon_manager: &IconManager, lang: &crate::app::Language) {
+fn render_success(ui: &mut Ui, lang: &crate::app::Language) {
     ui.vertical_centered(|ui| {
         ui.add_space(SPACING_LARGE);
 
         // Add success icon
-        render_icon(
-            ui,
-            icon_manager.checkmark_icon().cloned(),
-            '✓',
-            SUCCESS_COLOR,
-        );
+        render_icon(ui, egui_phosphor::regular::CHECK_CIRCLE, SUCCESS_COLOR);
 
         ui.add_space(SPACING_MEDIUM);
 
@@ -437,14 +383,6 @@ fn render_success(ui: &mut Ui, icon_manager: &IconManager, lang: &crate::app::La
     });
 }
 
-fn render_dna_action_buttons(
-    ui: &mut Ui,
-    on_action: &mut dyn FnMut(ResultAction),
-    lang: &crate::app::Language,
-) {
-    render_action_buttons_with_layout(ui, on_action, true, lang);
-}
-
 fn render_action_buttons(
     ui: &mut Ui,
     on_action: &mut dyn FnMut(ResultAction),
@@ -466,21 +404,9 @@ fn render_action_buttons_with_layout(
     ui.horizontal(|ui| {
         let available_width = ui.available_width();
 
-        let button_count = if include_main_menu { 3 } else { 2 };
+        let button_count = if include_main_menu { 2 } else { 1 };
         let spacing = SPACING_MEDIUM * (button_count - 1) as f32;
         let button_width = (available_width - spacing) / button_count as f32;
-
-        if ui
-            .add(
-                egui::Button::new(translate(TextKey::Exit, lang))
-                    .min_size(egui::vec2(button_width, BUTTON_HEIGHT)),
-            )
-            .clicked()
-        {
-            on_action(ResultAction::Exit);
-        }
-
-        ui.add_space(SPACING_MEDIUM);
 
         if include_main_menu {
             if ui

@@ -36,30 +36,11 @@ fn main() -> Result<(), eframe::Error> {
     #[cfg(not(feature = "branding"))]
     let window_title = format!("{APP_TITLE} v{VERSION} - by Shifty");
 
-    // Try with WGPU first (better for AMD on Windows usually)
-    let result = run_app(&window_title, eframe::Renderer::Wgpu);
-
-    // If WGPU failed, fallback to Glow
-    if let Err(err) = result {
-        eprintln!("WGPU renderer failed: {err}. Falling back to Glow renderer...");
-        return run_app(&window_title, eframe::Renderer::Glow);
-    }
-
-    result
-}
-
-fn run_app(window_title: &str, renderer: eframe::Renderer) -> Result<(), eframe::Error> {
-    let mut options = create_window_options();
-    options.renderer = renderer;
-
-    // Print which renderer we're using
-    match renderer {
-        eframe::Renderer::Glow => println!("Using Glow renderer"),
-        eframe::Renderer::Wgpu => println!("Using WGPU renderer"),
-    }
+    // eframe handles hardware acceleration selection internally in 0.34+
+    let options = create_window_options();
 
     eframe::run_native(
-        window_title,
+        &window_title,
         options,
         Box::new(|cc| {
             setup_window();
@@ -95,24 +76,9 @@ fn create_window_options() -> eframe::NativeOptions {
         viewport = viewport.with_position([x, y]);
     }
 
-    let mut wgpu_options = eframe::egui_wgpu::WgpuConfiguration::default();
-
-    // Force DX12 on Windows to avoid OpenGL/Vulkan issues on some AMD drivers
-    #[cfg(target_os = "windows")]
-    {
-        wgpu_options.wgpu_setup =
-            eframe::egui_wgpu::WgpuSetup::CreateNew(eframe::egui_wgpu::WgpuSetupCreateNew {
-                instance_descriptor: eframe::wgpu::InstanceDescriptor {
-                    backends: eframe::wgpu::Backends::DX12,
-                    ..Default::default()
-                },
-                ..Default::default()
-            });
-    }
-
     eframe::NativeOptions {
         viewport,
-        wgpu_options,
+        wgpu_options: eframe::egui_wgpu::WgpuConfiguration::default(),
         ..Default::default()
     }
 }

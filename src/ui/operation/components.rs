@@ -39,6 +39,26 @@ pub fn render_operation_buttons(
             on_select,
             lang,
         );
+
+        ui.add_space(SECTION_SPACING);
+
+        render_operation_option(
+            ui,
+            OperationType::Drivers,
+            translate(TextKey::DriversDesc, lang),
+            on_select,
+            lang,
+        );
+
+        ui.add_space(SECTION_SPACING);
+
+        render_operation_option(
+            ui,
+            OperationType::TestPcileech,
+            translate(TextKey::TestPcileechDesc, lang),
+            on_select,
+            lang,
+        );
     });
 }
 

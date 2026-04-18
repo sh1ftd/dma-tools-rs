@@ -18,7 +18,6 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::WelcomeMessage => "欢迎使用 {} 工具",
         TextKey::CheckingItem => "正在检查：{}",
         TextKey::CountdownMessage => "将在 {} 秒后自动继续...",
-        TextKey::ExitButton => "退出",
         TextKey::MissingFilesWarning => "警告：在缺少必要文件的情况下继续可能会导致错误",
         TextKey::GroupExecutables => "可执行文件",
         TextKey::GroupLibraries => "库文件",
@@ -30,20 +29,11 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::SelectOperation => "选择操作",
         TextKey::FlashFirmware => "烧录固件",
         TextKey::ReadDna => "读取板卡 DNA",
+        TextKey::Drivers => "Drivers",
+        TextKey::TestPcileech => "Test DMA (PCILeech)",
         TextKey::SelectFirmware => "选择固件文件",
         TextKey::ScanningFirmware => "正在扫描固件文件...",
-        TextKey::SelectOption => "选择选项",
-        TextKey::Flash => "烧录",
-        TextKey::Read => "读取",
-        TextKey::Back => "返回",
-        TextKey::FlashingInProgress => "正在烧录中...",
-        TextKey::ReadingDnaInProgress => "正在读取 DNA...",
-        TextKey::Success => "操作成功！",
-        TextKey::Failed => "操作失败！",
-        TextKey::TryAgain => "重试",
-        TextKey::ReturnToMenu => "返回主菜单",
-        TextKey::DownloadHere => "下载链接",
-        TextKey::UpdateAvailable => "有可用更新",
+
         // Firmware Selection
         TextKey::NoFirmwareFound => "当前目录未找到固件文件",
         TextKey::PlaceFirmwareHere => "请将 .bin 固件文件放入应用程序目录",
@@ -55,6 +45,25 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::SelectFirmwareToContinue => "请选择固件文件以继续",
         TextKey::FlashFirmwareDesc => "烧录固件到您的设备",
         TextKey::ReadDnaDesc => "获取设备的唯一标识符 (DNA)",
+        TextKey::DriversDesc => "安装设备连接所需的驱动程序",
+        TextKey::TestPcileechDesc => "使用 PCILeech 测试 DMA 连接",
+        TextKey::DriversMenuTitle => "安装驱动程序",
+        TextKey::DataPortDrivers => "DATA 端口驱动",
+        TextKey::JtagDrivers => "JTAG 端口驱动",
+        TextKey::InstallFtdiDriver => "安装 FTDI 驱动",
+        TextKey::OpenZadig => "打开 Zadig (RS232)",
+        TextKey::InstallCh347Driver => "安装 CH347 驱动",
+        TextKey::RequiresAdmin => "需要管理员权限",
+        TextKey::TestPcileechTitle => "测试 DMA (PCILeech)",
+        TextKey::TestingConnection => "正在测试连接...",
+        TextKey::TestSuccess => "测试成功",
+        TextKey::TestFailed => "测试失败",
+        TextKey::ConnectionError => {
+            "常见解决方法:
+1. 确保 FPGA 设备已正确连接
+2. 检查 PCILeech 驱动是否已安装
+3. 以管理员身份运行"
+        }
         // Flashing Options
         TextKey::SelectFlashingOption => "选择烧录选项",
         TextKey::SelectDnaReadOption => "选择 DNA 读取选项",
@@ -129,7 +138,6 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::NextStepsList => {
             "1. 重启两台电脑\n2. 按照指南中的后续步骤操作\n   - 在主机上安装固件驱动程序\n   - 将电缆更换到 DATA 端口\n   - 使用提供的软件和激活码进行激活\n   - DNA 锁定的固件版本无需激活"
         }
-        TextKey::Exit => "退出",
         TextKey::MainMenu => "主菜单",
         TextKey::TryAgainButton => "重试",
 

@@ -12,6 +12,7 @@ on:
       - 'Cargo.lock'
       - '.github/workflows/**'
       - 'OpenOCD/**'
+      - 'tools/**'
   workflow_dispatch:
 
 env:
@@ -54,6 +55,7 @@ jobs:
           mkdir release-package
           Copy-Item "target/release/dma-tools-rs.exe" -Destination "release-package/"
           Copy-Item "OpenOCD" -Destination "release-package/OpenOCD" -Recurse
+          Copy-Item "tools" -Destination "release-package/tools" -Recurse
           Compress-Archive -Path "release-package/*" -DestinationPath "dma-tools-rs.zip"
         
       - name: Create Release

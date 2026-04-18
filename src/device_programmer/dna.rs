@@ -146,8 +146,6 @@ impl DnaReader {
             for attempt in 1..=DNA_MAX_ATTEMPTS {
                 if let Some(path) = Self::find_dna_file(&dna_path, &logger_clone) {
                     found_dna_file = true;
-                    // Process the file...
-                    // Process the file...
                     Self::parse_dna_file(&path, &logger_clone, &completion_status, &lang);
                     break; // Exit the loop if we found and processed the file
                 }
@@ -176,7 +174,7 @@ impl DnaReader {
         });
     }
 
-    fn cleanup_incomplete_files(path: &PathBuf, logger: &Logger) {
+    fn cleanup_incomplete_files(path: &Path, logger: &Logger) {
         if let Ok(metadata) = fs::metadata(path) {
             // If the file is too small, it's likely incomplete
             if metadata.len() < MIN_VALID_DNA_FILE_SIZE {
@@ -191,12 +189,12 @@ impl DnaReader {
         }
     }
 
-    fn find_dna_file(path: &PathBuf, logger: &Logger) -> Option<PathBuf> {
+    fn find_dna_file(path: &Path, logger: &Logger) -> Option<PathBuf> {
         match fs::metadata(path) {
             Ok(metadata) => {
                 if metadata.is_file() && metadata.len() >= MIN_VALID_DNA_FILE_SIZE {
                     logger.debug(format!("Found DNA file at {}", path.display()));
-                    return Some(path.clone());
+                    return Some(path.to_path_buf());
                 } else {
                     logger.debug(format!(
                         "Found file at {} but size is only {} bytes",
@@ -225,7 +223,7 @@ impl DnaReader {
                     contents.len()
                 ));
 
-                match Self::extract_dna_from_contents(&contents, logger) {
+                match Self::extract_dna_from_contents(&contents, logger, lang) {
                     Ok(dna_info) => {
                         logger.info(format!(
                             "DNA read completed successfully: {}",
@@ -258,7 +256,11 @@ impl DnaReader {
         }
     }
 
-    fn extract_dna_from_contents(contents: &str, logger: &Logger) -> Result<DnaInfo, String> {
+    fn extract_dna_from_contents(
+        contents: &str,
+        logger: &Logger,
+        lang: &Language,
+    ) -> Result<DnaInfo, String> {
         // Detect device type
         let device_type = if contents.contains("CH347 Open Succ") {
             logger.debug("Detected CH347 device");
@@ -317,7 +319,7 @@ impl DnaReader {
             logger.debug("Did not find line starting with 'DNA ='");
         }
 
-        Err(translate(TextKey::DnaInfoNotFound, &crate::app::Language::English).to_string())
+        Err(translate(TextKey::DnaInfoNotFound, lang).to_string())
     }
 
     pub fn cleanup_dna_output_file(logger: &Logger) {
@@ -351,23 +353,120 @@ impl DnaReader {
             }
         }
     }
+}
 
-    // Converts binary DNA to Verilog hex format with 'h' prefix
-    pub fn convert_dna_to_verilog_hex(binary: &str) -> String {
-        // Parse the binary string into a number and convert to hex
-        let value = u128::from_str_radix(binary, 2).unwrap();
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::app::Language;
 
-        // Convert to hex (uppercase, no '0x' prefix)
-        let mut hex_str = format!("{value:X}");
+    fn logger() -> Logger {
+        Logger::new("DnaTest")
+    }
 
-        // Make sure the result is exactly 16 characters long
-        let current_len = hex_str.len();
-        if current_len < 16 {
-            // Add required number of zeros at the end
-            hex_str.extend(std::iter::repeat_n('0', 16 - current_len));
+    #[test]
+    fn parses_ch347_dna_output() {
+        let contents = "\
+Open On-Chip Debugger 0.12.0-rc3 (2024-01-26)
+CH347 Open Succ
+Info : starting gdb server for xc7.tap on pipe
+DNA = 0011001000001110011000010011010101110100101101000010101 (0x00641CC26AE96854)
+";
+        let result = DnaReader::extract_dna_from_contents(contents, &logger(), &Language::English);
+        assert!(result.is_ok(), "Should parse valid CH347 DNA output");
+        let info = result.unwrap();
+        assert_eq!(info.dna_value, "0x00641CC26AE96854");
+        assert_eq!(
+            info.dna_raw_value,
+            "0011001000001110011000010011010101110100101101000010101"
+        );
+        assert_eq!(info.device_type, "CH347");
+    }
+
+    #[test]
+    fn parses_ftdi_dna_output() {
+        let contents = "\
+Open On-Chip Debugger
+Info : ftdi: initialized
+DNA = 1100010010100000111010011100010100011001 (0xC4A0E9C519)
+";
+        let result = DnaReader::extract_dna_from_contents(contents, &logger(), &Language::English);
+        assert!(result.is_ok());
+        let info = result.unwrap();
+        assert_eq!(info.device_type, "FTDI");
+        assert_eq!(info.dna_value, "0xC4A0E9C519");
+    }
+
+    #[test]
+    fn rejects_output_without_dna_line() {
+        let contents = "Open On-Chip Debugger\nInfo : ftdi: initialized\nDone.\n";
+        let result = DnaReader::extract_dna_from_contents(contents, &logger(), &Language::English);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn rejects_invalid_binary() {
+        let contents = "DNA = 001122INVALID (0xABC)\n";
+        let result = DnaReader::extract_dna_from_contents(contents, &logger(), &Language::English);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn rejects_invalid_hex() {
+        let contents = "DNA = 0011 (NOTHEX)\n";
+        let result = DnaReader::extract_dna_from_contents(contents, &logger(), &Language::English);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn detects_unknown_device() {
+        let contents = "DNA = 0011 (0xAB)\n";
+        let result = DnaReader::extract_dna_from_contents(contents, &logger(), &Language::English);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().device_type, "Unknown");
+    }
+
+    #[test]
+    fn handles_empty_input() {
+        let result = DnaReader::extract_dna_from_contents("", &logger(), &Language::English);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn rejects_dna_line_without_parens() {
+        let contents = "DNA = 001100100000\n";
+        let result = DnaReader::extract_dna_from_contents(contents, &logger(), &Language::English);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn stage_messages_are_non_empty() {
+        let statuses = [
+            CompletionStatus::NotCompleted,
+            CompletionStatus::InProgress("working".into()),
+            CompletionStatus::Completed,
+            CompletionStatus::Failed("err".into()),
+            CompletionStatus::DnaReadCompleted(DnaInfo {
+                dna_value: "0x1".into(),
+                dna_raw_value: "1".into(),
+                device_type: "T".into(),
+            }),
+        ];
+        for s in &statuses {
+            let msg = DnaReader::get_dna_read_stage(s, &Language::English);
+            assert!(!msg.is_empty(), "Stage for {s:?} should not be empty");
         }
+    }
 
-        // Add 'h' prefix
-        format!("h{hex_str}")
+    #[test]
+    fn failed_stage_contains_error() {
+        let msg = DnaReader::get_dna_read_stage(
+            &CompletionStatus::Failed("oops".into()),
+            &Language::English,
+        );
+        assert!(
+            msg.contains("oops"),
+            "Failed stage should contain 'oops': {msg}"
+        );
     }
 }

@@ -5,8 +5,6 @@ use eframe::egui::{
 };
 use std::path::PathBuf;
 
-// UI constants for consistent styling
-const BUTTON_SIZE: Vec2 = Vec2::new(200.0, 30.0);
 const PRIMARY_COLOR: Color32 = Color32::from_rgb(70, 130, 180);
 const DISABLED_COLOR_FACTOR: f32 = 0.5;
 const BORDER_COLOR: Color32 = Color32::from_rgb(150, 150, 150);
@@ -23,6 +21,7 @@ pub fn render_firmware_selection(
     ui: &mut Ui,
     firmware_manager: &mut FirmwareManager,
     on_select: &mut dyn FnMut(Option<PathBuf>),
+    on_back: &mut dyn FnMut(),
     is_scanning: bool,
     lang: &crate::app::Language,
 ) {
@@ -37,15 +36,33 @@ pub fn render_firmware_selection(
         .collect();
 
     if is_scanning && (files.is_empty() || firmware_manager.get_scan_count() <= 1) {
-        render_firmware_status(ui, translate(TextKey::ScanningFirmware, lang), lang);
+        render_firmware_status(
+            ui,
+            translate(TextKey::ScanningFirmware, lang),
+            on_back,
+            lang,
+        );
     } else if files.is_empty() {
-        render_firmware_status(ui, translate(TextKey::NoFirmwareFound, lang), lang);
+        render_firmware_status(ui, translate(TextKey::NoFirmwareFound, lang), on_back, lang);
     } else {
-        render_firmware_list(ui, &files, firmware_manager, on_select, is_scanning, lang);
+        render_firmware_list(
+            ui,
+            &files,
+            firmware_manager,
+            on_select,
+            on_back,
+            is_scanning,
+            lang,
+        );
     }
 }
 
-fn render_firmware_status(ui: &mut Ui, status_message: &str, lang: &crate::app::Language) {
+fn render_firmware_status(
+    ui: &mut Ui,
+    status_message: &str,
+    on_back: &mut dyn FnMut(),
+    lang: &crate::app::Language,
+) {
     ui.vertical_centered(|ui| {
         ui.heading(translate(TextKey::SelectFirmware, lang));
 
@@ -69,6 +86,24 @@ fn render_firmware_status(ui: &mut Ui, status_message: &str, lang: &crate::app::
                 .size(NORMAL_SIZE)
                 .italics(),
         );
+
+        ui.add_space(20.0);
+
+        let available_width = ui.available_width();
+        ui.horizontal(|ui| {
+            ui.add_space(available_width / 2.0 - 100.0);
+            if ui
+                .add(
+                    egui::Button::new(
+                        RichText::new(translate(TextKey::MainMenu, lang)).size(NORMAL_SIZE),
+                    )
+                    .min_size(Vec2::new(200.0, 30.0)),
+                )
+                .clicked()
+            {
+                on_back();
+            }
+        });
     });
 }
 
@@ -77,6 +112,7 @@ fn render_firmware_list(
     files: &[(usize, PathBuf, bool)],
     firmware_manager: &mut FirmwareManager,
     on_select: &mut dyn FnMut(Option<PathBuf>),
+    on_back: &mut dyn FnMut(),
     is_scanning: bool,
     lang: &crate::app::Language,
 ) {
@@ -100,7 +136,7 @@ fn render_firmware_list(
 
         ui.add_space(8.0);
 
-        render_continue_button(ui, firmware_manager, on_select, lang);
+        render_continue_button(ui, firmware_manager, on_select, on_back, lang);
     });
 }
 
@@ -160,26 +196,56 @@ fn render_continue_button(
     ui: &mut Ui,
     firmware_manager: &FirmwareManager,
     on_select: &mut dyn FnMut(Option<PathBuf>),
+    on_back: &mut dyn FnMut(),
     lang: &crate::app::Language,
 ) {
     ui.add_space(16.0);
 
-    if let Some(selected) = firmware_manager.get_selected_firmware() {
-        let button =
-            egui::Button::new(RichText::new(translate(TextKey::Continue, lang)).size(HEADING_SIZE))
-                .min_size(BUTTON_SIZE)
-                .fill(PRIMARY_COLOR);
+    ui.horizontal(|ui| {
+        let available_width = ui.available_width();
+        let spacing = 12.0;
+        let button_width = (available_width - spacing) / 2.0;
 
-        if ui.add(button).clicked() {
-            on_select(Some(selected.clone()));
+        if ui
+            .add(
+                egui::Button::new(
+                    RichText::new(translate(TextKey::MainMenu, lang)).size(HEADING_SIZE),
+                )
+                .min_size(Vec2::new(button_width, 30.0)),
+            )
+            .clicked()
+        {
+            on_back();
         }
-    } else {
-        ui.add_enabled(
-            false,
-            egui::Button::new(RichText::new(translate(TextKey::Continue, lang)).size(HEADING_SIZE))
-                .min_size(BUTTON_SIZE)
+
+        ui.add_space(spacing);
+
+        if let Some(selected) = firmware_manager.get_selected_firmware() {
+            let button = egui::Button::new(
+                RichText::new(translate(TextKey::Continue, lang)).size(HEADING_SIZE),
+            )
+            .min_size(Vec2::new(button_width, 30.0))
+            .fill(PRIMARY_COLOR);
+
+            if ui.add(button).clicked() {
+                on_select(Some(selected.clone()));
+            }
+        } else {
+            ui.add_enabled(
+                false,
+                egui::Button::new(
+                    RichText::new(translate(TextKey::Continue, lang)).size(HEADING_SIZE),
+                )
+                .min_size(Vec2::new(button_width, 30.0))
                 .fill(PRIMARY_COLOR.gamma_multiply(DISABLED_COLOR_FACTOR)),
-        );
-        ui.label(translate(TextKey::SelectFirmwareToContinue, lang));
+            );
+        }
+    });
+
+    if firmware_manager.get_selected_firmware().is_none() {
+        ui.vertical_centered(|ui| {
+            ui.add_space(8.0);
+            ui.label(translate(TextKey::SelectFirmwareToContinue, lang));
+        });
     }
 }

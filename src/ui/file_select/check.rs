@@ -241,15 +241,14 @@ fn render_action_buttons(
     ui.add_space(SPACING_LARGE);
 
     ui.horizontal(|ui| {
+        ui.add_space(ui.available_width() / 2.0 - 100.0);
         if ui
-            .button(RichText::new(translate(TextKey::ExitButton, lang)).size(TEXT_SIZE_MEDIUM))
-            .clicked()
-        {
-            on_continue(false);
-        }
-
-        if ui
-            .button(RichText::new(translate(TextKey::Rescan, lang)).size(TEXT_SIZE_MEDIUM))
+            .add(
+                egui::Button::new(
+                    RichText::new(translate(TextKey::Rescan, lang)).size(TEXT_SIZE_MEDIUM),
+                )
+                .min_size(Vec2::new(200.0, 32.0)),
+            )
             .clicked()
         {
             on_rescan();

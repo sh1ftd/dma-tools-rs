@@ -5,7 +5,6 @@ use std::io::{BufRead, BufReader};
 use std::os::windows::process::CommandExt;
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::mpsc;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Instant;
@@ -60,7 +59,7 @@ impl ProcessExecutor {
     ) -> Result<(), String> {
         match command.spawn() {
             Ok(mut child) => {
-                self.attach_readers(&mut child, &options, on_line_callback);
+                self.attach_readers(&mut child, on_line_callback);
 
                 // Wait in a separate thread for the process to complete
                 let logger = self.logger.clone();
@@ -91,7 +90,16 @@ impl ProcessExecutor {
 
                             if exit_status.success() {
                                 logger.success("Command completed successfully");
-                                *completion_status.lock().unwrap() = CompletionStatus::Completed;
+                                // Guard: don't overwrite a more specific terminal status
+                                // (e.g. DnaReadCompleted set by the DNA processing thread)
+                                let mut status = completion_status.lock().unwrap();
+                                if !matches!(
+                                    *status,
+                                    CompletionStatus::DnaReadCompleted(_)
+                                        | CompletionStatus::Failed(_)
+                                ) {
+                                    *status = CompletionStatus::Completed;
+                                }
                             } else {
                                 let error_msg = format!(
                                     "Command failed with exit code: {:?}",
@@ -138,109 +146,23 @@ impl ProcessExecutor {
         }
     }
 
-    fn attach_readers(
-        &self,
-        child: &mut Child,
-        _options: &CommandOptions,
-        line_callback: LineCallback,
-    ) {
-        // Create a channel for sector line communication
-        let (_sector_tx, sector_rx) = mpsc::channel::<String>();
-
+    fn attach_readers(&self, child: &mut Child, line_callback: LineCallback) {
         // Wrap the callback in an Arc for sharing between threads
         let callback_arc = Arc::new(line_callback);
 
         // For stdout
         if let Some(stdout) = child.stdout.take() {
             let stdout_logger = self.logger.clone();
-            let callback_opt = Arc::clone(&callback_arc); // Clone the Arc, not the callback
-            let rx = sector_rx;
+            let callback_opt = Arc::clone(&callback_arc);
 
             thread::spawn(move || {
                 let reader = BufReader::new(stdout);
-                let mut lines_iter = reader.lines(); // Create a lines iterator outside the loop
-                let mut stdout_done = false;
+                for line in reader.lines().map_while(Result::ok) {
+                    stdout_logger.output(&line);
 
-                // Use a non-blocking approach to handle both stdout and sector lines
-                loop {
-                    // Process any available sector lines (non-blocking)
-                    match rx.try_recv() {
-                        Ok(sector_line) => {
-                            stdout_logger.info(format!("RECEIVED sector line: {sector_line}"));
-
-                            if let Some(cb) = &*callback_opt {
-                                stdout_logger.info("About to call callback with sector line");
-                                cb(&sector_line);
-                                stdout_logger.info("Callback completed for sector line");
-                            }
-                        }
-                        Err(mpsc::TryRecvError::Empty) => {
-                            // No sector lines available right now, that's fine
-                        }
-                        Err(mpsc::TryRecvError::Disconnected) => {
-                            // Stderr channel closed, if stdout is also done, we can exit
-                            if stdout_done {
-                                break;
-                            }
-                        }
-                    }
-
-                    // If stdout isn't done, try to read more lines
-                    if !stdout_done {
-                        let mut reader_empty = true;
-
-                        // Try to read a line from stdout using the iterator
-                        if let Some(line_result) = lines_iter.next() {
-                            reader_empty = false;
-                            if let Ok(line) = line_result {
-                                stdout_logger.output(&line);
-
-                                // Process the stdout line
-                                if line.contains("sector") && line.contains("took") {
-                                    stdout_logger.warning(format!("STDOUT SECTOR LINE: {line}"));
-                                    if let Some(cb) = &*callback_opt {
-                                        cb(&line);
-                                    }
-                                } else if let Some(cb) = &*callback_opt {
-                                    cb(&line);
-                                }
-                            }
-                        }
-
-                        // If no lines were read, stdout might be done
-                        if reader_empty {
-                            stdout_done = true;
-                        }
-                    } else {
-                        // If stdout is done, try to check if there are any more messages
-                        match rx.try_recv() {
-                            Ok(sector_line) => {
-                                // There was one more message, process it
-                                stdout_logger.info(format!("Extra sector line: {sector_line}"));
-                                if let Some(cb) = &*callback_opt {
-                                    cb(&sector_line);
-                                }
-                            }
-                            Err(mpsc::TryRecvError::Empty) => {
-                                // Channel is empty, safe to exit
-                                break;
-                            }
-                            Err(mpsc::TryRecvError::Disconnected) => {
-                                // Channel is closed, safe to exit
-                                break;
-                            }
-                        }
-                    }
-
-                    // Small delay to prevent CPU hogging
-                    std::thread::sleep(std::time::Duration::from_millis(1));
-                }
-
-                // Final check for any remaining sector lines
-                while let Ok(sector_line) = rx.recv() {
-                    stdout_logger.info(format!("FINAL sector line: {sector_line}"));
+                    // Forward every line to the callback
                     if let Some(cb) = &*callback_opt {
-                        cb(&sector_line);
+                        cb(&line);
                     }
                 }
 

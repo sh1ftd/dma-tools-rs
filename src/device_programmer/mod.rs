@@ -4,6 +4,8 @@ mod monitor;
 mod process;
 pub mod types;
 
+use std::sync::atomic::{AtomicBool, Ordering as AtomicOrdering};
+
 // Re-export the main types and functionality
 pub use dna::DnaReader;
 pub use firmware::FirmwareFlasher;
@@ -39,6 +41,7 @@ pub struct FlashingManager {
     last_status: Arc<Mutex<Option<CompletionStatus>>>,
     cleanup_enabled: bool,
     original_firmware_path: Option<PathBuf>,
+    cleanup_done: Arc<AtomicBool>,
 }
 
 impl FlashingManager {
@@ -59,6 +62,7 @@ impl FlashingManager {
             last_status: Arc::new(Mutex::new(None)),
             cleanup_enabled: false,
             original_firmware_path: None,
+            cleanup_done: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -125,6 +129,10 @@ impl FlashingManager {
         self.current_option = Some(option.clone());
         self.monitor.reset_counters();
         self.process_executor.reset();
+        self.cleanup_done.store(false, AtomicOrdering::SeqCst);
+
+        // Clear stale sector timestamps from any previous flash operation
+        crate::ui::status::clear_sector_timestamps();
 
         *self.last_status.lock().unwrap() = None;
         *self.last_status_change.lock().unwrap() = Some(Instant::now());
@@ -140,19 +148,18 @@ impl FlashingManager {
         let current_status = self.process_executor.get_completion_status();
 
         if self.monitor.was_terminated_early() {
-            if matches!(current_status, CompletionStatus::Failed(_)) {
-                CompletionStatus::Failed(
-                    "Operation terminated early due to connection issues (check logs for details)"
-                        .to_string(),
-                )
-            } else {
-                CompletionStatus::Failed(
-                    "Operation terminated early due to connection issues".to_string(),
-                )
-            }
+            CompletionStatus::Failed(
+                "Connection unstable — unable to write firmware after multiple attempts. Please check the cable and adapter connection.".to_string(),
+            )
         } else {
             current_status
         }
+    }
+
+    /// Returns true if the monitor detected too few normal sector writes
+    /// (0ms/1ms writes indicate the data wasn't actually written).
+    pub fn was_terminated_early(&self) -> bool {
+        self.monitor.was_terminated_early()
     }
 
     pub fn check_if_completed(&self) -> bool {
@@ -166,9 +173,11 @@ impl FlashingManager {
 
         if completed
             && self.cleanup_enabled
+            && !self.cleanup_done.load(AtomicOrdering::SeqCst)
             && let CompletionStatus::Completed = status
             && let Some(path) = &self.original_firmware_path
         {
+            self.cleanup_done.store(true, AtomicOrdering::SeqCst);
             if let Err(e) = std::fs::remove_file(path) {
                 self.logger
                     .error(format!("Failed to clean up original firmware file: {e}"));

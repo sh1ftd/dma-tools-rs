@@ -23,7 +23,7 @@ pub enum CheckStatus {
 }
 
 pub struct FileChecker {
-    pub status: Arc<Mutex<CheckStatus>>,
+    pub(crate) status: Arc<Mutex<CheckStatus>>,
 }
 
 impl FileChecker {
@@ -99,6 +99,11 @@ fn perform_file_check(status: &Arc<Mutex<CheckStatus>>) -> FileCheckResult {
         "OpenOCD/DNA/init_232_35t.cfg",
         "OpenOCD/DNA/init_232_75t.cfg",
         "OpenOCD/DNA/init_232_100t.cfg",
+        // Drivers and Tools
+        "tools/FTDIBUS3/ftdibus3.Inf",
+        "tools/zadig-2.9.exe",
+        "tools/CH341PAR_USB_DRIVER.EXE",
+        "tools/memflow-base/memflow-base.exe",
     ];
 
     // Check each file with a small delay to show progress
@@ -159,4 +164,15 @@ fn check_file_exists(file_path: &str) -> bool {
     println!("✗ Not found: {file_path}");
 
     false
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_file_checker_initial_state() {
+        let checker = FileChecker::new();
+        assert_eq!(checker.get_status(), CheckStatus::NotStarted);
+    }
 }

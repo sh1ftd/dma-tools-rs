@@ -2,4 +2,6 @@
 pub enum OperationType {
     FlashFirmware,
     ReadDNA,
+    Drivers,
+    TestPcileech,
 }

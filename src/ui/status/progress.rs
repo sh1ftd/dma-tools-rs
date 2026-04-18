@@ -20,6 +20,12 @@ const EXTRA_LARGE_SPACING: f32 = 25.0;
 static SECTOR_TIMESTAMPS: LazyLock<Mutex<HashMap<u32, Instant>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
+/// Clears stale sector timestamps from previous operations.
+/// Must be called when starting a new flash operation.
+pub fn clear_sector_timestamps() {
+    SECTOR_TIMESTAMPS.lock().unwrap().clear();
+}
+
 pub fn render_flashing_progress(
     ui: &mut Ui,
     manager: &FlashingManager,
@@ -237,24 +243,17 @@ fn render_technical_info_frame(
 }
 
 fn get_device_type(option: &FlashingOption) -> &'static str {
-    let display_name = option.get_display_name();
-
-    if display_name.contains("CH347 - 35T, 75T, 100T DNA Read") {
-        "CH347"
-    } else if display_name.contains("RS232 - 35T") {
-        "Artix-7 35T (RS232)"
-    } else if display_name.contains("RS232 - 75T") {
-        "Artix-7 75T (RS232)"
-    } else if display_name.contains("RS232 - 100T") {
-        "Artix-7 100T (RS232)"
-    } else if display_name.contains("CH347 - 35T") {
-        "Artix-7 35T (CH347)"
-    } else if display_name.contains("CH347 - 75T") {
-        "Artix-7 75T (CH347)"
-    } else if display_name.contains("CH347 - 100T") {
-        "Artix-7 100T (CH347)"
-    } else {
-        "Unknown Device"
+    match option {
+        FlashingOption::CH347_35T => "Artix-7 35T (CH347)",
+        FlashingOption::CH347_75T => "Artix-7 75T (CH347)",
+        FlashingOption::CH347_100T => "Artix-7 100T (CH347)",
+        FlashingOption::RS232_35T => "Artix-7 35T (RS232)",
+        FlashingOption::RS232_75T => "Artix-7 75T (RS232)",
+        FlashingOption::RS232_100T => "Artix-7 100T (RS232)",
+        FlashingOption::DnaCH347 => "CH347",
+        FlashingOption::DnaRS232_35T => "Artix-7 35T (RS232)",
+        FlashingOption::DnaRS232_75T => "Artix-7 75T (RS232)",
+        FlashingOption::DnaRS232_100T => "Artix-7 100T (RS232)",
     }
 }
 

@@ -18,7 +18,6 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::WelcomeMessage => "}{ مرحبًا بك في أداة",
         TextKey::CheckingItem => "}{:جارٍ الفحص",
         TextKey::CountdownMessage => "...}{ ثانية}{سيتم المتابعة تلقائيًا في ",
-        TextKey::ExitButton => "خروج",
         TextKey::MissingFilesWarning => {
             "تحذير: قد يتسبب المتابعة بدون الملفات المطلوبة في حدوث أخطاء"
         }
@@ -32,20 +31,11 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::SelectOperation => "اختر العملية",
         TextKey::FlashFirmware => "فلاش البرنامج الثابت",
         TextKey::ReadDna => "قراءة AND للوحة", // Read board DNA
+        TextKey::Drivers => "Drivers",
+        TextKey::TestPcileech => "Test DMA (PCILeech)",
         TextKey::SelectFirmware => "اختر ملف البرنامج الثابت",
         TextKey::ScanningFirmware => "...جارٍ البحث عن ملفات البرنامج الثابت",
-        TextKey::SelectOption => "اختر الخيار",
-        TextKey::Flash => "فلاش",
-        TextKey::Read => "قراءة",
-        TextKey::Back => "رجوع",
-        TextKey::FlashingInProgress => "...جارٍ الفلاش",
-        TextKey::ReadingDnaInProgress => "...جارٍ قراءة DNA",
-        TextKey::Success => "!نجحت العملية",
-        TextKey::Failed => "!فشلت العملية",
-        TextKey::TryAgain => "حاول مرة أخرى",
-        TextKey::ReturnToMenu => "العودة إلى القائمة",
-        TextKey::DownloadHere => "تحميل من هنا",
-        TextKey::UpdateAvailable => "تحديث متاح",
+
         TextKey::NoFirmwareFound => "لم يتم العثور على ملفات برنامج ثابت في الدليل الحالي",
         TextKey::PlaceFirmwareHere => ".bin يرجى وضع ملفات البرنامج الثابت في دليل التطبيق",
         TextKey::AutoScanning => "فحص تلقائي كل 3 ثوانٍ",
@@ -56,6 +46,25 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::SelectFirmwareToContinue => "اختر ملف برنامج ثابت للمتابعة",
         TextKey::FlashFirmwareDesc => "حرق البرنامج الثابت على جهازك",
         TextKey::ReadDnaDesc => "استرداد المعرف الفريد من جهازك",
+        TextKey::DriversDesc => "تثبيت برامج التشغيل اللازمة للاتصال بالجهاز",
+        TextKey::TestPcileechDesc => "اختبار اتصال DMA باستخدام PCILeech",
+        TextKey::DriversMenuTitle => "تثبيت برامج التشغيل",
+        TextKey::DataPortDrivers => "برامج تشغيل منفذ بيانات",
+        TextKey::JtagDrivers => "برامج تشغيل منفذ JTAG",
+        TextKey::InstallFtdiDriver => "تثبيت برنامج تشغيل FTDI",
+        TextKey::OpenZadig => "فتح Zadig (RS232)",
+        TextKey::InstallCh347Driver => "تثبيت برنامج تشغيل CH347",
+        TextKey::RequiresAdmin => "يلزم وجود مسؤول",
+        TextKey::TestPcileechTitle => "اختبار وصول الذاكرة المباشر (PCILeech)",
+        TextKey::TestingConnection => "جاري اختبار الاتصال...",
+        TextKey::TestSuccess => "نجاح الاختبار",
+        TextKey::TestFailed => "فشل الاختبار",
+        TextKey::ConnectionError => {
+            "إصلاحات عامة:
+1. تأكد من توصيل جهاز FPGA بشكل صحيح
+2. تحقق مما إذا كان برنامج تشغيل PCILeech مثبتًا
+3. تشغيل كمسؤول"
+        }
         TextKey::SelectFlashingOption => "اختر خيار الفلاش",
         TextKey::SelectDnaReadOption => "DNA اختر خيار قراءة",
         TextKey::Ch347Options => "CH347 خيارات",
@@ -135,7 +144,6 @@ pub fn get_text(key: TextKey) -> &'static str {
                تنشيط باستخدام البرنامج المقدم ورمز التنشيط -\n
                AND لا تتطلب إصدارات البرنامج الثابت المقفلة بواسطة تنشيطًا -"
         }
-        TextKey::Exit => "خروج",
         TextKey::MainMenu => "القائمة الرئيسية",
         TextKey::TryAgainButton => "حاول مرة أخرى",
 

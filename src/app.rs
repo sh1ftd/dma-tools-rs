@@ -1,5 +1,4 @@
 use crate::APP_TITLE;
-use crate::assets::IconManager;
 
 #[cfg(feature = "branding")]
 use crate::branding::BrandingManager;
@@ -12,14 +11,13 @@ use crate::utils::file_checker::{CheckStatus, FileChecker, SUCCESS_TRANSITION_DE
 use crate::utils::firmware_discovery::FirmwareManager;
 use crate::utils::localization::{TextKey, translate};
 use crate::utils::logger::Logger;
-use crate::utils::win_utils::setup_window_controls;
 use crate::utils::window::{WindowManager, WindowSizeType};
 use eframe::egui;
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
-#[allow(unused_imports)]
 use crate::utils::contact;
 
 // Constants for timing
@@ -31,10 +29,15 @@ const FIRMWARE_SCAN_INDICATOR_DURATION_MS: u128 = 500;
 const DNA_MIN_DISPLAY_TIME_MS: u64 = 100;
 const STATUS_STABILITY_WAIT_MS: u64 = 250;
 
+// Auto-retry configuration
+const MAX_AUTO_RETRIES: u32 = 3;
+const RETRY_COOLDOWN_MS: u64 = 2000;
+
 // UI constants
 const TOP_PADDING: f32 = 8.0;
 const BOTTOM_PADDING: f32 = 18.0;
 const LOG_SECTION_PADDING: f32 = 12.0;
+// Note: egui::Margin::symmetric takes i8 — keep values within [-128, 127]
 const HORIZONTAL_MARGIN: i8 = 20;
 const VERTICAL_MARGIN: i8 = 10;
 
@@ -46,6 +49,8 @@ pub enum AppState {
     FlashingOptions,
     Flashing,
     Result,
+    Drivers,
+    PcileechTest,
 }
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
@@ -72,14 +77,19 @@ pub struct FirmwareToolApp {
     check_success_display_time: Option<Instant>,
     logger: Logger,
     previous_log_state: bool,
-    icon_manager: IconManager,
     dna_read_start_time: Option<Instant>,
     dna_read_in_progress: bool,
     waiting_message_logged: bool,
     #[cfg(feature = "branding")]
     branding_manager: BrandingManager,
     contact_copy_notification: Option<(String, Instant)>,
+    icon_manager: crate::assets::IconManager,
     language: Language,
+    /// Current auto-retry attempt (0 = first try, 1 = first retry, etc.)
+    auto_retry_attempt: u32,
+    /// Timestamp when the last retry cooldown started (None = not in cooldown)
+    retry_cooldown_start: Option<Instant>,
+    pcileech_test_state: Option<Arc<Mutex<crate::ui::pcileech_test::types::PcileechTestState>>>,
 }
 
 impl FirmwareToolApp {
@@ -87,11 +97,11 @@ impl FirmwareToolApp {
         let logger = Logger::new("AppLogger");
         logger.info(format!("{APP_TITLE} Tool started"));
 
-        setup_window_controls();
-
         let window_manager = WindowManager::new();
         window_manager.setup_fonts(&cc.egui_ctx);
         window_manager.setup_style(&cc.egui_ctx);
+        let mut icon_manager = crate::assets::IconManager::new();
+        icon_manager.ensure_loaded(&cc.egui_ctx);
 
         Self {
             window_manager,
@@ -108,22 +118,66 @@ impl FirmwareToolApp {
             check_success_display_time: None,
             logger,
             previous_log_state: false,
-            icon_manager: IconManager::new(),
             dna_read_start_time: None,
             dna_read_in_progress: false,
             waiting_message_logged: false,
             #[cfg(feature = "branding")]
             branding_manager: BrandingManager::new(),
             contact_copy_notification: None,
+            icon_manager,
             language: Language::English,
+            auto_retry_attempt: 0,
+            retry_cooldown_start: None,
+            pcileech_test_state: None,
         }
     }
 
-    // ... existing helper methods ...
+    /// Renders a single language flag button with hover animation and selected highlighting.
+    fn render_language_flag(
+        ui: &mut egui::Ui,
+        flag_icon: Option<egui::TextureHandle>,
+        lang: Language,
+        tooltip: &str,
+        button_px: f32,
+        base_flag_size: f32,
+        current_language: &mut Language,
+    ) {
+        let button_size = egui::Vec2::splat(button_px);
+        let (rect, response) = ui.allocate_exact_size(button_size, egui::Sense::click());
+
+        if response.clicked() {
+            *current_language = lang;
+        }
+        let response = response.on_hover_text(tooltip);
+
+        // Animate scale on hover
+        let target_scale = if response.hovered() { 1.15 } else { 1.0 };
+        let scale =
+            ui.ctx()
+                .animate_value_with_time(response.id.with("flag_scale"), target_scale, 0.1);
+
+        if ui.is_rect_visible(rect)
+            && let Some(icon) = flag_icon
+        {
+            let flag_size_vec = egui::Vec2::splat(base_flag_size * scale);
+
+            // Color32::WHITE means no tint, keeping original colors
+            let tint = if *current_language == lang {
+                egui::Color32::WHITE
+            } else {
+                egui::Color32::from_white_alpha(100)
+            };
+
+            let image = egui::Image::new(&icon)
+                .fit_to_exact_size(flag_size_vec)
+                .tint(tint);
+            ui.put(rect, image);
+        }
+    }
 
     fn render_contact_icon(
         ui: &mut egui::Ui,
-        icon: &egui::TextureHandle,
+        icon_glyph: &str,
         copy_text: &str,
         tooltip: &str,
         notification_msg: String,
@@ -152,7 +206,7 @@ impl FirmwareToolApp {
         // Render icon
         if ui.is_rect_visible(rect) {
             let icon_size = 28.0 * scale;
-            let icon_rect =
+            let _icon_rect =
                 egui::Rect::from_center_size(rect.center(), egui::Vec2::splat(icon_size));
 
             // Tint: Light Gray by default, White on hover
@@ -162,10 +216,11 @@ impl FirmwareToolApp {
                 egui::Color32::LIGHT_GRAY
             };
 
-            ui.painter().image(
-                icon.id(),
-                icon_rect,
-                egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
+            ui.painter().text(
+                rect.center(),
+                egui::Align2::CENTER_CENTER,
+                icon_glyph,
+                egui::FontId::proportional(icon_size * 0.8),
                 tint,
             );
         }
@@ -203,6 +258,8 @@ impl FirmwareToolApp {
                 }
             }
             AppState::Flashing | AppState::Result => WindowSizeType::OperationResult,
+            AppState::Drivers => WindowSizeType::Drivers,
+            AppState::PcileechTest => WindowSizeType::PcileechTest,
         }
     }
 
@@ -271,9 +328,11 @@ impl FirmwareToolApp {
 }
 
 impl eframe::App for FirmwareToolApp {
+    fn ui(&mut self, _ui: &mut egui::Ui, _frame: &mut eframe::Frame) {}
+
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         // Force dark mode if system is overriding it
-        if !ctx.style().visuals.dark_mode {
+        if !ctx.global_style().visuals.dark_mode {
             self.window_manager.setup_style(ctx);
         }
 
@@ -286,9 +345,6 @@ impl eframe::App for FirmwareToolApp {
 
 impl FirmwareToolApp {
     fn setup_ui_and_animation(&mut self, ctx: &egui::Context) {
-        // Setup the UI style on first frame
-        self.window_manager.setup_style(ctx);
-
         // Request animation frame rate
         ctx.request_repaint_after(Duration::from_millis(ANIMATION_FRAME_RATE_MS));
     }
@@ -342,6 +398,54 @@ impl FirmwareToolApp {
                     return;
                 }
 
+                // Check for auto-retry on connection failures (0ms/1ms writes)
+                if self.flashing_manager.was_terminated_early()
+                    && self.auto_retry_attempt < MAX_AUTO_RETRIES
+                    && !self.dna_read_in_progress
+                // DNA reads don't need retry
+                {
+                    // Start cooldown if not already in one
+                    if self.retry_cooldown_start.is_none() {
+                        self.auto_retry_attempt += 1;
+                        self.logger.info(format!(
+                            "Connection unstable — retrying automatically (attempt {}/{})",
+                            self.auto_retry_attempt, MAX_AUTO_RETRIES
+                        ));
+                        self.retry_cooldown_start = Some(Instant::now());
+                        return;
+                    }
+
+                    // Wait for cooldown to complete before actually retrying
+                    if let Some(cooldown_start) = self.retry_cooldown_start
+                        && cooldown_start.elapsed() < Duration::from_millis(RETRY_COOLDOWN_MS)
+                    {
+                        // Still in cooldown — update status message for the UI
+                        let remaining_ms = RETRY_COOLDOWN_MS
+                            .saturating_sub(cooldown_start.elapsed().as_millis() as u64);
+                        self.logger
+                            .debug(format!("Retry cooldown: {}ms remaining", remaining_ms));
+                        return;
+                    }
+
+                    // Cooldown complete — execute the retry
+                    self.retry_cooldown_start = None;
+                    self.flashing_manager.stop_monitor_thread();
+                    self.flashing_manager = FlashingManager::new_with_logger(self.logger.clone());
+
+                    if let Some(option) = &self.selected_option
+                        && let Some(firmware) = &self.selected_firmware
+                    {
+                        self.logger.info(format!(
+                            "Retrying flash operation (attempt {}/{})",
+                            self.auto_retry_attempt, MAX_AUTO_RETRIES
+                        ));
+                        self.flashing_manager
+                            .execute_flash(firmware, option, &self.language);
+                        self.waiting_message_logged = false;
+                        return;
+                    }
+                }
+
                 // Stop any running DNA thread before transitioning
                 if self.dna_read_in_progress {
                     self.logger
@@ -354,7 +458,6 @@ impl FirmwareToolApp {
                 self.logger
                     .debug("State changing to Result after all conditions met");
 
-                #[cfg(target_os = "windows")]
                 {
                     use crate::utils::win_utils::{play_error_beep, play_success_beep};
                     match status {
@@ -380,15 +483,15 @@ impl FirmwareToolApp {
         }
 
         // Ensure icons are loaded
-        self.icon_manager.ensure_loaded(ctx);
 
         // Ensure branding texture is loaded when branding feature is enabled
         #[cfg(feature = "branding")]
         self.branding_manager.ensure_loaded(ctx);
     }
 
+    #[allow(deprecated)]
     fn render_main_ui(&mut self, ctx: &egui::Context) {
-        egui::TopBottomPanel::bottom("contact_footer")
+        egui::Panel::bottom("contact_footer")
             .show_separator_line(false)
             .show(ctx, |ui| {
                 self.render_contact_info(ui);
@@ -445,211 +548,76 @@ impl FirmwareToolApp {
             let base_flag_size = 28.0;
 
             // US Flag
-            if let Some(icon) = self.icon_manager.us_flag() {
-                // Allocate space for the flag button
-                let button_size = egui::Vec2::splat(34.0);
-                let (rect, response) = ui.allocate_exact_size(button_size, egui::Sense::click());
-
-                // Handle click
-                if response.clicked() {
-                    self.language = Language::English;
-                }
-                let response = response.on_hover_text("English");
-
-                // Animate scale on hover
-                let is_hovered = response.hovered();
-                let target_scale = if is_hovered { 1.15 } else { 1.0 };
-                let scale = ui.ctx().animate_value_with_time(
-                    response.id.with("flag_scale"),
-                    target_scale,
-                    0.1,
+            {
+                Self::render_language_flag(
+                    ui,
+                    self.icon_manager.us_flag().cloned(),
+                    Language::English,
+                    "English",
+                    34.0,
+                    base_flag_size,
+                    &mut self.language,
                 );
-
-                // Render flag
-                if ui.is_rect_visible(rect) {
-                    let flag_size = base_flag_size * scale;
-                    let flag_rect =
-                        egui::Rect::from_center_size(rect.center(), egui::Vec2::splat(flag_size));
-
-                    // Dim the flag if not selected
-                    let tint = if self.language == Language::English {
-                        egui::Color32::WHITE
-                    } else {
-                        egui::Color32::from_white_alpha(100)
-                    };
-
-                    ui.painter().image(
-                        icon.id(),
-                        flag_rect,
-                        egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
-                        tint,
-                    );
-                }
             }
 
             ui.add_space(8.0);
 
             // CN Flag
-            if let Some(icon) = self.icon_manager.cn_flag() {
-                // Allocate space for the flag button
-                let button_size = egui::Vec2::splat(38.0);
-                let (rect, response) = ui.allocate_exact_size(button_size, egui::Sense::click());
-
-                // Handle click
-                if response.clicked() {
-                    self.language = Language::Chinese;
-                }
-                let response = response.on_hover_text("中文");
-
-                // Animate scale on hover
-                let is_hovered = response.hovered();
-                let target_scale = if is_hovered { 1.15 } else { 1.0 };
-                let scale = ui.ctx().animate_value_with_time(
-                    response.id.with("flag_scale"),
-                    target_scale,
-                    0.1,
+            {
+                Self::render_language_flag(
+                    ui,
+                    self.icon_manager.cn_flag().cloned(),
+                    Language::Chinese,
+                    "中文",
+                    38.0,
+                    base_flag_size,
+                    &mut self.language,
                 );
-
-                // Render flag
-                if ui.is_rect_visible(rect) {
-                    let flag_size = base_flag_size * scale;
-                    let flag_rect =
-                        egui::Rect::from_center_size(rect.center(), egui::Vec2::splat(flag_size));
-
-                    // Dim the flag if not selected
-                    let tint = if self.language == Language::Chinese {
-                        egui::Color32::WHITE
-                    } else {
-                        egui::Color32::from_white_alpha(100)
-                    };
-
-                    ui.painter().image(
-                        icon.id(),
-                        flag_rect,
-                        egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
-                        tint,
-                    );
-                }
             }
 
             ui.add_space(8.0);
 
             // German Flag
-            if let Some(icon) = self.icon_manager.de_flag() {
-                let button_size = egui::Vec2::splat(34.0);
-                let (rect, response) = ui.allocate_exact_size(button_size, egui::Sense::click());
-
-                if response.clicked() {
-                    self.language = Language::German;
-                }
-                let response = response.on_hover_text("Deutsch");
-
-                let is_hovered = response.hovered();
-                let target_scale = if is_hovered { 1.15 } else { 1.0 };
-                let scale = ui.ctx().animate_value_with_time(
-                    response.id.with("flag_scale"),
-                    target_scale,
-                    0.1,
+            {
+                Self::render_language_flag(
+                    ui,
+                    self.icon_manager.de_flag().cloned(),
+                    Language::German,
+                    "Deutsch",
+                    34.0,
+                    base_flag_size,
+                    &mut self.language,
                 );
-
-                if ui.is_rect_visible(rect) {
-                    let flag_size = base_flag_size * scale;
-                    let flag_rect =
-                        egui::Rect::from_center_size(rect.center(), egui::Vec2::splat(flag_size));
-
-                    let tint = if self.language == Language::German {
-                        egui::Color32::WHITE
-                    } else {
-                        egui::Color32::from_white_alpha(100)
-                    };
-
-                    ui.painter().image(
-                        icon.id(),
-                        flag_rect,
-                        egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
-                        tint,
-                    );
-                }
             }
 
             ui.add_space(8.0);
 
             // Brazilian Flag
-            if let Some(icon) = self.icon_manager.br_flag() {
-                let button_size = egui::Vec2::splat(34.0);
-                let (rect, response) = ui.allocate_exact_size(button_size, egui::Sense::click());
-
-                if response.clicked() {
-                    self.language = Language::Portuguese;
-                }
-                let response = response.on_hover_text("Português");
-
-                let is_hovered = response.hovered();
-                let target_scale = if is_hovered { 1.15 } else { 1.0 };
-                let scale = ui.ctx().animate_value_with_time(
-                    response.id.with("flag_scale"),
-                    target_scale,
-                    0.1,
+            {
+                Self::render_language_flag(
+                    ui,
+                    self.icon_manager.br_flag().cloned(),
+                    Language::Portuguese,
+                    "Português",
+                    34.0,
+                    base_flag_size,
+                    &mut self.language,
                 );
-
-                if ui.is_rect_visible(rect) {
-                    let flag_size = base_flag_size * scale;
-                    let flag_rect =
-                        egui::Rect::from_center_size(rect.center(), egui::Vec2::splat(flag_size));
-
-                    let tint = if self.language == Language::Portuguese {
-                        egui::Color32::WHITE
-                    } else {
-                        egui::Color32::from_white_alpha(100)
-                    };
-
-                    ui.painter().image(
-                        icon.id(),
-                        flag_rect,
-                        egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
-                        tint,
-                    );
-                }
             }
 
             ui.add_space(8.0);
 
-            // Yemen Flag
-            if let Some(icon) = self.icon_manager.ar_flag() {
-                let button_size = egui::Vec2::splat(34.0);
-                let (rect, response) = ui.allocate_exact_size(button_size, egui::Sense::click());
-
-                if response.clicked() {
-                    self.language = Language::Arabic;
-                }
-                let response = response.on_hover_text("العربية");
-
-                let is_hovered = response.hovered();
-                let target_scale = if is_hovered { 1.15 } else { 1.0 };
-                let scale = ui.ctx().animate_value_with_time(
-                    response.id.with("flag_scale"),
-                    target_scale,
-                    0.1,
+            // Arabic Flag
+            {
+                Self::render_language_flag(
+                    ui,
+                    self.icon_manager.ar_flag().cloned(),
+                    Language::Arabic,
+                    "العربية",
+                    34.0,
+                    base_flag_size,
+                    &mut self.language,
                 );
-
-                if ui.is_rect_visible(rect) {
-                    let flag_size = base_flag_size * scale;
-                    let flag_rect =
-                        egui::Rect::from_center_size(rect.center(), egui::Vec2::splat(flag_size));
-
-                    let tint = if self.language == Language::Arabic {
-                        egui::Color32::WHITE
-                    } else {
-                        egui::Color32::from_white_alpha(100)
-                    };
-
-                    ui.painter().image(
-                        icon.id(),
-                        flag_rect,
-                        egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
-                        tint,
-                    );
-                }
             }
 
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -677,10 +645,10 @@ impl FirmwareToolApp {
                 );
 
                 // Telegram
-                if show_tg && let Some(icon) = self.icon_manager.telegram_icon() {
+                if show_tg {
                     Self::render_contact_icon(
                         ui,
-                        icon,
+                        egui_phosphor::regular::TELEGRAM_LOGO,
                         tg_contact,
                         translate(TextKey::CopyTelegram, &self.language),
                         translate(TextKey::Copied, &self.language)
@@ -694,10 +662,10 @@ impl FirmwareToolApp {
                 }
 
                 // Wechat
-                if show_wc && let Some(icon) = self.icon_manager.wechat_icon() {
+                if show_wc {
                     Self::render_contact_icon(
                         ui,
-                        icon,
+                        egui_phosphor::regular::WECHAT_LOGO,
                         wc_contact,
                         translate(TextKey::CopyWeChat, &self.language),
                         translate(TextKey::Copied, &self.language)
@@ -711,10 +679,10 @@ impl FirmwareToolApp {
                 }
 
                 // Discord
-                if show_dc && let Some(icon) = self.icon_manager.discord_icon() {
+                if show_dc {
                     Self::render_contact_icon(
                         ui,
-                        icon,
+                        egui_phosphor::regular::DISCORD_LOGO,
                         dc_contact,
                         translate(TextKey::CopyDiscord, &self.language),
                         translate(TextKey::Copied, &self.language)
@@ -739,6 +707,8 @@ impl FirmwareToolApp {
             AppState::FlashingOptions => self.render_flashing_options(ui),
             AppState::Flashing => self.render_flashing(ui),
             AppState::Result => self.render_result(ui),
+            AppState::Drivers => self.render_drivers(ui),
+            AppState::PcileechTest => self.render_pcileech_test(ui),
         }
     }
 
@@ -765,9 +735,6 @@ impl FirmwareToolApp {
             self.file_checker = FileChecker::new();
         };
 
-        // Add empty callback for the unused start check parameter
-        let _empty_callback = || {};
-
         ui::file_select::render_file_check(&mut FileCheckRenderContext {
             ui,
             check_status: &check_status,
@@ -790,33 +757,72 @@ impl FirmwareToolApp {
                 self.state = AppState::FlashingOptions;
                 self.selected_option = Some(FlashingOption::DnaCH347);
             }
+            ui::operation::OperationType::Drivers => {
+                self.state = AppState::Drivers;
+            }
+            ui::operation::OperationType::TestPcileech => {
+                self.state = AppState::PcileechTest;
+            }
         };
 
         ui::operation::render_operation_selection(ui, &mut operation_callback, &self.language);
+    }
+
+    fn render_drivers(&mut self, ui: &mut egui::Ui) {
+        let mut back_callback = || {
+            self.state = AppState::OperationSelection;
+        };
+        crate::ui::drivers::render_drivers_screen(ui, &mut back_callback, &self.language);
+    }
+
+    fn render_pcileech_test(&mut self, ui: &mut egui::Ui) {
+        let mut back_callback = || {
+            self.state = AppState::OperationSelection;
+        };
+        crate::ui::pcileech_test::render_pcileech_test(
+            ui,
+            &mut self.pcileech_test_state,
+            &mut back_callback,
+            &self.language,
+        );
     }
 
     fn render_firmware_selection(&mut self, ui: &mut egui::Ui) {
         // Get cleanup value before the callback
         let cleanup_enabled = self.firmware_manager.get_cleanup_enabled();
 
+        let mut selected_file = None;
+        let mut go_back = false;
+
         let mut select_callback = |selected: Option<PathBuf>| {
-            self.selected_firmware = selected;
-            self.state = AppState::FlashingOptions;
-            // Pass cleanup option to flashing manager
-            self.flashing_manager.set_cleanup_enabled(cleanup_enabled);
+            selected_file = Some(selected);
         };
 
         // Store the scan count before passing the mutable reference
         let scan_count = self.firmware_manager.get_scan_count();
         let is_scanning = self.firmware_scanning || scan_count <= 1;
 
+        let mut back_callback = || {
+            go_back = true;
+        };
+
         ui::file_select::render_firmware_selection(
             ui,
             &mut self.firmware_manager,
             &mut select_callback,
+            &mut back_callback,
             is_scanning,
             &self.language,
         );
+
+        if go_back {
+            self.state = AppState::OperationSelection;
+        } else if let Some(selected) = selected_file {
+            self.selected_firmware = selected;
+            self.state = AppState::FlashingOptions;
+            // Pass cleanup option to flashing manager
+            self.flashing_manager.set_cleanup_enabled(cleanup_enabled);
+        }
     }
 
     fn render_flashing_options(&mut self, ui: &mut egui::Ui) {
@@ -827,10 +833,16 @@ impl FirmwareToolApp {
         let flashing_manager = &mut self.flashing_manager;
         let dna_read_start_time = &mut self.dna_read_start_time;
         let dna_read_in_progress = &mut self.dna_read_in_progress;
+        let auto_retry_attempt = &mut self.auto_retry_attempt;
+        let retry_cooldown_start = &mut self.retry_cooldown_start;
         let language = &self.language;
 
         let mut option_callback = |option: FlashingOption| {
             *selected_option = Some(option.clone());
+
+            // Reset retry state for fresh operation
+            *auto_retry_attempt = 0;
+            *retry_cooldown_start = None;
 
             if option.is_dna_read() {
                 *app_state = AppState::Flashing;
@@ -872,7 +884,6 @@ impl FirmwareToolApp {
                 ui,
                 &self.flashing_manager,
                 &mut action_callback,
-                &self.icon_manager,
                 &self.language,
             );
         }
@@ -888,15 +899,18 @@ impl FirmwareToolApp {
         self.flashing_manager.stop_monitor_thread();
 
         match action {
-            ResultAction::Exit => {
-                std::process::exit(0);
-            }
             ResultAction::MainMenu => {
                 self.state = AppState::OperationSelection;
                 self.selected_firmware = None;
                 self.selected_option = None;
+                self.auto_retry_attempt = 0;
+                self.retry_cooldown_start = None;
             }
             ResultAction::TryAgain => {
+                // Reset retry counter for manual retry
+                self.auto_retry_attempt = 0;
+                self.retry_cooldown_start = None;
+
                 // Force a complete reset of the flashing manager
                 self.flashing_manager = FlashingManager::new_with_logger(self.logger.clone());
 

@@ -18,7 +18,6 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::WelcomeMessage => "Bem-vindo à Ferramenta {}",
         TextKey::CheckingItem => "Verificando: {}",
         TextKey::CountdownMessage => "Continuando automaticamente em {} segundo{}...",
-        TextKey::ExitButton => "Sair",
         TextKey::MissingFilesWarning => {
             "AVISO: Continuar sem os arquivos necessários pode causar erros"
         }
@@ -32,20 +31,11 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::SelectOperation => "Selecionar Operação",
         TextKey::FlashFirmware => "Gravar Firmware",
         TextKey::ReadDna => "Ler DNA da Placa",
+        TextKey::Drivers => "Drivers",
+        TextKey::TestPcileech => "Test DMA (PCILeech)",
         TextKey::SelectFirmware => "Selecionar Arquivo de Firmware",
         TextKey::ScanningFirmware => "Procurando arquivos de firmware...",
-        TextKey::SelectOption => "Selecionar Opção",
-        TextKey::Flash => "Gravar",
-        TextKey::Read => "Ler",
-        TextKey::Back => "Voltar",
-        TextKey::FlashingInProgress => "Gravação em Andamento...",
-        TextKey::ReadingDnaInProgress => "Leitura de DNA em Andamento...",
-        TextKey::Success => "Operação Bem-Sucedida!",
-        TextKey::Failed => "Operação Falhou!",
-        TextKey::TryAgain => "Tentar Novamente",
-        TextKey::ReturnToMenu => "Voltar ao Menu",
-        TextKey::DownloadHere => "Baixar Aqui",
-        TextKey::UpdateAvailable => "Atualização Disponível",
+
         TextKey::NoFirmwareFound => "Nenhum arquivo de firmware encontrado no diretório atual",
         TextKey::PlaceFirmwareHere => {
             "Por favor, coloque arquivos de firmware .bin no diretório da aplicação"
@@ -60,6 +50,25 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::SelectFirmwareToContinue => "Selecione um arquivo de firmware para continuar",
         TextKey::FlashFirmwareDesc => "Gravar firmware no seu dispositivo",
         TextKey::ReadDnaDesc => "Recuperar o ID único do seu dispositivo",
+        TextKey::DriversDesc => "Instalar drivers necessários para conexão ao dispositivo",
+        TextKey::TestPcileechDesc => "Testar conexão DMA usando PCILeech",
+        TextKey::DriversMenuTitle => "Instalar Drivers",
+        TextKey::DataPortDrivers => "Drivers da Porta DATA",
+        TextKey::JtagDrivers => "Drivers da Porta JTAG",
+        TextKey::InstallFtdiDriver => "Instalar Driver FTDI",
+        TextKey::OpenZadig => "Abrir Zadig (RS232)",
+        TextKey::InstallCh347Driver => "Instalar Driver CH347",
+        TextKey::RequiresAdmin => "Requer Administrador",
+        TextKey::TestPcileechTitle => "Testar DMA (PCILeech)",
+        TextKey::TestingConnection => "Testando conexão...",
+        TextKey::TestSuccess => "Teste Bem-Sucedido",
+        TextKey::TestFailed => "Teste Falhou",
+        TextKey::ConnectionError => {
+            "Soluções comuns:
+1. Certifique-se de que o dispositivo FPGA está conectado
+2. Verifique se o driver PCILeech está instalado
+3. Execute como Administrador"
+        }
         TextKey::SelectFlashingOption => "Selecionar Opção de Gravação",
         TextKey::SelectDnaReadOption => "Selecionar Opção de Leitura de DNA",
         TextKey::Ch347Options => "Opções CH347",
@@ -139,7 +148,6 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::NextStepsList => {
             "1. Reiniciar ambos os computadores\n2. Seguir os próximos passos no guia\n   - Instalar driver de firmware no computador host\n   - Trocar cabo para porta DATA\n   - Ativar usando software fornecido e código de ativação\n   - Construção de firmware bloqueados por DNA não requerem ativação"
         }
-        TextKey::Exit => "Sair",
         TextKey::MainMenu => "Menu Principal",
         TextKey::TryAgainButton => "Tentar Novamente",
 

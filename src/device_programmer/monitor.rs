@@ -135,19 +135,17 @@ impl OperationMonitor {
 
                         // Add an extra check to ensure we've been consistently under threshold
                         if consecutive_checks_over_threshold >= 2 {
-                            logger.warning(format!(
-                                "Monitor thread detected too few normal sector writes: {normal}/{total}. Terminating process early."
+                            logger.info(format!(
+                                "Connection issue detected: only {normal}/{total} normal sector writes. Restarting..."
                             ));
 
-                            // Use the same process name termination we added to terminate_process
-                            for process_name in &["openocd.exe", "openocd-347.exe"] {
-                                logger.debug(format!("Terminating {process_name}"));
-
-                                // ... (use the termination code from terminate_process)
-                            }
-
                             terminated_early.store(true, Ordering::SeqCst);
-                            logger.error("Operation terminated early due to connection issues.");
+                            monitor_running.store(false, Ordering::SeqCst);
+
+                            // Kill OpenOCD processes
+                            Self::kill_openocd_processes(&logger);
+
+                            logger.info("OpenOCD stopped — will retry automatically.");
                             break;
                         }
                     } else if consecutive_checks_over_threshold > 0 {
@@ -264,15 +262,26 @@ impl OperationMonitor {
 
     // Split termination logic into a function
     fn terminate_process(ctx: &SectorWriteContext<'_>, normal: usize, total: usize) {
-        ctx.logger.debug(format!(
-            "LINE MONITOR: Too few normal writes detected: {normal}/{total}. Terminating OpenOCD process."
+        ctx.logger.info(format!(
+            "Line monitor: only {normal}/{total} normal writes — connection unstable. Restarting..."
         ));
 
+        ctx.terminated_early.store(true, Ordering::SeqCst);
+        ctx.monitor_running.store(false, Ordering::SeqCst);
+
+        Self::kill_openocd_processes(ctx.logger);
+        ctx.logger
+            .info("OpenOCD stopped — will retry automatically.");
+    }
+
+    /// Kills any running OpenOCD processes via taskkill.
+    /// Shared by both the monitor thread and the line-monitor callback.
+    fn kill_openocd_processes(logger: &Logger) {
         use std::os::windows::process::CommandExt;
         use std::process::Command;
 
         for process_name in &["openocd.exe", "openocd-347.exe"] {
-            ctx.logger.debug(format!("Terminating {process_name}"));
+            logger.debug(format!("Terminating {process_name}"));
 
             let result = Command::new("taskkill")
                 .args(["/F", "/IM", process_name])
@@ -282,28 +291,17 @@ impl OperationMonitor {
             match result {
                 Ok(output) => {
                     let output_str = String::from_utf8_lossy(&output.stdout);
-                    ctx.logger.debug(format!(
+                    logger.debug(format!(
                         "Termination result for {process_name}: {output_str}"
                     ));
 
-                    // If successful, set the terminated flag
                     if output.status.success() || output_str.contains("SUCCESS") {
-                        ctx.terminated_early.store(true, Ordering::SeqCst);
-                        ctx.logger
-                            .error("Operation terminated early - too few normal writes detected.");
-
-                        // Stop the monitor thread
-                        ctx.monitor_running.store(false, Ordering::SeqCst);
-                        ctx.logger
-                            .debug("TERMINATION SUCCESSFUL - STOPPING FURTHER PROCESSING");
-
-                        // No need to continue trying other process names
+                        logger.debug("TERMINATION SUCCESSFUL - STOPPING FURTHER PROCESSING");
                         break;
                     }
                 }
                 Err(e) => {
-                    ctx.logger
-                        .error(format!("Failed to terminate {process_name}: {e}"));
+                    logger.error(format!("Failed to terminate {process_name}: {e}"));
                 }
             }
         }

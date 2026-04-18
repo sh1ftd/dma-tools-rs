@@ -12,7 +12,6 @@ use std::sync::Mutex;
 use std::sync::OnceLock;
 
 #[allow(non_camel_case_types)]
-#[allow(dead_code)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum TextKey {
     OperationLog,
@@ -31,7 +30,6 @@ pub enum TextKey {
     WelcomeMessage,
     CheckingItem,
     CountdownMessage,
-    ExitButton,
     MissingFilesWarning,
     GroupExecutables,
     GroupLibraries,
@@ -43,20 +41,11 @@ pub enum TextKey {
     SelectOperation,
     FlashFirmware,
     ReadDna,
+    Drivers,
+    TestPcileech,
     SelectFirmware,
     ScanningFirmware,
-    SelectOption,
-    Flash,
-    Read,
-    Back,
-    FlashingInProgress,
-    ReadingDnaInProgress,
-    Success,
-    Failed,
-    TryAgain,
-    ReturnToMenu,
-    DownloadHere,
-    UpdateAvailable,
+
     // Firmware Selection
     NoFirmwareFound,
     PlaceFirmwareHere,
@@ -68,6 +57,22 @@ pub enum TextKey {
     SelectFirmwareToContinue,
     FlashFirmwareDesc,
     ReadDnaDesc,
+    DriversDesc,
+    TestPcileechDesc,
+    // Drivers
+    DriversMenuTitle,
+    DataPortDrivers,
+    JtagDrivers,
+    InstallFtdiDriver,
+    OpenZadig,
+    InstallCh347Driver,
+    RequiresAdmin,
+    // Test PCILeech
+    TestPcileechTitle,
+    TestingConnection,
+    TestSuccess,
+    TestFailed,
+    ConnectionError,
     // Flashing Options
     SelectFlashingOption,
     SelectDnaReadOption,
@@ -137,7 +142,6 @@ pub enum TextKey {
     FlashingResultUnknown,
     NextSteps,
     NextStepsList, // Multiline string for the steps
-    Exit,
     MainMenu,
     TryAgainButton, // TryAgain exists?
 

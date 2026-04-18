@@ -103,3 +103,219 @@ pub enum CompletionStatus {
     DnaReadCompleted(DnaInfo), // DNA read
     Failed(String),
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── FlashingOption classification ──
+
+    #[test]
+    fn dna_variants_classified_correctly() {
+        assert!(FlashingOption::DnaCH347.is_dna_read());
+        assert!(FlashingOption::DnaRS232_35T.is_dna_read());
+        assert!(FlashingOption::DnaRS232_75T.is_dna_read());
+        assert!(FlashingOption::DnaRS232_100T.is_dna_read());
+    }
+
+    #[test]
+    fn flash_variants_classified_correctly() {
+        assert!(FlashingOption::CH347_35T.is_flash_operation());
+        assert!(FlashingOption::CH347_75T.is_flash_operation());
+        assert!(FlashingOption::CH347_100T.is_flash_operation());
+        assert!(FlashingOption::RS232_35T.is_flash_operation());
+        assert!(FlashingOption::RS232_75T.is_flash_operation());
+        assert!(FlashingOption::RS232_100T.is_flash_operation());
+    }
+
+    #[test]
+    fn dna_and_flash_are_mutually_exclusive() {
+        let all = [
+            FlashingOption::CH347_35T,
+            FlashingOption::CH347_75T,
+            FlashingOption::CH347_100T,
+            FlashingOption::RS232_35T,
+            FlashingOption::RS232_75T,
+            FlashingOption::RS232_100T,
+            FlashingOption::DnaCH347,
+            FlashingOption::DnaRS232_35T,
+            FlashingOption::DnaRS232_75T,
+            FlashingOption::DnaRS232_100T,
+        ];
+        for opt in &all {
+            assert_ne!(
+                opt.is_dna_read(),
+                opt.is_flash_operation(),
+                "{opt:?} should be exactly one of dna_read or flash_operation"
+            );
+        }
+    }
+
+    // ── Command args ──
+
+    #[test]
+    fn ch347_variants_use_ch347_binary() {
+        for opt in &[
+            FlashingOption::CH347_35T,
+            FlashingOption::CH347_75T,
+            FlashingOption::CH347_100T,
+            FlashingOption::DnaCH347,
+        ] {
+            let (exe, _) = opt.get_command_args();
+            assert_eq!(exe, OPENOCD_CH347_PATH, "{opt:?} should use CH347 binary");
+        }
+    }
+
+    #[test]
+    fn rs232_variants_use_standard_binary() {
+        for opt in &[
+            FlashingOption::RS232_35T,
+            FlashingOption::RS232_75T,
+            FlashingOption::RS232_100T,
+            FlashingOption::DnaRS232_35T,
+            FlashingOption::DnaRS232_75T,
+            FlashingOption::DnaRS232_100T,
+        ] {
+            let (exe, _) = opt.get_command_args();
+            assert_eq!(exe, OPENOCD_RS232_PATH, "{opt:?} should use RS232 binary");
+        }
+    }
+
+    #[test]
+    fn flash_configs_in_flash_directory() {
+        for opt in &[
+            FlashingOption::CH347_35T,
+            FlashingOption::RS232_75T,
+            FlashingOption::RS232_100T,
+        ] {
+            let (_, cfg) = opt.get_command_args();
+            assert!(
+                cfg.contains("/flash/"),
+                "{opt:?} config should be in flash/"
+            );
+        }
+    }
+
+    #[test]
+    fn dna_configs_in_dna_directory() {
+        for opt in &[
+            FlashingOption::DnaCH347,
+            FlashingOption::DnaRS232_35T,
+            FlashingOption::DnaRS232_75T,
+        ] {
+            let (_, cfg) = opt.get_command_args();
+            assert!(cfg.contains("/DNA/"), "{opt:?} config should be in DNA/");
+        }
+    }
+
+    // ── Driver types ──
+
+    #[test]
+    fn driver_types_match_interface() {
+        assert_eq!(
+            FlashingOption::CH347_35T.get_driver_type(),
+            "CH347 USB Driver"
+        );
+        assert_eq!(
+            FlashingOption::DnaCH347.get_driver_type(),
+            "CH347 USB Driver"
+        );
+        assert_eq!(FlashingOption::RS232_75T.get_driver_type(), "FTDI Driver");
+        assert_eq!(
+            FlashingOption::DnaRS232_100T.get_driver_type(),
+            "FTDI Driver"
+        );
+    }
+
+    // ── Display names ──
+
+    #[test]
+    fn display_names_are_non_empty() {
+        let all = [
+            FlashingOption::CH347_35T,
+            FlashingOption::CH347_75T,
+            FlashingOption::CH347_100T,
+            FlashingOption::RS232_35T,
+            FlashingOption::RS232_75T,
+            FlashingOption::RS232_100T,
+            FlashingOption::DnaCH347,
+            FlashingOption::DnaRS232_35T,
+            FlashingOption::DnaRS232_75T,
+            FlashingOption::DnaRS232_100T,
+        ];
+        for opt in &all {
+            assert!(!opt.get_display_name().is_empty(), "{opt:?}");
+        }
+    }
+
+    // ── CompletionStatus ──
+
+    #[test]
+    fn terminal_statuses_detected() {
+        let terminal = [
+            CompletionStatus::Completed,
+            CompletionStatus::Failed("err".into()),
+            CompletionStatus::DnaReadCompleted(DnaInfo {
+                dna_value: "0x1".into(),
+                dna_raw_value: "1".into(),
+                device_type: "CH347".into(),
+            }),
+        ];
+        for s in &terminal {
+            assert!(
+                matches!(
+                    s,
+                    CompletionStatus::Completed
+                        | CompletionStatus::DnaReadCompleted(_)
+                        | CompletionStatus::Failed(_)
+                ),
+                "{s:?} should be terminal"
+            );
+        }
+    }
+
+    #[test]
+    fn non_terminal_statuses_detected() {
+        let non_terminal = [
+            CompletionStatus::NotCompleted,
+            CompletionStatus::InProgress("working".into()),
+        ];
+        for s in &non_terminal {
+            assert!(
+                !matches!(
+                    s,
+                    CompletionStatus::Completed
+                        | CompletionStatus::DnaReadCompleted(_)
+                        | CompletionStatus::Failed(_)
+                ),
+                "{s:?} should NOT be terminal"
+            );
+        }
+    }
+
+    #[test]
+    fn dna_completed_preserves_info() {
+        let info = DnaInfo {
+            dna_value: "0x00641CC26AE96854".into(),
+            dna_raw_value: "00110010".into(),
+            device_type: "CH347".into(),
+        };
+        let status = CompletionStatus::DnaReadCompleted(info);
+        if let CompletionStatus::DnaReadCompleted(inner) = status {
+            assert_eq!(inner.dna_value, "0x00641CC26AE96854");
+            assert_eq!(inner.device_type, "CH347");
+        } else {
+            panic!("Expected DnaReadCompleted");
+        }
+    }
+
+    #[test]
+    fn failed_preserves_message() {
+        let status = CompletionStatus::Failed("cable disconnected".into());
+        if let CompletionStatus::Failed(msg) = status {
+            assert_eq!(msg, "cable disconnected");
+        } else {
+            panic!("Expected Failed");
+        }
+    }
+}

@@ -8,6 +8,8 @@ pub enum WindowSizeType {
     FlashOptionSelection,
     ReadOptionSelection,
     OperationResult,
+    Drivers,
+    PcileechTest,
 }
 
 pub const WINDOW_WIDTH: f32 = 600.0;
@@ -16,7 +18,7 @@ pub const WINDOW_HEIGHT_INITIAL: f32 = 250.0;
 pub const WINDOW_HEIGHT_FILE_CHECK: f32 = 250.0;
 pub const WINDOW_HEIGHT_MISSING_FILES: f32 = 600.0;
 
-pub const WINDOW_HEIGHT_OPERATION_SELECT: f32 = 350.0;
+pub const WINDOW_HEIGHT_OPERATION_SELECT: f32 = 570.0;
 
 pub const WINDOW_HEIGHT_FLASH_FILE_SELECT: f32 = 290.0;
 
@@ -24,6 +26,9 @@ pub const WINDOW_HEIGHT_FLASH_OPTION_SELECT: f32 = 700.0;
 pub const WINDOW_HEIGHT_READ_OPTION_SELECT: f32 = 440.0;
 
 pub const WINDOW_HEIGHT_OPERATION_RESULT: f32 = 725.0;
+
+pub const WINDOW_HEIGHT_DRIVERS: f32 = 480.0;
+pub const WINDOW_HEIGHT_PCILEECH_TEST: f32 = 480.0;
 
 pub struct WindowManager {
     previous_height: Option<f32>,
@@ -100,6 +105,9 @@ impl WindowManager {
             }
         }
 
+        // Add egui-phosphor fonts
+        egui_phosphor::add_to_fonts(&mut fonts, egui_phosphor::Variant::Regular);
+
         ctx.set_fonts(fonts);
     }
 
@@ -160,6 +168,8 @@ impl WindowManager {
             WindowSizeType::FlashOptionSelection => WINDOW_HEIGHT_FLASH_OPTION_SELECT,
             WindowSizeType::ReadOptionSelection => WINDOW_HEIGHT_READ_OPTION_SELECT,
             WindowSizeType::OperationResult => WINDOW_HEIGHT_OPERATION_RESULT,
+            WindowSizeType::Drivers => WINDOW_HEIGHT_DRIVERS,
+            WindowSizeType::PcileechTest => WINDOW_HEIGHT_PCILEECH_TEST,
         }
     }
 

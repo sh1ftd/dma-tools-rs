@@ -13,6 +13,8 @@ mod colors {
 
     pub const FLASH_FIRMWARE: Color32 = Color32::from_rgb(70, 100, 150);
     pub const READ_DNA: Color32 = Color32::from_rgb(50, 120, 50);
+    pub const DRIVERS: Color32 = Color32::from_rgb(120, 100, 50);
+    pub const TEST_PCILEECH: Color32 = Color32::from_rgb(100, 50, 120);
 }
 
 /// Trait for creating styled buttons in a UI
@@ -43,6 +45,11 @@ pub fn create_operation_button(
             colors::FLASH_FIRMWARE,
         ),
         OperationType::ReadDNA => (translate(TextKey::ReadDna, lang), colors::READ_DNA),
+        OperationType::Drivers => (translate(TextKey::Drivers, lang), colors::DRIVERS),
+        OperationType::TestPcileech => (
+            translate(TextKey::TestPcileech, lang),
+            colors::TEST_PCILEECH,
+        ),
     };
 
     let button_size = egui::vec2(BUTTON_WIDTH, BUTTON_HEIGHT);
