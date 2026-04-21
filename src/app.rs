@@ -30,8 +30,8 @@ const DNA_MIN_DISPLAY_TIME_MS: u64 = 100;
 const STATUS_STABILITY_WAIT_MS: u64 = 250;
 
 // Auto-retry configuration
-const MAX_AUTO_RETRIES: u32 = 3;
-const RETRY_COOLDOWN_MS: u64 = 2000;
+const MAX_AUTO_RETRIES: u32 = 10;
+const RETRY_COOLDOWN_MS: u64 = 2500;
 
 // UI constants
 const TOP_PADDING: f32 = 8.0;
