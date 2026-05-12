@@ -2,7 +2,7 @@ cargo-features = ["profile-rustflags"]
 
 [package]
     name = "dma-tools-rs"
-    version = "0.3.1"
+    version = "0.3.2"
     edition = "2024"
     license = "AGPL-3.0"
     authors = ["Shifty <contact@shifty.cloud>"]
@@ -34,7 +34,7 @@ cargo-features = ["profile-rustflags"]
     branding = []
 
 [dependencies]
-    eframe = { version = "0.34.1", features = ["wgpu"] }
+    eframe = { version = "0.34.2", features = ["wgpu"] }
     usvg = "0.47.0"
     resvg = "0.47.0"
     image = "0.25"

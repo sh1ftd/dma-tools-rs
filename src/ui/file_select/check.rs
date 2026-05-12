@@ -165,11 +165,11 @@ fn render_checkmark(ui: &mut Ui) {
     let painter = ui.painter();
     painter.circle_filled(center, CHECKMARK_RADIUS, COLOR_SUCCESS);
 
-    let stroke = Stroke::new(3.0, Color32::WHITE);
+    let stroke = Stroke::new(3.0_f32, Color32::WHITE);
     let points = [
-        center + Vec2::new(-CHECKMARK_RADIUS * 0.5, 0.0),
-        center + Vec2::new(-CHECKMARK_RADIUS * 0.1, CHECKMARK_RADIUS * 0.4),
-        center + Vec2::new(CHECKMARK_RADIUS * 0.5, -CHECKMARK_RADIUS * 0.4),
+        center + Vec2::new(-CHECKMARK_RADIUS * 0.5_f32, 0.0_f32),
+        center + Vec2::new(-CHECKMARK_RADIUS * 0.1_f32, CHECKMARK_RADIUS * 0.4_f32),
+        center + Vec2::new(CHECKMARK_RADIUS * 0.5_f32, -CHECKMARK_RADIUS * 0.4_f32),
     ];
     painter.line_segment([points[0], points[1]], stroke);
     painter.line_segment([points[1], points[2]], stroke);
@@ -192,7 +192,7 @@ fn render_countdown(ui: &mut Ui, success_time: &std::time::Instant, lang: &crate
             egui::Layout::top_down_justified(egui::Align::Center),
             |ui| {
                 ui.horizontal(|ui| {
-                    ui.add_space(112.0);
+                    ui.add_space(112.0_f32);
                     ui.label(
                         RichText::new(countdown_text)
                             .italics()
@@ -208,7 +208,7 @@ fn render_countdown(ui: &mut Ui, success_time: &std::time::Instant, lang: &crate
 
 fn render_centered_spinner(ui: &mut Ui) {
     ui.horizontal(|ui| {
-        ui.add_space(ui.available_width() / 2.0 - SPINNER_OFFSET);
+        ui.add_space(ui.available_width() / 2.0_f32 - SPINNER_OFFSET);
         ui.spinner();
     });
 }
@@ -219,7 +219,7 @@ fn render_missing_files_list(
     lang: &crate::app::Language,
 ) {
     egui::Frame::dark_canvas(ui.style())
-        .stroke(Stroke::new(1.0, COLOR_BORDER))
+        .stroke(Stroke::new(1.0_f32, COLOR_BORDER))
         .corner_radius(CornerRadius::same(SPACING_LARGE as u8))
         .inner_margin(Margin::same(SPACING_LARGE as i8))
         .show(ui, |ui| {
@@ -241,13 +241,13 @@ fn render_action_buttons(
     ui.add_space(SPACING_LARGE);
 
     ui.horizontal(|ui| {
-        ui.add_space(ui.available_width() / 2.0 - 100.0);
+        ui.add_space(ui.available_width() / 2.0_f32 - 100.0_f32);
         if ui
             .add(
                 egui::Button::new(
                     RichText::new(translate(TextKey::Rescan, lang)).size(TEXT_SIZE_MEDIUM),
                 )
-                .min_size(Vec2::new(200.0, 32.0)),
+                .min_size(Vec2::new(200.0_f32, 32.0_f32)),
             )
             .clicked()
         {
@@ -270,7 +270,7 @@ fn render_action_buttons(
 fn render_warning_box(ui: &mut Ui, lang: &crate::app::Language) {
     egui::Frame::NONE
         .fill(COLOR_WARNING_BG)
-        .stroke(Stroke::new(1.0, COLOR_WARNING_BORDER))
+        .stroke(Stroke::new(1.0_f32, COLOR_WARNING_BORDER))
         .corner_radius(CornerRadius::same(SPACING_LARGE as u8))
         .inner_margin(Margin::same(SPACING_LARGE as i8))
         .show(ui, |ui| {

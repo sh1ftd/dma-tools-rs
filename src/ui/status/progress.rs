@@ -158,7 +158,10 @@ fn render_operation_info_frame(ui: &mut Ui, is_dna_read: bool, lang: &crate::app
     egui::Frame::NONE
         .fill(ui.style().visuals.extreme_bg_color)
         .corner_radius(egui::CornerRadius::same(12))
-        .stroke(egui::Stroke::new(1.0, egui::Color32::from_rgb(60, 60, 70)))
+        .stroke(egui::Stroke::new(
+            1.0_f32,
+            egui::Color32::from_rgb(60, 60, 70),
+        ))
         .inner_margin(egui::Margin::same(LARGE_SPACING as i8))
         .show(ui, |ui| {
             ui.vertical_centered(|ui| {
@@ -206,7 +209,10 @@ fn render_technical_info_frame(
     egui::Frame::NONE
         .fill(ui.style().visuals.faint_bg_color)
         .corner_radius(egui::CornerRadius::same(12))
-        .stroke(egui::Stroke::new(1.0, egui::Color32::from_rgb(80, 80, 90)))
+        .stroke(egui::Stroke::new(
+            1.0_f32,
+            egui::Color32::from_rgb(80, 80, 90),
+        ))
         .inner_margin(egui::Margin::same(15))
         .show(ui, |ui| {
             ui.vertical_centered(|ui| {
