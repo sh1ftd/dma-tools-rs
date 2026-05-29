@@ -7,7 +7,7 @@ use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 type LineCallback = Option<Box<dyn Fn(&str) + Send + Sync + 'static>>;
 
@@ -19,8 +19,9 @@ pub struct ProcessExecutor {
 }
 
 pub struct CommandOptions {
-    pub update_duration: bool,
+    pub log_duration: bool,
     pub cleanup_temp_files: bool,
+    pub duration_target: Option<Arc<Mutex<Option<Duration>>>>,
 }
 
 impl ProcessExecutor {
@@ -69,22 +70,28 @@ impl ProcessExecutor {
                 thread::spawn(move || {
                     match child.wait() {
                         Ok(exit_status) => {
-                            // Update execution duration
-                            if options.update_duration
-                                && let Some(start) = *start_time.lock().unwrap()
-                            {
-                                let elapsed = start.elapsed();
+                            let elapsed = start_time.lock().unwrap().map(|start| start.elapsed());
 
-                                // Format duration in a readable way based on the actual time
-                                if elapsed.as_secs() > 0 {
-                                    // If operation took more than a second, show seconds.milliseconds
-                                    let seconds = elapsed.as_secs();
-                                    let millis = elapsed.subsec_millis();
-                                    logger.info(format!("Operation took {seconds}.{millis:03}s"));
-                                } else {
-                                    // For very quick operations, show milliseconds
-                                    logger
-                                        .info(format!("Operation took {}ms", elapsed.as_millis()));
+                            if let Some(elapsed) = elapsed {
+                                if let Some(duration_target) = &options.duration_target {
+                                    *duration_target.lock().unwrap() = Some(elapsed);
+                                }
+
+                                if options.log_duration {
+                                    // Format duration in a readable way based on the actual time
+                                    if elapsed.as_secs() > 0 {
+                                        // If operation took more than a second, show seconds.milliseconds
+                                        let seconds = elapsed.as_secs();
+                                        let millis = elapsed.subsec_millis();
+                                        logger
+                                            .info(format!("Operation took {seconds}.{millis:03}s"));
+                                    } else {
+                                        // For very quick operations, show milliseconds
+                                        logger.info(format!(
+                                            "Operation took {}ms",
+                                            elapsed.as_millis()
+                                        ));
+                                    }
                                 }
                             }
 
@@ -209,10 +216,6 @@ impl ProcessExecutor {
 
     pub fn set_completion_status(&self, status: CompletionStatus) {
         *self.completion_status.lock().unwrap() = status;
-    }
-
-    pub fn get_start_time(&self) -> &Arc<Mutex<Option<Instant>>> {
-        &self.start_time
     }
 
     pub fn get_completion_status_arc(&self) -> Arc<Mutex<CompletionStatus>> {

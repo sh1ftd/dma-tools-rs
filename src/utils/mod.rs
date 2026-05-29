@@ -1,4 +1,5 @@
 pub mod cleanup;
+#[cfg(not(feature = "branding"))]
 pub mod contact;
 pub mod file_checker;
 pub mod firmware_discovery;

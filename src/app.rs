@@ -18,6 +18,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
+#[cfg(not(feature = "branding"))]
 use crate::utils::contact;
 
 // Constants for timing

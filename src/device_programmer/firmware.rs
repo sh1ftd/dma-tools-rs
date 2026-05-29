@@ -28,7 +28,7 @@ impl FirmwareFlasher {
         self.copy_firmware_to_temp(firmware_path, executor)?;
 
         // Create the command
-        let (command, command_str) = self.create_flash_command(firmware_path, option);
+        let (command, command_str) = self.create_flash_command(option);
 
         // Log operation information
         self.log_flash_operation(firmware_path, option, &command_str);
@@ -37,12 +37,8 @@ impl FirmwareFlasher {
         self.run_flash_operation(command, monitor, executor, duration)
     }
 
-    fn create_flash_command(
-        &self,
-        firmware_path: &Path,
-        option: &FlashingOption,
-    ) -> (std::process::Command, String) {
-        let (exe_path, command_str, args) = self.prepare_flash_command(firmware_path, option);
+    fn create_flash_command(&self, option: &FlashingOption) -> (std::process::Command, String) {
+        let (exe_path, command_str, args) = self.prepare_flash_command(option);
         let command = ProcessExecutor::prepare_command(
             &exe_path,
             &args.iter().map(|s| s.as_str()).collect::<Vec<&str>>(),
@@ -65,27 +61,17 @@ impl FirmwareFlasher {
             command,
             Some(monitor_callback),
             CommandOptions {
-                update_duration: true,
+                log_duration: true,
                 cleanup_temp_files: true,
+                duration_target: Some(Arc::clone(&duration)),
             },
         ) {
-            Ok(()) => {
-                // Update the shared duration
-                self.update_duration(executor, duration);
-                Ok(())
-            }
+            Ok(()) => Ok(()),
             Err(e) => {
                 let error_msg = format!("Failed to execute firmware flash: {e}");
                 self.logger.error(&error_msg);
                 Err(error_msg)
             }
-        }
-    }
-
-    fn update_duration(&self, executor: &ProcessExecutor, duration: Arc<Mutex<Option<Duration>>>) {
-        if let Some(start) = *executor.get_start_time().lock().unwrap() {
-            let elapsed = start.elapsed();
-            *duration.lock().unwrap() = Some(elapsed);
         }
     }
 
@@ -104,16 +90,12 @@ impl FirmwareFlasher {
         self.logger.command(format!("Executing: {command_str}"));
     }
 
-    fn prepare_flash_command(
-        &self,
-        firmware_path: &Path,
-        option: &FlashingOption,
-    ) -> (String, String, Vec<String>) {
+    fn prepare_flash_command(&self, option: &FlashingOption) -> (String, String, Vec<String>) {
         let (cmd, config) = option.get_command_args();
         let exe_path = format!("{SCRIPT_DIR}/{cmd}");
         let config_path = format!("{SCRIPT_DIR}/{config}");
 
-        let program_arg = format!("program {}; exit", firmware_path.display());
+        let program_arg = format!("program {TEMP_FIRMWARE_FILE}; exit");
         let args = vec![
             "-f".to_string(),
             config_path.clone(),
@@ -140,5 +122,19 @@ impl FirmwareFlasher {
                 executor.set_completion_status(CompletionStatus::Failed(error_msg.clone()));
                 error_msg
             })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn flash_command_programs_prepared_temp_firmware() {
+        let flasher = FirmwareFlasher::new(Logger::new("FirmwareFlasherTest"));
+        let (_, command_str, args) = flasher.prepare_flash_command(&FlashingOption::CH347_35T);
+
+        assert_eq!(args[3], format!("program {TEMP_FIRMWARE_FILE}; exit"));
+        assert!(command_str.contains(&format!("program {TEMP_FIRMWARE_FILE}; exit")));
     }
 }

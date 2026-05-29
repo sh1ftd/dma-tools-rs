@@ -78,8 +78,9 @@ impl DnaReader {
             .debug(format!("Executing DNA read command: {command:?}"));
 
         let options = CommandOptions {
-            update_duration: true,
-            cleanup_temp_files: true,
+            log_duration: true,
+            cleanup_temp_files: false,
+            duration_target: None,
         };
 
         match executor.execute_command(command, None, options) {

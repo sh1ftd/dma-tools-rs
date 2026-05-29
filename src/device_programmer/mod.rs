@@ -126,6 +126,7 @@ impl FlashingManager {
         self.monitor.stop_monitor_thread();
 
         self.start_time = Some(Instant::now());
+        *self.duration.lock().unwrap() = None;
         self.current_option = Some(option.clone());
         self.monitor.reset_counters();
         self.process_executor.reset();
