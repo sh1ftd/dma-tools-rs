@@ -2,8 +2,6 @@
 
 Windows desktop utility for programming SPI flash on Xilinx Artix-7 FPGAs (35T / 75T / 100T devices) attached over JTAG from a DMA setup. The UI orchestrates bundled [OpenOCD](https://openocd.org/) builds (`openocd-347.exe` for WCH CH347, `openocd.exe` for FTDI-based RS232) with project-specific TAP/flash and DNA scripts, progress parsing, and driver helpers.
 
-Licensed under AGPL-3.0 (see `LICENSE`).
-
 ## Capabilities
 
 - **Bitstream programming**: Copies the selected `.bin` to a fixed temp name and runs OpenOCD with the matching `xc7a*T` flash config (`CH347` or `RS232_*` variants).
