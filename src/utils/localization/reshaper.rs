@@ -16,16 +16,12 @@ pub fn reshape_arabic(text: &str) -> String {
 
     let mut visual_text = String::new();
     for para in &bidi_info.paragraphs {
-        let (_levels, runs) = bidi_info.visual_runs(para, para.range.clone());
+        let (levels, runs) = bidi_info.visual_runs(para, para.range.clone());
 
         for run in runs {
             let mut run_text = reshaped[run.clone()].to_string();
 
-            // The levels vector in unicode-bidi is indexed by character,
-            // but 'run' uses byte indices. We need the character index for the start of the run.
-            let char_idx = reshaped[..run.start].chars().count();
-
-            if bidi_info.levels[char_idx].is_rtl() {
+            if levels[run.start].is_rtl() {
                 run_text = run_text.chars().rev().collect();
             }
             visual_text.push_str(&run_text);
@@ -36,5 +32,20 @@ pub fn reshape_arabic(text: &str) -> String {
         reshaped
     } else {
         visual_text
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::reshape_arabic;
+
+    #[test]
+    fn keeps_latin_tokens_readable_in_mixed_arabic_text() {
+        let reshaped = reshape_arabic("اختبار اتصال DMA باستخدام PCILeech");
+
+        assert!(reshaped.contains("DMA"));
+        assert!(reshaped.contains("PCILeech"));
+        assert!(!reshaped.contains("AMD"));
+        assert!(!reshaped.contains("hceeLICP"));
     }
 }

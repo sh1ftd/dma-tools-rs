@@ -4,7 +4,9 @@
 mod app;
 mod assets;
 #[cfg(feature = "branding")]
-mod branding;
+mod branding {
+    include!("branding/mod.rs");
+}
 mod device_programmer;
 mod ui;
 mod utils;

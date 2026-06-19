@@ -837,6 +837,7 @@ impl FirmwareToolApp {
         let auto_retry_attempt = &mut self.auto_retry_attempt;
         let retry_cooldown_start = &mut self.retry_cooldown_start;
         let language = &self.language;
+        let mut go_back = false;
 
         let mut option_callback = |option: FlashingOption| {
             *selected_option = Some(option.clone());
@@ -859,11 +860,25 @@ impl FirmwareToolApp {
             }
         };
 
+        let mut back_callback = || {
+            go_back = true;
+        };
+
         // Use the appropriate render function based on operation type
         if selected_firmware.is_some() {
             ui::options::render_flash_options(ui, &mut option_callback, &self.language);
         } else {
-            ui::options::render_dna_read_options(ui, &mut option_callback, &self.language);
+            ui::options::render_dna_read_options(
+                ui,
+                &mut option_callback,
+                &mut back_callback,
+                &self.language,
+            );
+        }
+
+        if go_back {
+            *app_state = AppState::OperationSelection;
+            *selected_option = None;
         }
     }
 
