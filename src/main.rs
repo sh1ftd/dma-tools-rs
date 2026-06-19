@@ -4,9 +4,9 @@
 mod app;
 mod assets;
 #[cfg(feature = "branding")]
-mod branding {
-    include!("branding/mod.rs");
-}
+#[path = "branding/mod.rs"]
+#[rustfmt::skip]
+mod branding;
 mod device_programmer;
 mod ui;
 mod utils;
