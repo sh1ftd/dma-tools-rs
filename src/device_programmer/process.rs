@@ -10,6 +10,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 type LineCallback = Option<Box<dyn Fn(&str) + Send + Sync + 'static>>;
+type CompletionCallback = Option<Box<dyn FnOnce(bool) + Send + 'static>>;
 
 pub struct ProcessExecutor {
     logger: Logger,
@@ -22,6 +23,7 @@ pub struct CommandOptions {
     pub log_duration: bool,
     pub cleanup_temp_files: bool,
     pub duration_target: Option<Arc<Mutex<Option<Duration>>>>,
+    pub on_complete: CompletionCallback,
 }
 
 impl ProcessExecutor {
@@ -68,6 +70,8 @@ impl ProcessExecutor {
                 let start_time = Arc::clone(&self.start_time);
 
                 thread::spawn(move || {
+                    let mut options = options;
+
                     match child.wait() {
                         Ok(exit_status) => {
                             let elapsed = start_time.lock().unwrap().map(|start| start.elapsed());
@@ -95,10 +99,17 @@ impl ProcessExecutor {
                                 }
                             }
 
-                            if exit_status.success() {
+                            let command_succeeded = exit_status.success();
+
+                            if command_succeeded {
                                 logger.success("Command completed successfully");
+
+                                if let Some(on_complete) = options.on_complete.take() {
+                                    on_complete(true);
+                                }
+
                                 // Guard: don't overwrite a more specific terminal status
-                                // (e.g. DnaReadCompleted set by the DNA processing thread)
+                                // (e.g. DnaReadCompleted set by a completion callback)
                                 let mut status = completion_status.lock().unwrap();
                                 if !matches!(
                                     *status,
@@ -113,11 +124,20 @@ impl ProcessExecutor {
                                     exit_status.code()
                                 );
                                 logger.error(&error_msg);
+
+                                if let Some(on_complete) = options.on_complete.take() {
+                                    on_complete(false);
+                                }
+
                                 *completion_status.lock().unwrap() =
                                     CompletionStatus::Failed(error_msg.clone());
                             }
                         }
                         Err(e) => {
+                            if let Some(on_complete) = options.on_complete.take() {
+                                on_complete(false);
+                            }
+
                             let error_msg = format!("Failed to wait for process: {e}");
                             logger.error(&error_msg);
                             *completion_status.lock().unwrap() =
@@ -220,5 +240,104 @@ impl ProcessExecutor {
 
     pub fn get_completion_status_arc(&self) -> Arc<Mutex<CompletionStatus>> {
         Arc::clone(&self.completion_status)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::device_programmer::DnaInfo;
+
+    fn wait_for_terminal_status(executor: &ProcessExecutor) -> CompletionStatus {
+        let deadline = Instant::now() + Duration::from_secs(5);
+
+        loop {
+            let status = executor.get_completion_status();
+            if matches!(
+                status,
+                CompletionStatus::Completed
+                    | CompletionStatus::DnaReadCompleted(_)
+                    | CompletionStatus::Failed(_)
+            ) {
+                return status;
+            }
+
+            assert!(
+                Instant::now() < deadline,
+                "Timed out waiting for terminal process status, last status was {status:?}"
+            );
+            thread::sleep(Duration::from_millis(10));
+        }
+    }
+
+    #[test]
+    fn completion_callback_status_is_not_overwritten_on_success() {
+        let executor = ProcessExecutor::new(Logger::new("ProcessExecutorTest"));
+        executor.reset();
+
+        let completion_status = executor.get_completion_status_arc();
+        let command = ProcessExecutor::prepare_command("cmd", &["/C", "exit /B 0"]);
+
+        executor
+            .execute_command(
+                command,
+                None,
+                CommandOptions {
+                    log_duration: false,
+                    cleanup_temp_files: false,
+                    duration_target: None,
+                    on_complete: Some(Box::new(move |command_succeeded| {
+                        assert!(command_succeeded);
+                        *completion_status.lock().unwrap() =
+                            CompletionStatus::DnaReadCompleted(DnaInfo {
+                                dna_value: "0x1".to_string(),
+                                dna_raw_value: "1".to_string(),
+                                device_type: "test".to_string(),
+                            });
+                    })),
+                },
+            )
+            .expect("test command should start");
+
+        match wait_for_terminal_status(&executor) {
+            CompletionStatus::DnaReadCompleted(info) => {
+                assert_eq!(info.dna_value, "0x1");
+            }
+            status => panic!("expected DNA completion from callback, got {status:?}"),
+        }
+    }
+
+    #[test]
+    fn completion_callback_receives_failure_status() {
+        let executor = ProcessExecutor::new(Logger::new("ProcessExecutorTest"));
+        executor.reset();
+
+        let callback_called = Arc::new(AtomicBool::new(false));
+        let callback_called_clone = Arc::clone(&callback_called);
+        let command = ProcessExecutor::prepare_command("cmd", &["/C", "exit /B 7"]);
+
+        executor
+            .execute_command(
+                command,
+                None,
+                CommandOptions {
+                    log_duration: false,
+                    cleanup_temp_files: false,
+                    duration_target: None,
+                    on_complete: Some(Box::new(move |command_succeeded| {
+                        assert!(!command_succeeded);
+                        callback_called_clone.store(true, Ordering::SeqCst);
+                    })),
+                },
+            )
+            .expect("test command should start");
+
+        match wait_for_terminal_status(&executor) {
+            CompletionStatus::Failed(error) => {
+                assert!(error.contains("exit code"));
+                assert!(callback_called.load(Ordering::SeqCst));
+            }
+            status => panic!("expected failed completion, got {status:?}"),
+        }
     }
 }

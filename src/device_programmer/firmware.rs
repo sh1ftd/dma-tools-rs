@@ -64,6 +64,7 @@ impl FirmwareFlasher {
                 log_duration: true,
                 cleanup_temp_files: true,
                 duration_target: Some(Arc::clone(&duration)),
+                on_complete: None,
             },
         ) {
             Ok(()) => Ok(()),

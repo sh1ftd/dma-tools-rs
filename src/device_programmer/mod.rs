@@ -113,8 +113,8 @@ impl FlashingManager {
         self.monitor.stop_monitor_thread();
     }
 
-    pub fn stop_dna_thread(&self) {
-        self.dna_reader.stop_processing_thread();
+    pub fn stop_dna_output_parsing(&self) {
+        self.dna_reader.stop_output_parsing();
     }
 
     pub fn get_last_status_change_time(&self) -> Option<Instant> {

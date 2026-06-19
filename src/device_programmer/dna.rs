@@ -13,21 +13,20 @@ use std::thread;
 use std::time::Duration;
 
 // Configuration constants
-const DNA_READ_WAIT_MS: u64 = 50;
 const DNA_RETRY_WAIT_MS: u64 = 200;
 const DNA_MAX_ATTEMPTS: usize = 5;
 const MIN_VALID_DNA_FILE_SIZE: u64 = 10;
 
 pub struct DnaReader {
     logger: Logger,
-    thread_running: Arc<AtomicBool>,
+    parse_enabled: Arc<AtomicBool>,
 }
 
 impl DnaReader {
     pub fn new(logger: Logger) -> Self {
         Self {
             logger,
-            thread_running: Arc::new(AtomicBool::new(false)),
+            parse_enabled: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -53,12 +52,11 @@ impl DnaReader {
         let exe_path = format!("{SCRIPT_DIR}/{cmd}");
         let config_path = format!("{SCRIPT_DIR}/{config}");
 
-        // Start background processing thread first (only sets up the thread)
-        self.start_dna_processing_thread(executor, lang);
+        let parse_callback = self.create_dna_parse_callback(executor, lang);
 
-        // Then execute the command - this ensures we don't miss any data
-        if !self.run_dna_command(&exe_path, &config_path, executor) {
-            self.stop_processing_thread(); // Signal thread to stop if it hasn't already
+        // Parse only after OpenOCD exits successfully, so slow output writes do not race the parser.
+        if !self.run_dna_command(&exe_path, &config_path, executor, parse_callback) {
+            self.stop_output_parsing();
             executor.set_completion_status(CompletionStatus::Failed(
                 translate(TextKey::DnaCommandFailed, lang).to_string(),
             ));
@@ -70,6 +68,7 @@ impl DnaReader {
         exe_path: &str,
         config_path: &str,
         executor: &ProcessExecutor,
+        parse_callback: Box<dyn FnOnce(bool) + Send + 'static>,
     ) -> bool {
         let command =
             ProcessExecutor::prepare_command(exe_path, &["-f", config_path, "-c", "exit"]);
@@ -81,6 +80,7 @@ impl DnaReader {
             log_duration: true,
             cleanup_temp_files: false,
             duration_target: None,
+            on_complete: Some(parse_callback),
         };
 
         match executor.execute_command(command, None, options) {
@@ -93,38 +93,36 @@ impl DnaReader {
         }
     }
 
-    pub fn stop_processing_thread(&self) {
-        self.thread_running.store(false, Ordering::SeqCst);
-        self.logger.debug("DNA processing thread stop requested");
+    pub fn stop_output_parsing(&self) {
+        self.parse_enabled.store(false, Ordering::SeqCst);
+        self.logger.debug("DNA output parsing stop requested");
     }
 
-    fn start_dna_processing_thread(&self, executor: &ProcessExecutor, lang: &Language) {
-        if self.thread_running.load(Ordering::SeqCst) {
-            self.logger
-                .debug("DNA thread already running - not starting another");
-            return;
-        }
-
+    fn create_dna_parse_callback(
+        &self,
+        executor: &ProcessExecutor,
+        lang: &Language,
+    ) -> Box<dyn FnOnce(bool) + Send + 'static> {
         let lang = *lang; // Capture copy for thread
 
         let logger_clone = self.logger.clone();
         let completion_status = Arc::clone(&executor.get_completion_status_arc());
-        let thread_running = Arc::clone(&self.thread_running);
+        let parse_enabled = Arc::clone(&self.parse_enabled);
 
-        thread_running.store(true, Ordering::SeqCst);
+        parse_enabled.store(true, Ordering::SeqCst);
 
-        thread::spawn(move || {
-            // Check if the command execution already failed before the thread started processing
-            if let CompletionStatus::Failed(_) = *completion_status.lock().unwrap() {
-                logger_clone.warning(
-                    "DNA command execution failed before thread processing could complete.",
-                );
-                thread_running.store(false, Ordering::SeqCst);
+        Box::new(move |command_succeeded| {
+            if !command_succeeded {
+                logger_clone.warning("DNA command failed before output parsing could run.");
+                parse_enabled.store(false, Ordering::SeqCst);
                 return;
             }
 
-            if !thread_running.load(Ordering::SeqCst) {
-                logger_clone.warning("DNA thread stopped before processing");
+            if !parse_enabled.load(Ordering::SeqCst) {
+                logger_clone.warning("DNA output parsing was stopped before processing");
+                *completion_status.lock().unwrap() = CompletionStatus::Failed(
+                    "DNA output parsing was stopped before completion.".to_string(),
+                );
                 return;
             }
 
@@ -132,9 +130,6 @@ impl DnaReader {
             *completion_status.lock().unwrap() =
                 CompletionStatus::InProgress(translate(TextKey::DnaRetrieving, &lang).to_string());
 
-            thread::sleep(Duration::from_millis(DNA_READ_WAIT_MS));
-
-            // After the wait, check if the file exists
             let dna_path = PathBuf::from(DNA_OUTPUT_FILE);
 
             // Delete potential incomplete/corrupt files
@@ -171,8 +166,8 @@ impl DnaReader {
                 }
             }
 
-            thread_running.store(false, Ordering::SeqCst);
-        });
+            parse_enabled.store(false, Ordering::SeqCst);
+        })
     }
 
     fn cleanup_incomplete_files(path: &Path, logger: &Logger) {

@@ -447,11 +447,11 @@ impl FirmwareToolApp {
                     }
                 }
 
-                // Stop any running DNA thread before transitioning
+                // Stop any pending DNA output parsing before transitioning
                 if self.dna_read_in_progress {
                     self.logger
-                        .debug("Stopping DNA thread before showing results");
-                    self.flashing_manager.stop_dna_thread();
+                        .debug("Stopping DNA output parsing before showing results");
+                    self.flashing_manager.stop_dna_output_parsing();
 
                     thread::sleep(Duration::from_millis(100));
                 }
