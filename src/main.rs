@@ -36,7 +36,7 @@ fn main() -> Result<(), eframe::Error> {
     let window_title = branding::get_branded_title(APP_TITLE, VERSION);
 
     #[cfg(not(feature = "branding"))]
-    let window_title = format!("{APP_TITLE} v{VERSION} - by Shifty");
+    let window_title = format!("{APP_TITLE} v{VERSION} \u{00A9} Shifty");
 
     // eframe handles hardware acceleration selection internally in 0.34+
     let options = create_window_options();

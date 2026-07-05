@@ -81,8 +81,9 @@ pub fn render_pcileech_test(
         let spacing = 12.0 * (button_count - 1.0);
         let button_width = (available_width - spacing) / button_count;
 
-        if common::secondary_button(
+        if common::secondary_icon_button(
             ui,
+            Some(egui_phosphor::regular::HOUSE),
             translate(TextKey::MainMenu, lang),
             egui::vec2(button_width, 32.0),
         )
@@ -95,8 +96,9 @@ pub fn render_pcileech_test(
 
         ui.add_space(12.0);
 
-        if common::primary_button(
+        if common::primary_icon_button(
             ui,
+            Some(egui_phosphor::regular::ARROWS_CLOCKWISE),
             translate(TextKey::TryAgainButton, lang),
             egui::vec2(button_width, 32.0),
         )

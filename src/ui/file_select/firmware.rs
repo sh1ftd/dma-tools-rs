@@ -95,8 +95,9 @@ fn render_firmware_status(
         let available_width = ui.available_width();
         ui.horizontal(|ui| {
             ui.add_space(available_width / 2.0 - 100.0);
-            if common::secondary_button(
+            if common::secondary_icon_button(
                 ui,
+                Some(egui_phosphor::regular::HOUSE),
                 translate(TextKey::MainMenu, lang),
                 Vec2::new(200.0, 32.0),
             )
@@ -221,8 +222,9 @@ fn render_continue_button(
         let spacing = 12.0;
         let button_width = (available_width - spacing) / 2.0;
 
-        if common::secondary_button(
+        if common::secondary_icon_button(
             ui,
+            Some(egui_phosphor::regular::HOUSE),
             translate(TextKey::MainMenu, lang),
             Vec2::new(button_width, 32.0),
         )
@@ -234,8 +236,9 @@ fn render_continue_button(
         ui.add_space(spacing);
 
         if let Some(selected) = firmware_manager.get_selected_firmware() {
-            if common::primary_button(
+            if common::primary_icon_button(
                 ui,
+                Some(egui_phosphor::regular::ARROW_RIGHT),
                 translate(TextKey::Continue, lang),
                 Vec2::new(button_width, 32.0),
             )
@@ -244,8 +247,9 @@ fn render_continue_button(
                 on_select(Some(selected.clone()));
             }
         } else {
-            common::disabled_primary_button(
+            common::disabled_primary_icon_button(
                 ui,
+                Some(egui_phosphor::regular::ARROW_RIGHT),
                 translate(TextKey::Continue, lang),
                 Vec2::new(button_width, 32.0),
             );

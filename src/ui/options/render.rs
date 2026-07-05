@@ -39,8 +39,9 @@ fn render_main_menu_button(
     on_back: &mut dyn FnMut(),
     lang: &crate::utils::localization::Language,
 ) {
-    if common::secondary_button(
+    if common::secondary_icon_button(
         ui,
+        Some(egui_phosphor::regular::HOUSE),
         translate(TextKey::MainMenu, lang),
         Vec2::new(MAIN_MENU_BUTTON_WIDTH, MAIN_MENU_BUTTON_HEIGHT),
     )

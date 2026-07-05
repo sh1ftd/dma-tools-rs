@@ -30,8 +30,9 @@ pub fn render_clear_button(
     lang: &crate::utils::localization::Language,
 ) {
     ui.horizontal(|ui| {
-        if common::secondary_button(
+        if common::secondary_icon_button(
             ui,
+            Some(egui_phosphor::regular::TRASH_SIMPLE),
             crate::utils::localization::translate(
                 crate::utils::localization::TextKey::ClearLog,
                 lang,

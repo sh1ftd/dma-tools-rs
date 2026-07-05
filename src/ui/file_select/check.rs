@@ -261,8 +261,9 @@ fn render_action_buttons(
 
         ui.add_space(leading_space);
 
-        if common::secondary_button(
+        if common::secondary_icon_button(
             ui,
+            Some(egui_phosphor::regular::ARROWS_CLOCKWISE),
             translate(TextKey::Rescan, lang),
             Vec2::new(button_width, ACTION_BUTTON_HEIGHT),
         )
@@ -273,8 +274,9 @@ fn render_action_buttons(
 
         ui.add_space(ACTION_BUTTON_SPACING);
 
-        if common::primary_button(
+        if common::primary_icon_button(
             ui,
+            Some(egui_phosphor::regular::ARROW_RIGHT),
             translate(TextKey::ContinueAnyway, lang),
             Vec2::new(button_width, ACTION_BUTTON_HEIGHT),
         )

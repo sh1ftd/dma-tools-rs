@@ -13,8 +13,11 @@ const BUTTON_TEXT_COLOR: egui::Color32 = palette::TEXT;
 const BUTTON_DESCRIPTION_COLOR: egui::Color32 = palette::TEXT_MUTED;
 const BUTTON_FONT_SIZE: f32 = 17.5;
 const BUTTON_DESCRIPTION_SIZE: f32 = 13.5;
+const BUTTON_ICON_SIZE: f32 = 19.0;
+const BUTTON_ICON_GAP: f32 = 12.0;
 const ACCENT_WIDTH: f32 = 4.0;
-const TEXT_LEFT_PADDING: f32 = 18.0;
+const ICON_LEFT_PADDING: f32 = 18.0;
+const TEXT_LEFT_PADDING: f32 = ICON_LEFT_PADDING + BUTTON_ICON_SIZE + BUTTON_ICON_GAP;
 const LABEL_Y_OFFSET: f32 = -10.0;
 const DESCRIPTION_Y_OFFSET: f32 = 12.0;
 
@@ -22,6 +25,7 @@ pub fn render_colored_option_button(
     ui: &mut Ui,
     label: &str,
     description: &str,
+    icon: &str,
     accent_color: egui::Color32,
     option_fn: impl FnOnce() -> FlashingOption,
     on_select: &mut dyn FnMut(FlashingOption),
@@ -43,7 +47,7 @@ pub fn render_colored_option_button(
     }
 
     draw_accent(ui, &response, accent_color);
-    draw_option_text(ui, &response, label, description);
+    draw_option_text(ui, &response, label, description, icon, accent_color);
     response.clone().on_hover_text(description);
 
     if response.clicked() {
@@ -76,10 +80,26 @@ fn draw_accent(ui: &Ui, response: &egui::Response, accent_color: egui::Color32) 
         .rect_filled(bar_rect, left_only_rounding, accent_color);
 }
 
-fn draw_option_text(ui: &Ui, response: &egui::Response, label: &str, description: &str) {
+fn draw_option_text(
+    ui: &Ui,
+    response: &egui::Response,
+    label: &str,
+    description: &str,
+    icon: &str,
+    icon_color: egui::Color32,
+) {
+    let icon_x = response.rect.left() + ICON_LEFT_PADDING + BUTTON_ICON_SIZE / 2.0;
     let text_x = response.rect.left() + TEXT_LEFT_PADDING;
     let center_y = response.rect.center().y;
     let text_width = response.rect.width() - TEXT_LEFT_PADDING - 14.0;
+
+    ui.painter().text(
+        egui::pos2(icon_x, center_y),
+        Align2::CENTER_CENTER,
+        icon,
+        egui::FontId::proportional(BUTTON_ICON_SIZE),
+        icon_color,
+    );
 
     ui.painter().text(
         egui::pos2(text_x, center_y + LABEL_Y_OFFSET),

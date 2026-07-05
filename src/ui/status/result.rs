@@ -427,8 +427,9 @@ fn render_action_buttons_with_layout(
         let button_width = (available_width - spacing) / button_count as f32;
 
         if include_main_menu {
-            if common::secondary_button(
+            if common::secondary_icon_button(
                 ui,
+                Some(egui_phosphor::regular::HOUSE),
                 translate(TextKey::MainMenu, lang),
                 egui::vec2(button_width, BUTTON_HEIGHT),
             )
@@ -439,8 +440,9 @@ fn render_action_buttons_with_layout(
             ui.add_space(SPACING_MEDIUM);
         }
 
-        if common::primary_button(
+        if common::primary_icon_button(
             ui,
+            Some(egui_phosphor::regular::ARROWS_CLOCKWISE),
             translate(TextKey::TryAgainButton, lang),
             egui::vec2(button_width, BUTTON_HEIGHT),
         )

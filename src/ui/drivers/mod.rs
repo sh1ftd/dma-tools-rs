@@ -23,8 +23,9 @@ pub fn render_drivers_screen(
         let req_admin = translate(TextKey::RequiresAdmin, lang);
 
         // Render FTDI installation button
-        let ftdi_btn = common::primary_button(
+        let ftdi_btn = common::primary_icon_button(
             ui,
+            Some(egui_phosphor::regular::DOWNLOAD_SIMPLE),
             translate(TextKey::InstallFtdiDriver, lang),
             egui::vec2(DRIVER_BUTTON_WIDTH, DRIVER_BUTTON_HEIGHT),
         )
@@ -47,8 +48,9 @@ pub fn render_drivers_screen(
         ui.label(RichText::new(translate(TextKey::JtagDrivers, lang)).strong().size(18.0));
         ui.add_space(10.0);
 
-        if common::secondary_button(
+        if common::secondary_icon_button(
             ui,
+            Some(egui_phosphor::regular::WRENCH),
             translate(TextKey::OpenZadig, lang),
             egui::vec2(DRIVER_BUTTON_WIDTH, DRIVER_BUTTON_HEIGHT),
         )
@@ -59,8 +61,9 @@ pub fn render_drivers_screen(
 
         ui.add_space(10.0);
 
-        if common::primary_button(
+        if common::primary_icon_button(
             ui,
+            Some(egui_phosphor::regular::DOWNLOAD_SIMPLE),
             translate(TextKey::InstallCh347Driver, lang),
             egui::vec2(DRIVER_BUTTON_WIDTH, DRIVER_BUTTON_HEIGHT),
         )
@@ -80,8 +83,9 @@ pub fn render_drivers_screen(
 
         ui.add_space((available_width - button_width) / 2.0);
 
-        if common::secondary_button(
+        if common::secondary_icon_button(
             ui,
+            Some(egui_phosphor::regular::HOUSE),
             translate(TextKey::MainMenu, lang),
             egui::vec2(button_width, MAIN_MENU_BUTTON_HEIGHT),
         )
