@@ -37,7 +37,7 @@ impl ButtonStyled for Ui {
 pub fn create_operation_button(
     ui: &mut Ui,
     operation_type: OperationType,
-    lang: &crate::app::Language,
+    lang: &crate::utils::localization::Language,
 ) -> egui::Response {
     let (text, color) = match operation_type {
         OperationType::FlashFirmware => (

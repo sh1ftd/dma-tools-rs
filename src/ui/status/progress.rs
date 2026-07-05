@@ -29,7 +29,7 @@ pub fn clear_sector_timestamps() {
 pub fn render_flashing_progress(
     ui: &mut Ui,
     manager: &FlashingManager,
-    lang: &crate::app::Language,
+    lang: &crate::utils::localization::Language,
 ) {
     let now = Instant::now();
 
@@ -79,7 +79,7 @@ pub fn render_flashing_progress(
 fn determine_current_stage(
     manager: &FlashingManager,
     now: Instant,
-    lang: &crate::app::Language,
+    lang: &crate::utils::localization::Language,
 ) -> (String, Option<u32>, bool) {
     let logger = manager.logger();
     let entries = logger.get_entries();
@@ -154,7 +154,11 @@ fn extract_sector_from_log(message: &str) -> Option<u32> {
         .and_then(|sector_str| sector_str.trim().parse::<u32>().ok())
 }
 
-fn render_operation_info_frame(ui: &mut Ui, is_dna_read: bool, lang: &crate::app::Language) {
+fn render_operation_info_frame(
+    ui: &mut Ui,
+    is_dna_read: bool,
+    lang: &crate::utils::localization::Language,
+) {
     egui::Frame::NONE
         .fill(ui.style().visuals.extreme_bg_color)
         .corner_radius(egui::CornerRadius::same(12))
@@ -174,7 +178,7 @@ fn render_operation_info_frame(ui: &mut Ui, is_dna_read: bool, lang: &crate::app
         });
 }
 
-fn render_dna_read_info(ui: &mut Ui, lang: &crate::app::Language) {
+fn render_dna_read_info(ui: &mut Ui, lang: &crate::utils::localization::Language) {
     ui.add(egui::Label::new(
         RichText::new(translate(TextKey::ReadingDeviceDna, lang))
             .size(HEADING_SIZE)
@@ -186,7 +190,7 @@ fn render_dna_read_info(ui: &mut Ui, lang: &crate::app::Language) {
     ui.label(translate(TextKey::DnaTakesSeconds, lang));
 }
 
-fn render_flashing_info(ui: &mut Ui, lang: &crate::app::Language) {
+fn render_flashing_info(ui: &mut Ui, lang: &crate::utils::localization::Language) {
     ui.add(egui::Label::new(
         RichText::new(translate(TextKey::FlashingFirmware, lang))
             .size(HEADING_SIZE)
@@ -204,7 +208,7 @@ fn render_technical_info_frame(
     ui: &mut Ui,
     option: &FlashingOption,
     _operation_name: &str,
-    lang: &crate::app::Language,
+    lang: &crate::utils::localization::Language,
 ) {
     egui::Frame::NONE
         .fill(ui.style().visuals.faint_bg_color)
@@ -264,7 +268,10 @@ fn get_device_type(option: &FlashingOption) -> &'static str {
 }
 
 // Add this function to extract a user-friendly status
-fn get_user_friendly_status(manager: &FlashingManager, lang: &crate::app::Language) -> String {
+fn get_user_friendly_status(
+    manager: &FlashingManager,
+    lang: &crate::utils::localization::Language,
+) -> String {
     // Check if it's a DNA read operation
     if manager
         .get_current_option()

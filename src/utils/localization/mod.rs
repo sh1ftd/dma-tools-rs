@@ -1,5 +1,3 @@
-use crate::app::Language;
-
 pub mod arabic;
 pub mod chinese;
 pub mod english;
@@ -10,6 +8,15 @@ pub mod reshaper;
 use std::collections::HashMap;
 use std::sync::Mutex;
 use std::sync::OnceLock;
+
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
+pub enum Language {
+    English,
+    Chinese,
+    German,
+    Portuguese,
+    Arabic,
+}
 
 #[allow(non_camel_case_types)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]

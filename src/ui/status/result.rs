@@ -30,7 +30,7 @@ pub fn render_result_screen(
     ui: &mut Ui,
     manager: &FlashingManager,
     on_action: &mut dyn FnMut(ResultAction),
-    lang: &crate::app::Language,
+    lang: &crate::utils::localization::Language,
 ) {
     let is_dna_read = manager
         .get_current_option()
@@ -47,7 +47,7 @@ fn render_dna_result(
     ui: &mut Ui,
     manager: &FlashingManager,
     on_action: &mut dyn FnMut(ResultAction),
-    lang: &crate::app::Language,
+    lang: &crate::utils::localization::Language,
 ) {
     match manager.get_status() {
         CompletionStatus::DnaReadCompleted(dna_info) => {
@@ -89,7 +89,11 @@ fn render_dna_result(
     render_action_buttons(ui, on_action, lang);
 }
 
-fn render_dna_success(ui: &mut Ui, dna_info: &DnaInfo, lang: &crate::app::Language) {
+fn render_dna_success(
+    ui: &mut Ui,
+    dna_info: &DnaInfo,
+    lang: &crate::utils::localization::Language,
+) {
     ui.vertical_centered(|ui| {
         ui.add_space(SPACING_LARGE);
 
@@ -143,7 +147,7 @@ fn render_flashing_result(
     ui: &mut Ui,
     manager: &FlashingManager,
     on_action: &mut dyn FnMut(ResultAction),
-    lang: &crate::app::Language,
+    lang: &crate::utils::localization::Language,
 ) {
     let status = manager.get_status();
     let duration = manager.get_duration().unwrap_or(Duration::from_secs(0));
@@ -278,7 +282,7 @@ fn extract_sector_time(message: &str) -> Option<u64> {
         .ok()
 }
 
-fn render_duration(ui: &mut Ui, duration_secs: u64, lang: &crate::app::Language) {
+fn render_duration(ui: &mut Ui, duration_secs: u64, lang: &crate::utils::localization::Language) {
     ui.add_space(SPACING_SMALL);
     ui.label(RichText::new(format!(
         "{}: {}:{:02}",
@@ -308,7 +312,12 @@ fn render_framed_content(
         .show(ui, add_contents);
 }
 
-fn render_error(ui: &mut Ui, title: &str, message: &str, lang: &crate::app::Language) {
+fn render_error(
+    ui: &mut Ui,
+    title: &str,
+    message: &str,
+    lang: &crate::utils::localization::Language,
+) {
     ui.vertical_centered(|ui| {
         ui.add_space(SPACING_LARGE);
 
@@ -346,7 +355,7 @@ fn render_error(ui: &mut Ui, title: &str, message: &str, lang: &crate::app::Lang
     });
 }
 
-fn render_success(ui: &mut Ui, lang: &crate::app::Language) {
+fn render_success(ui: &mut Ui, lang: &crate::utils::localization::Language) {
     ui.vertical_centered(|ui| {
         ui.add_space(SPACING_LARGE);
 
@@ -386,7 +395,7 @@ fn render_success(ui: &mut Ui, lang: &crate::app::Language) {
 fn render_action_buttons(
     ui: &mut Ui,
     on_action: &mut dyn FnMut(ResultAction),
-    lang: &crate::app::Language,
+    lang: &crate::utils::localization::Language,
 ) {
     render_action_buttons_with_layout(ui, on_action, true, lang);
 }
@@ -395,7 +404,7 @@ fn render_action_buttons_with_layout(
     ui: &mut Ui,
     on_action: &mut dyn FnMut(ResultAction),
     include_main_menu: bool,
-    lang: &crate::app::Language,
+    lang: &crate::utils::localization::Language,
 ) {
     ui.add_space(SPACING_MEDIUM);
     ui.separator();

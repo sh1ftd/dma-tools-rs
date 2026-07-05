@@ -23,7 +23,7 @@ pub fn render_firmware_selection(
     on_select: &mut dyn FnMut(Option<PathBuf>),
     on_back: &mut dyn FnMut(),
     is_scanning: bool,
-    lang: &crate::app::Language,
+    lang: &crate::utils::localization::Language,
 ) {
     let files: Vec<(usize, PathBuf, bool)> = firmware_manager
         .get_firmware_files()
@@ -61,7 +61,7 @@ fn render_firmware_status(
     ui: &mut Ui,
     status_message: &str,
     on_back: &mut dyn FnMut(),
-    lang: &crate::app::Language,
+    lang: &crate::utils::localization::Language,
 ) {
     ui.vertical_centered(|ui| {
         ui.heading(translate(TextKey::SelectFirmware, lang));
@@ -114,7 +114,7 @@ fn render_firmware_list(
     on_select: &mut dyn FnMut(Option<PathBuf>),
     on_back: &mut dyn FnMut(),
     is_scanning: bool,
-    lang: &crate::app::Language,
+    lang: &crate::utils::localization::Language,
 ) {
     ui.vertical_centered(|ui| {
         render_status_bar(ui, is_scanning, lang);
@@ -140,7 +140,7 @@ fn render_firmware_list(
     });
 }
 
-fn render_status_bar(ui: &mut Ui, is_scanning: bool, lang: &crate::app::Language) {
+fn render_status_bar(ui: &mut Ui, is_scanning: bool, lang: &crate::utils::localization::Language) {
     ui.horizontal(|ui| {
         ui.label(translate(TextKey::SelectFirmware, lang));
 
@@ -197,7 +197,7 @@ fn render_continue_button(
     firmware_manager: &FirmwareManager,
     on_select: &mut dyn FnMut(Option<PathBuf>),
     on_back: &mut dyn FnMut(),
-    lang: &crate::app::Language,
+    lang: &crate::utils::localization::Language,
 ) {
     ui.add_space(16.0);
 

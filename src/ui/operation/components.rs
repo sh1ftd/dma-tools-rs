@@ -8,7 +8,7 @@ const SECTION_SPACING: f32 = 30.0;
 const LABEL_SPACING: f32 = 12.0;
 
 /// Renders the operation selection header with a title.
-pub fn render_operation_header(ui: &mut Ui, lang: &crate::app::Language) {
+pub fn render_operation_header(ui: &mut Ui, lang: &crate::utils::localization::Language) {
     ui.vertical_centered(|ui| {
         ui.heading(translate(TextKey::SelectOperation, lang));
         ui.add_space(SECTION_SPACING);
@@ -19,7 +19,7 @@ pub fn render_operation_header(ui: &mut Ui, lang: &crate::app::Language) {
 pub fn render_operation_buttons(
     ui: &mut Ui,
     on_select: &mut dyn FnMut(OperationType),
-    lang: &crate::app::Language,
+    lang: &crate::utils::localization::Language,
 ) {
     ui.vertical_centered(|ui| {
         render_operation_option(
@@ -68,7 +68,7 @@ fn render_operation_option(
     operation_type: OperationType,
     description: &str,
     on_select: &mut dyn FnMut(OperationType),
-    lang: &crate::app::Language,
+    lang: &crate::utils::localization::Language,
 ) {
     if create_operation_button(ui, operation_type, lang).clicked() {
         on_select(operation_type);

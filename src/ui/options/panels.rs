@@ -20,7 +20,7 @@ const RS232_COLOR: egui::Color32 = egui::Color32::from_rgb(70, 60, 90);
 pub fn render_flash_section(
     ui: &mut Ui,
     on_select: &mut dyn FnMut(FlashingOption),
-    lang: &crate::app::Language,
+    lang: &crate::utils::localization::Language,
 ) {
     render_panel(ui, |ui| {
         render_section_header(ui, translate(TextKey::Ch347Options, lang));
@@ -36,7 +36,7 @@ pub fn render_flash_section(
 pub fn render_dna_section(
     ui: &mut Ui,
     on_select: &mut dyn FnMut(FlashingOption),
-    lang: &crate::app::Language,
+    lang: &crate::utils::localization::Language,
 ) {
     render_panel(ui, |ui| {
         render_colored_option_button(
@@ -108,7 +108,7 @@ fn render_section_header(ui: &mut Ui, title: &str) {
 fn render_ch347_options(
     ui: &mut Ui,
     on_select: &mut dyn FnMut(FlashingOption),
-    lang: &crate::app::Language,
+    lang: &crate::utils::localization::Language,
 ) {
     render_colored_option_button(
         ui,
@@ -145,7 +145,7 @@ fn render_ch347_options(
 fn render_rs232_options(
     ui: &mut Ui,
     on_select: &mut dyn FnMut(FlashingOption),
-    lang: &crate::app::Language,
+    lang: &crate::utils::localization::Language,
 ) {
     render_colored_option_button(
         ui,

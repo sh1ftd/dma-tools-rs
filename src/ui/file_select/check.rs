@@ -35,7 +35,7 @@ const COLOR_WARNING_BG: Color32 = Color32::from_rgba_premultiplied(255, 160, 0, 
 struct FileCheckUiContext<'a> {
     ui: &'a mut Ui,
     check_status: &'a CheckStatus,
-    language: &'a crate::app::Language,
+    language: &'a crate::utils::localization::Language,
 }
 
 pub fn render_file_check(render_ctx: &mut FileCheckRenderContext<'_>) {
@@ -75,7 +75,7 @@ fn render_file_check_internal(
 }
 
 // Status rendering functions
-fn render_not_started(ui: &mut Ui, lang: &crate::app::Language) {
+fn render_not_started(ui: &mut Ui, lang: &crate::utils::localization::Language) {
     ui.add_space(SPACING_XXLARGE);
     ui.add_space(SPACING_XXLARGE);
     ui.label(translate(TextKey::WelcomeMessage, lang).replace("{}", APP_TITLE));
@@ -85,7 +85,7 @@ fn render_not_started(ui: &mut Ui, lang: &crate::app::Language) {
     render_centered_spinner(ui);
 }
 
-fn render_checking(ui: &mut Ui, current_file: &str, lang: &crate::app::Language) {
+fn render_checking(ui: &mut Ui, current_file: &str, lang: &crate::utils::localization::Language) {
     ui.add_space(SPACING_XXLARGE);
     ui.label(RichText::new(translate(TextKey::CheckingFiles, lang)).size(TEXT_SIZE_NORMAL));
     ui.add_space(SPACING_LARGE);
@@ -103,7 +103,7 @@ fn render_checking(ui: &mut Ui, current_file: &str, lang: &crate::app::Language)
 fn render_success_state(
     ui: &mut Ui,
     success_time: &std::time::Instant,
-    lang: &crate::app::Language,
+    lang: &crate::utils::localization::Language,
 ) {
     // Container frame for better spacing control
     egui::Frame::NONE
@@ -134,7 +134,7 @@ fn render_check_failed(
     check_result: &FileCheckResult,
     on_continue: &mut dyn FnMut(bool),
     on_rescan: &mut dyn FnMut(),
-    lang: &crate::app::Language,
+    lang: &crate::utils::localization::Language,
 ) {
     ui.vertical_centered(|ui| {
         ui.colored_label(
@@ -175,7 +175,11 @@ fn render_checkmark(ui: &mut Ui) {
     painter.line_segment([points[1], points[2]], stroke);
 }
 
-fn render_countdown(ui: &mut Ui, success_time: &std::time::Instant, lang: &crate::app::Language) {
+fn render_countdown(
+    ui: &mut Ui,
+    success_time: &std::time::Instant,
+    lang: &crate::utils::localization::Language,
+) {
     let elapsed = success_time.elapsed().as_secs();
 
     #[allow(clippy::absurd_extreme_comparisons)]
@@ -216,7 +220,7 @@ fn render_centered_spinner(ui: &mut Ui) {
 fn render_missing_files_list(
     ui: &mut Ui,
     check_result: &FileCheckResult,
-    lang: &crate::app::Language,
+    lang: &crate::utils::localization::Language,
 ) {
     egui::Frame::dark_canvas(ui.style())
         .stroke(Stroke::new(1.0_f32, COLOR_BORDER))
@@ -235,7 +239,7 @@ fn render_action_buttons(
     ui: &mut Ui,
     on_continue: &mut dyn FnMut(bool),
     on_rescan: &mut dyn FnMut(),
-    lang: &crate::app::Language,
+    lang: &crate::utils::localization::Language,
 ) {
     render_warning_box(ui, lang);
     ui.add_space(SPACING_LARGE);
@@ -267,7 +271,7 @@ fn render_action_buttons(
     });
 }
 
-fn render_warning_box(ui: &mut Ui, lang: &crate::app::Language) {
+fn render_warning_box(ui: &mut Ui, lang: &crate::utils::localization::Language) {
     egui::Frame::NONE
         .fill(COLOR_WARNING_BG)
         .stroke(Stroke::new(1.0_f32, COLOR_WARNING_BORDER))
@@ -309,7 +313,7 @@ fn group_files(files: &[String]) -> FileGroups<'_> {
     groups
 }
 
-fn render_file_groups(ui: &mut Ui, files: &[String], lang: &crate::app::Language) {
+fn render_file_groups(ui: &mut Ui, files: &[String], lang: &crate::utils::localization::Language) {
     let groups = group_files(files);
 
     if !groups.executables.is_empty() {

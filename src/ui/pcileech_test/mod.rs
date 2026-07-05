@@ -19,7 +19,7 @@ pub fn render_pcileech_test(
     ui: &mut egui::Ui,
     test_state: &mut Option<Arc<Mutex<types::PcileechTestState>>>,
     on_back: &mut dyn FnMut(),
-    lang: &crate::app::Language,
+    lang: &crate::utils::localization::Language,
 ) {
     ui.vertical_centered(|ui| {
         ui.heading(translate(TextKey::TestPcileechTitle, lang));

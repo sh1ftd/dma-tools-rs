@@ -10,7 +10,7 @@ const MAIN_MENU_TEXT_SIZE: f32 = 16.0;
 pub fn render_flash_options(
     ui: &mut Ui,
     on_select: &mut dyn FnMut(FlashingOption),
-    lang: &crate::app::Language,
+    lang: &crate::utils::localization::Language,
 ) {
     ui.vertical_centered(|ui| {
         ui.heading(translate(TextKey::SelectFlashingOption, lang));
@@ -23,7 +23,7 @@ pub fn render_dna_read_options(
     ui: &mut Ui,
     on_select: &mut dyn FnMut(FlashingOption),
     on_back: &mut dyn FnMut(),
-    lang: &crate::app::Language,
+    lang: &crate::utils::localization::Language,
 ) {
     ui.vertical_centered(|ui| {
         ui.heading(translate(TextKey::SelectDnaReadOption, lang));
@@ -34,7 +34,11 @@ pub fn render_dna_read_options(
     });
 }
 
-fn render_main_menu_button(ui: &mut Ui, on_back: &mut dyn FnMut(), lang: &crate::app::Language) {
+fn render_main_menu_button(
+    ui: &mut Ui,
+    on_back: &mut dyn FnMut(),
+    lang: &crate::utils::localization::Language,
+) {
     if ui
         .add(
             egui::Button::new(

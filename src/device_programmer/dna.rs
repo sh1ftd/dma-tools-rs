@@ -1,8 +1,8 @@
-use crate::app::Language;
 use crate::device_programmer::process::{CommandOptions, ProcessExecutor};
 use crate::device_programmer::{
     CompletionStatus, DNA_OUTPUT_FILE, DnaInfo, FlashingOption, SCRIPT_DIR,
 };
+use crate::utils::localization::Language;
 use crate::utils::localization::{TextKey, translate};
 use crate::utils::logger::Logger;
 use std::fs;
@@ -354,7 +354,7 @@ impl DnaReader {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::app::Language;
+    use crate::utils::localization::Language;
 
     fn logger() -> Logger {
         Logger::new("DnaTest")

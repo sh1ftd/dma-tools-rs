@@ -5,7 +5,7 @@ use std::process::Command;
 pub fn render_drivers_screen(
     ui: &mut egui::Ui,
     on_back: &mut dyn FnMut(),
-    lang: &crate::app::Language,
+    lang: &crate::utils::localization::Language,
 ) {
     ui.vertical_centered(|ui| {
         ui.heading(translate(TextKey::DriversMenuTitle, lang));

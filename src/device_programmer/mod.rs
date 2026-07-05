@@ -12,7 +12,7 @@ pub use firmware::FirmwareFlasher;
 pub use process::ProcessExecutor;
 pub use types::{CompletionStatus, DnaInfo, FlashingOption};
 
-use crate::app::Language;
+use crate::utils::localization::Language;
 use crate::utils::localization::{TextKey, translate};
 use crate::utils::logger::Logger;
 use monitor::OperationMonitor;

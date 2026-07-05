@@ -105,8 +105,19 @@ impl WindowManager {
             }
         }
 
-        // Add egui-phosphor fonts
-        egui_phosphor::add_to_fonts(&mut fonts, egui_phosphor::Variant::Regular);
+        fonts.font_data.insert(
+            "phosphor".into(),
+            std::sync::Arc::new(eframe::egui::FontData::from_static(
+                egui_phosphor::Variant::Regular.font_bytes(),
+            )),
+        );
+
+        if let Some(font_keys) = fonts
+            .families
+            .get_mut(&eframe::egui::FontFamily::Proportional)
+        {
+            font_keys.insert(1, "phosphor".into());
+        }
 
         ctx.set_fonts(fonts);
     }
