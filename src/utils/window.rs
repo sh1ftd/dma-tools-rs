@@ -1,4 +1,5 @@
-use eframe::egui::{Color32, Context, Visuals};
+use crate::ui::common::palette;
+use eframe::egui::{self, Color32, Context, FontFamily, FontId, TextStyle, Visuals};
 
 pub enum WindowSizeType {
     FileCheck,
@@ -15,20 +16,20 @@ pub enum WindowSizeType {
 pub const WINDOW_WIDTH: f32 = 600.0;
 pub const WINDOW_HEIGHT_INITIAL: f32 = 250.0;
 
-pub const WINDOW_HEIGHT_FILE_CHECK: f32 = 250.0;
+pub const WINDOW_HEIGHT_FILE_CHECK: f32 = 330.0;
 pub const WINDOW_HEIGHT_MISSING_FILES: f32 = 600.0;
 
-pub const WINDOW_HEIGHT_OPERATION_SELECT: f32 = 570.0;
+pub const WINDOW_HEIGHT_OPERATION_SELECT: f32 = 670.0;
 
-pub const WINDOW_HEIGHT_FLASH_FILE_SELECT: f32 = 290.0;
+pub const WINDOW_HEIGHT_FLASH_FILE_SELECT: f32 = 360.0;
 
-pub const WINDOW_HEIGHT_FLASH_OPTION_SELECT: f32 = 700.0;
-pub const WINDOW_HEIGHT_READ_OPTION_SELECT: f32 = 440.0;
+pub const WINDOW_HEIGHT_FLASH_OPTION_SELECT: f32 = 820.0;
+pub const WINDOW_HEIGHT_READ_OPTION_SELECT: f32 = 600.0;
 
 pub const WINDOW_HEIGHT_OPERATION_RESULT: f32 = 725.0;
 
-pub const WINDOW_HEIGHT_DRIVERS: f32 = 480.0;
-pub const WINDOW_HEIGHT_PCILEECH_TEST: f32 = 480.0;
+pub const WINDOW_HEIGHT_DRIVERS: f32 = 560.0;
+pub const WINDOW_HEIGHT_PCILEECH_TEST: f32 = 600.0;
 
 pub struct WindowManager {
     previous_height: Option<f32>,
@@ -43,6 +44,22 @@ impl WindowManager {
 
     pub fn setup_fonts(&self, ctx: &Context) {
         let mut fonts = eframe::egui::FontDefinitions::default();
+
+        if let Ok(font_data) = std::fs::read("C:\\Windows\\Fonts\\segoeui.ttf") {
+            let font_name = "Segoe UI".to_string();
+
+            fonts.font_data.insert(
+                font_name.clone(),
+                std::sync::Arc::new(eframe::egui::FontData::from_owned(font_data)),
+            );
+
+            if let Some(vec) = fonts
+                .families
+                .get_mut(&eframe::egui::FontFamily::Proportional)
+            {
+                vec.insert(0, font_name);
+            }
+        }
 
         let font_paths = [
             "C:\\Windows\\Fonts\\msyh.ttc",
@@ -65,10 +82,10 @@ impl WindowManager {
                     .families
                     .get_mut(&eframe::egui::FontFamily::Proportional)
                 {
-                    vec.insert(0, font_name.clone());
+                    vec.insert(1, font_name.clone());
                 }
                 if let Some(vec) = fonts.families.get_mut(&eframe::egui::FontFamily::Monospace) {
-                    vec.insert(0, font_name);
+                    vec.insert(1, font_name);
                 }
 
                 break;
@@ -135,20 +152,51 @@ impl WindowManager {
 
         #[cfg(not(feature = "branding"))]
         {
-            visuals.panel_fill = Color32::from_rgb(30, 30, 35);
-            visuals.window_fill = Color32::from_rgb(30, 30, 35);
+            visuals.panel_fill = palette::BACKGROUND;
+            visuals.window_fill = palette::BACKGROUND;
         }
 
         visuals.window_stroke.width = 1.0;
-        visuals.window_stroke.color = Color32::from_gray(60);
-        visuals.widgets.noninteractive.bg_fill = Color32::from_rgb(45, 45, 50);
-        visuals.widgets.inactive.bg_fill = Color32::from_rgb(50, 50, 55);
-        visuals.widgets.hovered.bg_fill = Color32::from_rgb(70, 70, 80);
-        visuals.widgets.active.bg_fill = Color32::from_rgb(80, 80, 90);
+        visuals.window_stroke.color = palette::STROKE_SUBTLE;
+        visuals.window_corner_radius = egui::CornerRadius::same(8);
+        visuals.menu_corner_radius = egui::CornerRadius::same(8);
+        visuals.extreme_bg_color = palette::SURFACE_RECESSED;
+        visuals.faint_bg_color = palette::SURFACE;
+        visuals.override_text_color = Some(palette::TEXT);
+        visuals.selection.bg_fill = palette::PRIMARY;
+        visuals.selection.stroke.color = palette::TEXT;
+        visuals.widgets.noninteractive.bg_fill = palette::SURFACE;
+        visuals.widgets.inactive.bg_fill = palette::SURFACE_ELEVATED;
+        visuals.widgets.hovered.bg_fill = Color32::from_rgb(62, 65, 74);
+        visuals.widgets.active.bg_fill = palette::PRIMARY;
         visuals.widgets.noninteractive.bg_stroke.width = 1.0;
-        visuals.widgets.noninteractive.bg_stroke.color = Color32::from_gray(60);
+        visuals.widgets.noninteractive.bg_stroke.color = palette::STROKE_SUBTLE;
+        visuals.widgets.inactive.bg_stroke.color = palette::STROKE;
+        visuals.widgets.hovered.bg_stroke.color = Color32::from_rgb(96, 102, 114);
+        visuals.widgets.active.bg_stroke.color = palette::PRIMARY_HOVER;
+        visuals.widgets.noninteractive.corner_radius = egui::CornerRadius::same(8);
+        visuals.widgets.inactive.corner_radius = egui::CornerRadius::same(8);
+        visuals.widgets.hovered.corner_radius = egui::CornerRadius::same(8);
+        visuals.widgets.active.corner_radius = egui::CornerRadius::same(8);
 
         ctx.set_visuals(visuals);
+
+        ctx.all_styles_mut(|style| {
+            style.spacing.item_spacing = egui::vec2(8.0, 8.0);
+            style.spacing.button_padding = egui::vec2(14.0, 6.0);
+            style.spacing.interact_size = egui::vec2(40.0, 30.0);
+            style.text_styles.insert(
+                TextStyle::Heading,
+                FontId::new(19.0, FontFamily::Proportional),
+            );
+            style
+                .text_styles
+                .insert(TextStyle::Body, FontId::new(15.0, FontFamily::Proportional));
+            style.text_styles.insert(
+                TextStyle::Button,
+                FontId::new(15.0, FontFamily::Proportional),
+            );
+        });
     }
 
     pub fn resize_window(&mut self, ctx: &Context, new_height: f32) {

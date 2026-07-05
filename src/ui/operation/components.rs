@@ -1,11 +1,14 @@
 use super::buttons::create_operation_button;
 use super::types::OperationType;
+use crate::ui::common::palette;
 use crate::utils::localization::{TextKey, translate};
-use eframe::egui::Ui;
+use eframe::egui::{Color32, RichText, Ui};
 
 // Spacing constants
 const SECTION_SPACING: f32 = 30.0;
 const LABEL_SPACING: f32 = 12.0;
+const DESCRIPTION_SIZE: f32 = 15.0;
+const DESCRIPTION_COLOR: Color32 = palette::TEXT_MUTED;
 
 /// Renders the operation selection header with a title.
 pub fn render_operation_header(ui: &mut Ui, lang: &crate::utils::localization::Language) {
@@ -75,5 +78,9 @@ fn render_operation_option(
     }
 
     ui.add_space(LABEL_SPACING);
-    ui.label(description);
+    ui.label(
+        RichText::new(description)
+            .size(DESCRIPTION_SIZE)
+            .color(DESCRIPTION_COLOR),
+    );
 }

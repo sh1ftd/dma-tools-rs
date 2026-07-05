@@ -1,85 +1,70 @@
 use crate::device_programmer::FlashingOption;
+use crate::ui::common;
+use crate::ui::common::palette;
 use eframe::egui::{self, Align2, Ui};
 
-// Styling constants
-const BUTTON_HEIGHT: f32 = 54.0;
-const BUTTON_ROUNDING: u8 = 12;
+const BUTTON_HEIGHT: f32 = 62.0;
+const BUTTON_ROUNDING: u8 = 8;
 const BUTTON_STROKE_WIDTH: f32 = 1.0;
-const BUTTON_STROKE_COLOR: egui::Color32 = egui::Color32::from_rgb(80, 80, 90);
-const BUTTON_TEXT_COLOR: egui::Color32 = egui::Color32::WHITE;
-const BUTTON_FONT_SIZE: f32 = 18.0;
+const BUTTON_FILL: egui::Color32 = palette::SURFACE;
+const BUTTON_HOVER_FILL: egui::Color32 = palette::SURFACE_ELEVATED;
+const BUTTON_STROKE_COLOR: egui::Color32 = palette::STROKE;
+const BUTTON_TEXT_COLOR: egui::Color32 = palette::TEXT;
+const BUTTON_DESCRIPTION_COLOR: egui::Color32 = palette::TEXT_MUTED;
+const BUTTON_FONT_SIZE: f32 = 17.5;
+const BUTTON_DESCRIPTION_SIZE: f32 = 13.5;
+const ACCENT_WIDTH: f32 = 4.0;
+const TEXT_LEFT_PADDING: f32 = 18.0;
+const LABEL_Y_OFFSET: f32 = -10.0;
+const DESCRIPTION_Y_OFFSET: f32 = 12.0;
 
-// Animation constants
-const COLOR_BRIGHTNESS_INCREASE: u8 = 20;
-const HIGHLIGHT_BAR_BASE_WIDTH: f32 = 4.0;
-const PULSE_MIN: f32 = 0.85;
-const PULSE_RANGE: f32 = 0.15;
-const PULSE_SPEED: f32 = 3.0;
-const HIGHLIGHT_BASE_COLOR: (u8, u8, u8) = (100, 180, 200);
-const HIGHLIGHT_COLOR_RANGE: f32 = 55.0;
-const HIGHLIGHT_COLOR_SPEED: f32 = 4.0;
-
-/// Renders an option button with interactive hover effects
 pub fn render_colored_option_button(
     ui: &mut Ui,
     label: &str,
-    tooltip: &str,
-    color: egui::Color32,
+    description: &str,
+    accent_color: egui::Color32,
     option_fn: impl FnOnce() -> FlashingOption,
     on_select: &mut dyn FnMut(FlashingOption),
 ) {
-    let hover_color = brighten_color(color, COLOR_BRIGHTNESS_INCREASE);
-
     let button = egui::Button::new("")
         .min_size(egui::vec2(ui.available_width(), BUTTON_HEIGHT))
-        .fill(color)
+        .fill(if ui.visuals().dark_mode {
+            BUTTON_FILL
+        } else {
+            ui.visuals().widgets.inactive.bg_fill
+        })
         .stroke(egui::Stroke::new(BUTTON_STROKE_WIDTH, BUTTON_STROKE_COLOR))
         .corner_radius(egui::CornerRadius::same(BUTTON_ROUNDING));
 
     let response = ui.add(button);
 
     if response.hovered() {
-        draw_hover_effects(ui, &response, hover_color, tooltip);
+        draw_hover_fill(ui, &response);
     }
 
-    draw_centered_text(ui, &response, label);
+    draw_accent(ui, &response, accent_color);
+    draw_option_text(ui, &response, label, description);
+    response.clone().on_hover_text(description);
 
     if response.clicked() {
         on_select(option_fn());
     }
 }
 
-/// Handles hover state rendering including background, highlight bar and tooltip
-fn draw_hover_effects(
-    ui: &mut Ui,
-    response: &egui::Response,
-    hover_color: egui::Color32,
-    tooltip: &str,
-) {
+fn draw_hover_fill(ui: &mut Ui, response: &egui::Response) {
     ui.painter().rect_filled(
         response.rect,
         egui::CornerRadius::same(BUTTON_ROUNDING),
-        hover_color,
+        BUTTON_HOVER_FILL,
     );
-
-    let time = ui.ctx().input(|i| i.time) as f32;
-
-    draw_animated_highlight_bar(ui, response, time);
-
-    response.clone().on_hover_text(tooltip);
 }
 
-/// Draws an animated vertical highlight on the button's left edge
-fn draw_animated_highlight_bar(ui: &Ui, response: &egui::Response, time: f32) {
-    let pulse = PULSE_MIN + (PULSE_RANGE * (time * PULSE_SPEED).sin().abs());
-    let bar_width = HIGHLIGHT_BAR_BASE_WIDTH * pulse;
-
+fn draw_accent(ui: &Ui, response: &egui::Response, accent_color: egui::Color32) {
     let bar_rect = egui::Rect::from_min_size(
         response.rect.min,
-        egui::vec2(bar_width, response.rect.height()),
+        egui::vec2(ACCENT_WIDTH, response.rect.height()),
     );
 
-    // Round only the left corners to match button shape
     let left_only_rounding = egui::CornerRadius {
         nw: BUTTON_ROUNDING,
         ne: 0,
@@ -87,33 +72,28 @@ fn draw_animated_highlight_bar(ui: &Ui, response: &egui::Response, time: f32) {
         se: 0,
     };
 
-    let highlight_color = egui::Color32::from_rgb(
-        HIGHLIGHT_BASE_COLOR.0,
-        HIGHLIGHT_BASE_COLOR.1,
-        (HIGHLIGHT_BASE_COLOR.2 as f32
-            + HIGHLIGHT_COLOR_RANGE * (time * HIGHLIGHT_COLOR_SPEED).sin()) as u8,
-    );
-
     ui.painter()
-        .rect_filled(bar_rect, left_only_rounding, highlight_color);
+        .rect_filled(bar_rect, left_only_rounding, accent_color);
 }
 
-/// Draws the label text centered on the button
-fn draw_centered_text(ui: &Ui, response: &egui::Response, label: &str) {
+fn draw_option_text(ui: &Ui, response: &egui::Response, label: &str, description: &str) {
+    let text_x = response.rect.left() + TEXT_LEFT_PADDING;
+    let center_y = response.rect.center().y;
+    let text_width = response.rect.width() - TEXT_LEFT_PADDING - 14.0;
+
     ui.painter().text(
-        response.rect.center(),
-        Align2::CENTER_CENTER,
+        egui::pos2(text_x, center_y + LABEL_Y_OFFSET),
+        Align2::LEFT_CENTER,
         label,
-        egui::FontId::proportional(BUTTON_FONT_SIZE),
+        common::fitted_font_id(label, BUTTON_FONT_SIZE, 13.0, text_width),
         BUTTON_TEXT_COLOR,
     );
-}
 
-/// Creates a brighter version of a color for hover effects
-fn brighten_color(color: egui::Color32, amount: u8) -> egui::Color32 {
-    egui::Color32::from_rgb(
-        color.r().saturating_add(amount),
-        color.g().saturating_add(amount),
-        color.b().saturating_add(amount),
-    )
+    ui.painter().text(
+        egui::pos2(text_x, center_y + DESCRIPTION_Y_OFFSET),
+        Align2::LEFT_CENTER,
+        description,
+        common::fitted_font_id(description, BUTTON_DESCRIPTION_SIZE, 11.5, text_width),
+        BUTTON_DESCRIPTION_COLOR,
+    );
 }

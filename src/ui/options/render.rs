@@ -1,11 +1,11 @@
 use super::panels::{render_dna_section, render_flash_section};
 use crate::device_programmer::FlashingOption;
+use crate::ui::common;
 use crate::utils::localization::{TextKey, translate};
-use eframe::egui::{self, RichText, Ui, Vec2};
+use eframe::egui::{Ui, Vec2};
 
 const MAIN_MENU_BUTTON_WIDTH: f32 = 200.0;
 const MAIN_MENU_BUTTON_HEIGHT: f32 = 30.0;
-const MAIN_MENU_TEXT_SIZE: f32 = 16.0;
 
 pub fn render_flash_options(
     ui: &mut Ui,
@@ -39,14 +39,12 @@ fn render_main_menu_button(
     on_back: &mut dyn FnMut(),
     lang: &crate::utils::localization::Language,
 ) {
-    if ui
-        .add(
-            egui::Button::new(
-                RichText::new(translate(TextKey::MainMenu, lang)).size(MAIN_MENU_TEXT_SIZE),
-            )
-            .min_size(Vec2::new(MAIN_MENU_BUTTON_WIDTH, MAIN_MENU_BUTTON_HEIGHT)),
-        )
-        .clicked()
+    if common::secondary_button(
+        ui,
+        translate(TextKey::MainMenu, lang),
+        Vec2::new(MAIN_MENU_BUTTON_WIDTH, MAIN_MENU_BUTTON_HEIGHT),
+    )
+    .clicked()
     {
         on_back();
     }

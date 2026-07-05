@@ -1,5 +1,6 @@
 use super::types::ResultAction;
 use crate::device_programmer::{CompletionStatus, DnaInfo, FlashingManager};
+use crate::ui::common::{self, palette};
 use crate::utils::localization::{TextKey, translate};
 use eframe::egui::{self, RichText, Ui};
 use std::time::Duration;
@@ -23,8 +24,8 @@ const FRAME_MARGIN: i8 = 20;
 const FRAME_OUTER_MARGIN: i8 = 10;
 
 // Color Constants
-const SUCCESS_COLOR: egui::Color32 = egui::Color32::from_rgb(100, 255, 100);
-const ERROR_COLOR: egui::Color32 = egui::Color32::from_rgb(255, 70, 70);
+const SUCCESS_COLOR: egui::Color32 = palette::SUCCESS;
+const ERROR_COLOR: egui::Color32 = palette::ERROR;
 
 pub fn render_result_screen(
     ui: &mut Ui,
@@ -137,7 +138,11 @@ fn render_dna_success(
                 response.on_hover_text(translate(TextKey::ClickToCopyTooltip, lang));
 
                 ui.add_space(SPACING_SMALL);
-                ui.label(translate(TextKey::ClickToCopy, lang));
+                ui.label(
+                    RichText::new(translate(TextKey::ClickToCopy, lang))
+                        .size(14.0)
+                        .color(palette::TEXT_MUTED),
+                );
             });
         });
     });
@@ -253,7 +258,7 @@ fn render_flashing_result(
                         translate(TextKey::OperationInProgress, lang)
                     ))
                     .size(18.0)
-                    .color(egui::Color32::from_rgb(50, 150, 255)),
+                    .color(palette::INFO),
                 ); // Use a blue color for progress
 
                 ui.add_space(10.0);
@@ -284,12 +289,16 @@ fn extract_sector_time(message: &str) -> Option<u64> {
 
 fn render_duration(ui: &mut Ui, duration_secs: u64, lang: &crate::utils::localization::Language) {
     ui.add_space(SPACING_SMALL);
-    ui.label(RichText::new(format!(
-        "{}: {}:{:02}",
-        translate(TextKey::OperationTook, lang),
-        duration_secs / 60,
-        duration_secs % 60
-    )));
+    ui.label(
+        RichText::new(format!(
+            "{}: {}:{:02}",
+            translate(TextKey::OperationTook, lang),
+            duration_secs / 60,
+            duration_secs % 60
+        ))
+        .size(14.0)
+        .color(palette::TEXT_MUTED),
+    );
 }
 
 fn render_icon(ui: &mut Ui, icon: &str, color: egui::Color32) {
@@ -304,7 +313,7 @@ fn render_framed_content(
     add_contents: impl FnOnce(&mut Ui),
 ) {
     egui::Frame::NONE
-        .fill(ui.style().visuals.extreme_bg_color)
+        .fill(palette::SURFACE_RECESSED)
         .corner_radius(egui::CornerRadius::same(FRAME_ROUNDING))
         .stroke(egui::Stroke::new(FRAME_STROKE_WIDTH, border_color))
         .inner_margin(egui::Margin::same(FRAME_MARGIN))
@@ -418,24 +427,24 @@ fn render_action_buttons_with_layout(
         let button_width = (available_width - spacing) / button_count as f32;
 
         if include_main_menu {
-            if ui
-                .add(
-                    egui::Button::new(translate(TextKey::MainMenu, lang))
-                        .min_size(egui::vec2(button_width, BUTTON_HEIGHT)),
-                )
-                .clicked()
+            if common::secondary_button(
+                ui,
+                translate(TextKey::MainMenu, lang),
+                egui::vec2(button_width, BUTTON_HEIGHT),
+            )
+            .clicked()
             {
                 on_action(ResultAction::MainMenu);
             }
             ui.add_space(SPACING_MEDIUM);
         }
 
-        if ui
-            .add(
-                egui::Button::new(translate(TextKey::TryAgainButton, lang))
-                    .min_size(egui::vec2(button_width, BUTTON_HEIGHT)),
-            )
-            .clicked()
+        if common::primary_button(
+            ui,
+            translate(TextKey::TryAgainButton, lang),
+            egui::vec2(button_width, BUTTON_HEIGHT),
+        )
+        .clicked()
         {
             on_action(ResultAction::TryAgain);
         }

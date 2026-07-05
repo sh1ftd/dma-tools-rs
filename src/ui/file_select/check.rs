@@ -1,5 +1,6 @@
 use super::FileCheckRenderContext;
 use crate::APP_TITLE;
+use crate::ui::common::{self, palette};
 use crate::ui::file_select::components::render_missing_file;
 use crate::utils::file_checker::{CheckStatus, FileCheckResult, SUCCESS_TRANSITION_DELAY};
 use crate::utils::localization::{TextKey, translate};
@@ -25,11 +26,17 @@ const TEXT_SIZE_MEDIUM: f32 = 18.0;
 const TEXT_SIZE_LARGE: f32 = 20.0;
 
 // Colors
-const COLOR_SUCCESS: Color32 = Color32::from_rgb(100, 200, 100);
-const COLOR_WARNING: Color32 = Color32::from_rgb(255, 100, 0);
-const COLOR_BORDER: Color32 = Color32::from_rgb(150, 150, 150);
-const COLOR_WARNING_BORDER: Color32 = Color32::from_rgb(255, 160, 0);
-const COLOR_WARNING_BG: Color32 = Color32::from_rgba_premultiplied(255, 160, 0, 25);
+const COLOR_SUCCESS: Color32 = palette::SUCCESS;
+const COLOR_WARNING: Color32 = palette::WARNING;
+const COLOR_BORDER: Color32 = palette::STROKE;
+const COLOR_WARNING_BORDER: Color32 = palette::WARNING;
+const COLOR_WARNING_BG: Color32 = Color32::from_rgba_premultiplied(218, 156, 72, 35);
+const COLOR_WARNING_TEXT: Color32 = Color32::from_rgb(255, 216, 156);
+const ACTION_BUTTON_WIDTH: f32 = 220.0;
+const ACTION_BUTTON_HEIGHT: f32 = 34.0;
+const ACTION_BUTTON_SPACING: f32 = 12.0;
+const COUNTDOWN_SPINNER_WIDTH: f32 = 20.0;
+const COUNTDOWN_TEXT_WIDTH_FACTOR: f32 = 0.46;
 
 /// Internal UI context for rendering sub-components
 struct FileCheckUiContext<'a> {
@@ -165,7 +172,7 @@ fn render_checkmark(ui: &mut Ui) {
     let painter = ui.painter();
     painter.circle_filled(center, CHECKMARK_RADIUS, COLOR_SUCCESS);
 
-    let stroke = Stroke::new(3.0_f32, Color32::WHITE);
+    let stroke = Stroke::new(3.0_f32, palette::TEXT);
     let points = [
         center + Vec2::new(-CHECKMARK_RADIUS * 0.5_f32, 0.0_f32),
         center + Vec2::new(-CHECKMARK_RADIUS * 0.1_f32, CHECKMARK_RADIUS * 0.4_f32),
@@ -189,24 +196,25 @@ fn render_countdown(
 
         let s_text = if remaining == 1 { "" } else { "s" };
         let countdown_text = translate(TextKey::CountdownMessage, lang)
-            .replace("{}", &remaining.to_string())
+            .replacen("{}", &remaining.to_string(), 1)
             .replacen("{}", s_text, 1);
 
-        ui.with_layout(
-            egui::Layout::top_down_justified(egui::Align::Center),
-            |ui| {
-                ui.horizontal(|ui| {
-                    ui.add_space(112.0_f32);
-                    ui.label(
-                        RichText::new(countdown_text)
-                            .italics()
-                            .size(TEXT_SIZE_NORMAL),
-                    );
-                    ui.add_space(SPACING_SMALL);
-                    ui.spinner();
-                });
-            },
-        );
+        ui.horizontal(|ui| {
+            let estimated_text_width = countdown_text.chars().count() as f32
+                * TEXT_SIZE_NORMAL
+                * COUNTDOWN_TEXT_WIDTH_FACTOR;
+            let estimated_row_width =
+                estimated_text_width + SPACING_SMALL + COUNTDOWN_SPINNER_WIDTH;
+            ui.add_space(((ui.available_width() - estimated_row_width) / 2.0).max(0.0));
+            ui.spacing_mut().item_spacing.x = SPACING_SMALL;
+            ui.label(
+                RichText::new(countdown_text)
+                    .italics()
+                    .size(TEXT_SIZE_NORMAL)
+                    .color(palette::TEXT_MUTED),
+            );
+            ui.spinner();
+        });
     }
 }
 
@@ -245,29 +253,35 @@ fn render_action_buttons(
     ui.add_space(SPACING_LARGE);
 
     ui.horizontal(|ui| {
-        ui.add_space(ui.available_width() / 2.0_f32 - 100.0_f32);
-        if ui
-            .add(
-                egui::Button::new(
-                    RichText::new(translate(TextKey::Rescan, lang)).size(TEXT_SIZE_MEDIUM),
-                )
-                .min_size(Vec2::new(200.0_f32, 32.0_f32)),
-            )
-            .clicked()
+        let available_width = ui.available_width();
+        let button_width =
+            ((available_width - ACTION_BUTTON_SPACING) / 2.0).min(ACTION_BUTTON_WIDTH);
+        let leading_space =
+            ((available_width - button_width * 2.0 - ACTION_BUTTON_SPACING) / 2.0).max(0.0);
+
+        ui.add_space(leading_space);
+
+        if common::secondary_button(
+            ui,
+            translate(TextKey::Rescan, lang),
+            Vec2::new(button_width, ACTION_BUTTON_HEIGHT),
+        )
+        .clicked()
         {
             on_rescan();
         }
 
-        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            if ui
-                .button(
-                    RichText::new(translate(TextKey::ContinueAnyway, lang)).size(TEXT_SIZE_MEDIUM),
-                )
-                .clicked()
-            {
-                on_continue(true);
-            }
-        });
+        ui.add_space(ACTION_BUTTON_SPACING);
+
+        if common::primary_button(
+            ui,
+            translate(TextKey::ContinueAnyway, lang),
+            Vec2::new(button_width, ACTION_BUTTON_HEIGHT),
+        )
+        .clicked()
+        {
+            on_continue(true);
+        }
     });
 }
 
@@ -279,7 +293,7 @@ fn render_warning_box(ui: &mut Ui, lang: &crate::utils::localization::Language) 
         .inner_margin(Margin::same(SPACING_LARGE as i8))
         .show(ui, |ui| {
             ui.colored_label(
-                Color32::BLACK,
+                COLOR_WARNING_TEXT,
                 RichText::new(translate(TextKey::MissingFilesWarning, lang))
                     .size(TEXT_SIZE_MEDIUM)
                     .strong(),

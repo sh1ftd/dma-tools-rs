@@ -1,9 +1,12 @@
 use super::styles::get_log_text_style;
+use crate::ui::common;
 use crate::utils::logger::Logger;
-use eframe::egui::{ScrollArea, Ui};
+use eframe::egui::{self, ScrollArea, Ui};
 
 const LOG_FONT_SIZE: f32 = 14.0;
 const LOG_AREA_MAX_HEIGHT: f32 = 200.0;
+const CLEAR_BUTTON_WIDTH: f32 = 110.0;
+const CLEAR_BUTTON_HEIGHT: f32 = 30.0;
 
 pub fn render_log_entries(ui: &mut Ui, logger: &Logger) {
     ScrollArea::vertical()
@@ -27,12 +30,15 @@ pub fn render_clear_button(
     lang: &crate::utils::localization::Language,
 ) {
     ui.horizontal(|ui| {
-        if ui
-            .button(crate::utils::localization::translate(
+        if common::secondary_button(
+            ui,
+            crate::utils::localization::translate(
                 crate::utils::localization::TextKey::ClearLog,
                 lang,
-            ))
-            .clicked()
+            ),
+            egui::vec2(CLEAR_BUTTON_WIDTH, CLEAR_BUTTON_HEIGHT),
+        )
+        .clicked()
         {
             logger.clear();
         }

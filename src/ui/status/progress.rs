@@ -1,4 +1,5 @@
 use crate::device_programmer::{FlashingManager, FlashingOption, dna::DnaReader};
+use crate::ui::common::palette;
 use crate::utils::localization::{TextKey, translate};
 use eframe::egui::{self, RichText, Ui};
 use std::collections::HashMap;
@@ -160,12 +161,9 @@ fn render_operation_info_frame(
     lang: &crate::utils::localization::Language,
 ) {
     egui::Frame::NONE
-        .fill(ui.style().visuals.extreme_bg_color)
+        .fill(palette::SURFACE_RECESSED)
         .corner_radius(egui::CornerRadius::same(12))
-        .stroke(egui::Stroke::new(
-            1.0_f32,
-            egui::Color32::from_rgb(60, 60, 70),
-        ))
+        .stroke(egui::Stroke::new(1.0_f32, palette::STROKE_SUBTLE))
         .inner_margin(egui::Margin::same(LARGE_SPACING as i8))
         .show(ui, |ui| {
             ui.vertical_centered(|ui| {
@@ -185,9 +183,17 @@ fn render_dna_read_info(ui: &mut Ui, lang: &crate::utils::localization::Language
             .strong(),
     ));
     ui.add_space(LARGE_SPACING);
-    ui.label(translate(TextKey::PleaseWaitDna, lang));
+    ui.label(
+        RichText::new(translate(TextKey::PleaseWaitDna, lang))
+            .size(15.0)
+            .color(palette::TEXT_MUTED),
+    );
     ui.add_space(STANDARD_SPACING);
-    ui.label(translate(TextKey::DnaTakesSeconds, lang));
+    ui.label(
+        RichText::new(translate(TextKey::DnaTakesSeconds, lang))
+            .size(15.0)
+            .color(palette::TEXT_MUTED),
+    );
 }
 
 fn render_flashing_info(ui: &mut Ui, lang: &crate::utils::localization::Language) {
@@ -197,11 +203,23 @@ fn render_flashing_info(ui: &mut Ui, lang: &crate::utils::localization::Language
             .strong(),
     ));
     ui.add_space(LARGE_SPACING);
-    ui.label(translate(TextKey::PleaseWaitFlash, lang));
+    ui.label(
+        RichText::new(translate(TextKey::PleaseWaitFlash, lang))
+            .size(15.0)
+            .color(palette::TEXT_MUTED),
+    );
     ui.add_space(STANDARD_SPACING);
-    ui.label(translate(TextKey::FlashTakesMinutes, lang));
+    ui.label(
+        RichText::new(translate(TextKey::FlashTakesMinutes, lang))
+            .size(15.0)
+            .color(palette::TEXT_MUTED),
+    );
     ui.add_space(STANDARD_SPACING);
-    ui.label(translate(TextKey::FlashFailImmediate, lang));
+    ui.label(
+        RichText::new(translate(TextKey::FlashFailImmediate, lang))
+            .size(15.0)
+            .color(palette::TEXT_MUTED),
+    );
 }
 
 fn render_technical_info_frame(
@@ -211,12 +229,9 @@ fn render_technical_info_frame(
     lang: &crate::utils::localization::Language,
 ) {
     egui::Frame::NONE
-        .fill(ui.style().visuals.faint_bg_color)
+        .fill(palette::SURFACE)
         .corner_radius(egui::CornerRadius::same(12))
-        .stroke(egui::Stroke::new(
-            1.0_f32,
-            egui::Color32::from_rgb(80, 80, 90),
-        ))
+        .stroke(egui::Stroke::new(1.0_f32, palette::STROKE))
         .inner_margin(egui::Margin::same(15))
         .show(ui, |ui| {
             ui.vertical_centered(|ui| {

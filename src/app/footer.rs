@@ -1,4 +1,5 @@
 use super::FirmwareToolApp;
+use crate::ui::common::palette;
 use crate::utils::localization::{Language, TextKey, translate};
 use eframe::egui;
 use std::time::{Duration, Instant};
@@ -42,7 +43,7 @@ impl FirmwareToolApp {
             let flag_size_vec = egui::Vec2::splat(base_flag_size * scale);
 
             let tint = if *current_language == lang {
-                egui::Color32::WHITE
+                palette::TEXT
             } else {
                 egui::Color32::from_white_alpha(100)
             };
@@ -84,9 +85,9 @@ impl FirmwareToolApp {
                 egui::Rect::from_center_size(rect.center(), egui::Vec2::splat(icon_size));
 
             let tint = if is_hovered {
-                egui::Color32::WHITE
+                palette::TEXT
             } else {
-                egui::Color32::LIGHT_GRAY
+                palette::TEXT_MUTED
             };
 
             ui.painter().text(
@@ -254,16 +255,15 @@ impl FirmwareToolApp {
                 .anchor(egui::Align2::RIGHT_BOTTOM, egui::vec2(-20.0, -85.0))
                 .show(ctx, |ui| {
                     egui::Frame::NONE
-                        .fill(egui::Color32::from_black_alpha(192))
-                        .corner_radius(6.0)
+                        .fill(palette::SURFACE_RECESSED)
+                        .stroke(egui::Stroke::new(1.0, palette::STROKE_SUBTLE))
+                        .corner_radius(8.0)
                         .inner_margin(8.0)
                         .show(ui, |ui| {
                             ui.set_max_width(COPY_NOTIFICATION_MAX_WIDTH);
                             ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
                                 ui.label(
-                                    egui::RichText::new(msg)
-                                        .color(egui::Color32::GREEN)
-                                        .size(14.0),
+                                    egui::RichText::new(msg).color(palette::SUCCESS).size(14.0),
                                 );
                             });
                         });

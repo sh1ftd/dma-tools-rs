@@ -1,3 +1,5 @@
+use crate::ui::common;
+use crate::ui::common::palette;
 use crate::utils::firmware_discovery::FirmwareManager;
 use crate::utils::localization::{TextKey, translate};
 use eframe::egui::{
@@ -5,9 +7,7 @@ use eframe::egui::{
 };
 use std::path::PathBuf;
 
-const PRIMARY_COLOR: Color32 = Color32::from_rgb(70, 130, 180);
-const DISABLED_COLOR_FACTOR: f32 = 0.5;
-const BORDER_COLOR: Color32 = Color32::from_rgb(150, 150, 150);
+const BORDER_COLOR: Color32 = palette::STROKE;
 const BORDER_WIDTH: f32 = 1.0;
 const CORNER_RADIUS: u8 = 12;
 const PADDING: i8 = 6;
@@ -16,6 +16,8 @@ const SCROLL_HEIGHT: f32 = 80.0;
 // Text sizes
 const HEADING_SIZE: f32 = 18.0;
 const NORMAL_SIZE: f32 = 16.0;
+const SECONDARY_SIZE: f32 = 14.5;
+const SECONDARY_COLOR: Color32 = palette::TEXT_MUTED;
 
 pub fn render_firmware_selection(
     ui: &mut Ui,
@@ -83,7 +85,8 @@ fn render_firmware_status(
         ui.add_space(18.0);
         ui.label(
             RichText::new(translate(TextKey::AutoScanning, lang))
-                .size(NORMAL_SIZE)
+                .size(SECONDARY_SIZE)
+                .color(SECONDARY_COLOR)
                 .italics(),
         );
 
@@ -92,14 +95,12 @@ fn render_firmware_status(
         let available_width = ui.available_width();
         ui.horizontal(|ui| {
             ui.add_space(available_width / 2.0 - 100.0);
-            if ui
-                .add(
-                    egui::Button::new(
-                        RichText::new(translate(TextKey::MainMenu, lang)).size(NORMAL_SIZE),
-                    )
-                    .min_size(Vec2::new(200.0, 30.0)),
-                )
-                .clicked()
+            if common::secondary_button(
+                ui,
+                translate(TextKey::MainMenu, lang),
+                Vec2::new(200.0, 32.0),
+            )
+            .clicked()
             {
                 on_back();
             }
@@ -131,7 +132,11 @@ fn render_firmware_list(
             {
                 firmware_manager.set_cleanup_enabled(cleanup_enabled);
             }
-            ui.label(translate(TextKey::CleanupDescription, lang));
+            ui.label(
+                RichText::new(translate(TextKey::CleanupDescription, lang))
+                    .size(SECONDARY_SIZE)
+                    .color(SECONDARY_COLOR),
+            );
         });
 
         ui.add_space(8.0);
@@ -147,9 +152,19 @@ fn render_status_bar(ui: &mut Ui, is_scanning: bool, lang: &crate::utils::locali
         ui.with_layout(Layout::right_to_left(egui::Align::Center), |ui| {
             if is_scanning {
                 ui.spinner();
-                ui.label(RichText::new(translate(TextKey::ScanningFirmware, lang)).italics());
+                ui.label(
+                    RichText::new(translate(TextKey::ScanningFirmware, lang))
+                        .size(SECONDARY_SIZE)
+                        .color(SECONDARY_COLOR)
+                        .italics(),
+                );
             } else {
-                ui.small(RichText::new(translate(TextKey::AutoRefreshing, lang)).italics());
+                ui.label(
+                    RichText::new(translate(TextKey::AutoRefreshing, lang))
+                        .size(SECONDARY_SIZE)
+                        .color(SECONDARY_COLOR)
+                        .italics(),
+                );
             }
         });
     });
@@ -206,14 +221,12 @@ fn render_continue_button(
         let spacing = 12.0;
         let button_width = (available_width - spacing) / 2.0;
 
-        if ui
-            .add(
-                egui::Button::new(
-                    RichText::new(translate(TextKey::MainMenu, lang)).size(HEADING_SIZE),
-                )
-                .min_size(Vec2::new(button_width, 30.0)),
-            )
-            .clicked()
+        if common::secondary_button(
+            ui,
+            translate(TextKey::MainMenu, lang),
+            Vec2::new(button_width, 32.0),
+        )
+        .clicked()
         {
             on_back();
         }
@@ -221,23 +234,20 @@ fn render_continue_button(
         ui.add_space(spacing);
 
         if let Some(selected) = firmware_manager.get_selected_firmware() {
-            let button = egui::Button::new(
-                RichText::new(translate(TextKey::Continue, lang)).size(HEADING_SIZE),
+            if common::primary_button(
+                ui,
+                translate(TextKey::Continue, lang),
+                Vec2::new(button_width, 32.0),
             )
-            .min_size(Vec2::new(button_width, 30.0))
-            .fill(PRIMARY_COLOR);
-
-            if ui.add(button).clicked() {
+            .clicked()
+            {
                 on_select(Some(selected.clone()));
             }
         } else {
-            ui.add_enabled(
-                false,
-                egui::Button::new(
-                    RichText::new(translate(TextKey::Continue, lang)).size(HEADING_SIZE),
-                )
-                .min_size(Vec2::new(button_width, 30.0))
-                .fill(PRIMARY_COLOR.gamma_multiply(DISABLED_COLOR_FACTOR)),
+            common::disabled_primary_button(
+                ui,
+                translate(TextKey::Continue, lang),
+                Vec2::new(button_width, 32.0),
             );
         }
     });
@@ -245,7 +255,11 @@ fn render_continue_button(
     if firmware_manager.get_selected_firmware().is_none() {
         ui.vertical_centered(|ui| {
             ui.add_space(8.0);
-            ui.label(translate(TextKey::SelectFirmwareToContinue, lang));
+            ui.label(
+                RichText::new(translate(TextKey::SelectFirmwareToContinue, lang))
+                    .size(SECONDARY_SIZE)
+                    .color(SECONDARY_COLOR),
+            );
         });
     }
 }

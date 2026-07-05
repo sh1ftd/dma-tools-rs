@@ -1,6 +1,12 @@
+use crate::ui::common;
 use crate::utils::localization::{TextKey, translate};
 use eframe::egui::{self, RichText};
 use std::process::Command;
+
+const DRIVER_BUTTON_WIDTH: f32 = 250.0;
+const DRIVER_BUTTON_HEIGHT: f32 = 40.0;
+const MAIN_MENU_BUTTON_WIDTH: f32 = 200.0;
+const MAIN_MENU_BUTTON_HEIGHT: f32 = 32.0;
 
 pub fn render_drivers_screen(
     ui: &mut egui::Ui,
@@ -12,13 +18,17 @@ pub fn render_drivers_screen(
         ui.add_space(30.0);
 
         ui.label(RichText::new(translate(TextKey::DataPortDrivers, lang)).strong().size(18.0));
-        ui.add_space(10.0);        let req_admin = translate(TextKey::RequiresAdmin, lang);
+        ui.add_space(10.0);
+
+        let req_admin = translate(TextKey::RequiresAdmin, lang);
 
         // Render FTDI installation button
-        let ftdi_btn = ui.add(
-            egui::Button::new(RichText::new(translate(TextKey::InstallFtdiDriver, lang)).size(16.0))
-                .min_size(egui::vec2(250.0, 40.0))
-        ).on_hover_text(req_admin);
+        let ftdi_btn = common::primary_button(
+            ui,
+            translate(TextKey::InstallFtdiDriver, lang),
+            egui::vec2(DRIVER_BUTTON_WIDTH, DRIVER_BUTTON_HEIGHT),
+        )
+        .on_hover_text(req_admin);
 
         if ftdi_btn.clicked() {
             // Execute pnputil via PowerShell to elevate privileges
@@ -37,22 +47,27 @@ pub fn render_drivers_screen(
         ui.label(RichText::new(translate(TextKey::JtagDrivers, lang)).strong().size(18.0));
         ui.add_space(10.0);
 
-        if ui.add(
-            egui::Button::new(RichText::new(translate(TextKey::OpenZadig, lang)).size(16.0))
-                .min_size(egui::vec2(250.0, 40.0))
-        ).clicked() {
+        if common::secondary_button(
+            ui,
+            translate(TextKey::OpenZadig, lang),
+            egui::vec2(DRIVER_BUTTON_WIDTH, DRIVER_BUTTON_HEIGHT),
+        )
+        .clicked()
+        {
             let _ = Command::new("tools\\zadig-2.9.exe").spawn();
         }
 
         ui.add_space(10.0);
 
-        if ui.add(
-            egui::Button::new(RichText::new(translate(TextKey::InstallCh347Driver, lang)).size(16.0))
-                .min_size(egui::vec2(250.0, 40.0))
-        ).clicked() {
+        if common::primary_button(
+            ui,
+            translate(TextKey::InstallCh347Driver, lang),
+            egui::vec2(DRIVER_BUTTON_WIDTH, DRIVER_BUTTON_HEIGHT),
+        )
+        .clicked()
+        {
             let _ = Command::new("tools\\CH341PAR_USB_DRIVER.EXE").spawn();
         }
-
     });
 
     ui.add_space(40.0);
@@ -61,16 +76,16 @@ pub fn render_drivers_screen(
 
     ui.horizontal(|ui| {
         let available_width = ui.available_width();
-        let button_width = 200.0;
+        let button_width = MAIN_MENU_BUTTON_WIDTH;
 
         ui.add_space((available_width - button_width) / 2.0);
 
-        if ui
-            .add(
-                egui::Button::new(translate(TextKey::MainMenu, lang))
-                    .min_size(egui::vec2(button_width, 32.0)),
-            )
-            .clicked()
+        if common::secondary_button(
+            ui,
+            translate(TextKey::MainMenu, lang),
+            egui::vec2(button_width, MAIN_MENU_BUTTON_HEIGHT),
+        )
+        .clicked()
         {
             on_back();
         }

@@ -1,21 +1,22 @@
 use super::buttons::render_colored_option_button;
 use crate::device_programmer::FlashingOption;
+use crate::ui::common::palette;
 use crate::utils::localization::{TextKey, translate};
 use eframe::egui::{self, RichText, Ui};
 
 // UI styling constants
-const PANEL_ROUNDING: u8 = 12;
+const PANEL_ROUNDING: u8 = 8;
 const PANEL_STROKE_WIDTH: f32 = 1.0;
-const PANEL_MARGIN: i8 = 20;
+const PANEL_MARGIN: i8 = 16;
 const SECTION_SPACE: f32 = 8.0;
 const BUTTON_SPACE: f32 = 12.0;
-const HEADING_SIZE: f32 = 18.0;
+const HEADING_SIZE: f32 = 17.0;
 const SECTION_BOTTOM_SPACE: f32 = 18.0;
 
-// Interface colors
-const STROKE_COLOR: egui::Color32 = egui::Color32::from_rgb(60, 60, 70);
-const CH347_COLOR: egui::Color32 = egui::Color32::from_rgb(50, 70, 90);
-const RS232_COLOR: egui::Color32 = egui::Color32::from_rgb(70, 60, 90);
+const PANEL_FILL: egui::Color32 = palette::SURFACE_RECESSED;
+const STROKE_COLOR: egui::Color32 = palette::STROKE_SUBTLE;
+const CH347_COLOR: egui::Color32 = palette::INFO;
+const RS232_COLOR: egui::Color32 = egui::Color32::from_rgb(150, 126, 214);
 
 pub fn render_flash_section(
     ui: &mut Ui,
@@ -88,7 +89,7 @@ pub fn render_dna_section(
 fn render_panel(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui)) {
     ui.vertical(|ui| {
         egui::Frame::NONE
-            .fill(ui.style().visuals.extreme_bg_color)
+            .fill(PANEL_FILL)
             .corner_radius(egui::CornerRadius::same(PANEL_ROUNDING))
             .stroke(egui::Stroke::new(PANEL_STROKE_WIDTH, STROKE_COLOR))
             .inner_margin(egui::Margin::same(PANEL_MARGIN))
@@ -98,7 +99,7 @@ fn render_panel(ui: &mut Ui, add_contents: impl FnOnce(&mut Ui)) {
 
 fn render_section_header(ui: &mut Ui, title: &str) {
     ui.vertical_centered(|ui| {
-        ui.heading(RichText::new(title).size(HEADING_SIZE));
+        ui.heading(RichText::new(title).size(HEADING_SIZE).strong());
     });
     ui.add_space(SECTION_SPACE);
     ui.separator();

@@ -1,39 +1,26 @@
 use super::types::OperationType;
+use crate::ui::common;
+use crate::ui::common::palette;
 use crate::utils::localization::{TextKey, translate};
-use eframe::egui::{self, RichText, Ui, Widget};
+use eframe::egui::{self, Align2, Ui};
 
-// Button styling constants
-const BUTTON_TEXT_SIZE: f32 = 18.0;
+const BUTTON_TEXT_SIZE: f32 = 17.5;
 const BUTTON_WIDTH: f32 = 250.0;
 const BUTTON_HEIGHT: f32 = 50.0;
+const BUTTON_ROUNDING: u8 = 8;
+const BUTTON_STROKE_COLOR: egui::Color32 = palette::STROKE;
+const BUTTON_TEXT_COLOR: egui::Color32 = palette::TEXT;
+const HOVER_BRIGHTNESS: u8 = 18;
 
-// Button color definitions
 mod colors {
     use eframe::egui::Color32;
 
-    pub const FLASH_FIRMWARE: Color32 = Color32::from_rgb(70, 100, 150);
-    pub const READ_DNA: Color32 = Color32::from_rgb(50, 120, 50);
-    pub const DRIVERS: Color32 = Color32::from_rgb(120, 100, 50);
-    pub const TEST_PCILEECH: Color32 = Color32::from_rgb(100, 50, 120);
+    pub const FLASH_FIRMWARE: Color32 = super::palette::PRIMARY;
+    pub const READ_DNA: Color32 = Color32::from_rgb(62, 118, 88);
+    pub const DRIVERS: Color32 = super::palette::WARNING;
+    pub const TEST_PCILEECH: Color32 = Color32::from_rgb(110, 74, 138);
 }
 
-/// Trait for creating styled buttons in a UI
-pub trait ButtonStyled {
-    /// Creates a styled button with the given ID and button configuration
-    fn button_styled(&mut self, id: impl Into<String>, button: egui::Button<'_>) -> egui::Response;
-}
-
-impl ButtonStyled for Ui {
-    fn button_styled(
-        &mut self,
-        _id: impl Into<String>,
-        button: egui::Button<'_>,
-    ) -> egui::Response {
-        button.ui(self)
-    }
-}
-
-/// Creates a button for the specified operation type with appropriate styling
 pub fn create_operation_button(
     ui: &mut Ui,
     operation_type: OperationType,
@@ -53,11 +40,43 @@ pub fn create_operation_button(
     };
 
     let button_size = egui::vec2(BUTTON_WIDTH, BUTTON_HEIGHT);
-
-    ui.button_styled(
-        text,
-        egui::Button::new(RichText::new(text).size(BUTTON_TEXT_SIZE))
+    let response = ui.add(
+        egui::Button::new("")
             .fill(color)
+            .stroke(egui::Stroke::new(1.0, BUTTON_STROKE_COLOR))
+            .corner_radius(egui::CornerRadius::same(BUTTON_ROUNDING))
             .min_size(button_size),
+    );
+
+    if response.hovered() {
+        ui.painter().rect_filled(
+            response.rect,
+            egui::CornerRadius::same(BUTTON_ROUNDING),
+            brighten_color(color, HOVER_BRIGHTNESS),
+        );
+        ui.painter().rect_stroke(
+            response.rect,
+            egui::CornerRadius::same(BUTTON_ROUNDING),
+            egui::Stroke::new(1.0, BUTTON_STROKE_COLOR),
+            egui::StrokeKind::Inside,
+        );
+    }
+
+    ui.painter().text(
+        response.rect.center(),
+        Align2::CENTER_CENTER,
+        text,
+        common::fitted_font_id(text, BUTTON_TEXT_SIZE, 13.0, response.rect.width() - 24.0),
+        BUTTON_TEXT_COLOR,
+    );
+
+    response
+}
+
+fn brighten_color(color: egui::Color32, amount: u8) -> egui::Color32 {
+    egui::Color32::from_rgb(
+        color.r().saturating_add(amount),
+        color.g().saturating_add(amount),
+        color.b().saturating_add(amount),
     )
 }

@@ -1,3 +1,4 @@
+pub mod common;
 pub mod drivers;
 pub mod file_select;
 pub mod log_view;
