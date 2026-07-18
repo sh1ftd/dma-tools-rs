@@ -3,52 +3,36 @@ use crate::APP_TITLE;
 #[cfg(feature = "branding")]
 use crate::branding::BrandingManager;
 
-use crate::device_programmer::{FlashingManager, FlashingOption};
-use crate::utils::file_checker::FileChecker;
-use crate::utils::firmware_discovery::FirmwareManager;
+use crate::pcileech_test::PcileechTestController;
 use crate::utils::localization::Language;
 use crate::utils::logger::Logger;
 use crate::utils::window::WindowManager;
 use eframe::egui;
-use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
+mod flows;
 mod footer;
 mod lifecycle;
 mod screens;
 mod state;
 
 use self::state::AppState;
+use flows::{FileCheckFlow, FirmwareScanFlow, OperationFlow};
 
 pub struct FirmwareToolApp {
     window_manager: WindowManager,
     state: AppState,
-    file_checker: FileChecker,
-    firmware_manager: FirmwareManager,
-    flashing_manager: FlashingManager,
-    selected_firmware: Option<PathBuf>,
-    selected_option: Option<FlashingOption>,
-    check_started: bool,
-    start_time: Instant,
-    last_firmware_scan: Instant,
-    firmware_scanning: bool,
-    check_success_display_time: Option<Instant>,
+    file_check: FileCheckFlow,
+    firmware_scan: FirmwareScanFlow,
+    operation: OperationFlow,
     logger: Logger,
     previous_log_state: bool,
-    dna_read_start_time: Option<Instant>,
-    dna_read_in_progress: bool,
-    waiting_message_logged: bool,
     #[cfg(feature = "branding")]
     branding_manager: BrandingManager,
     contact_copy_notification: Option<(String, Instant)>,
     icon_manager: crate::assets::IconManager,
     language: Language,
-    /// Current auto-retry attempt (0 = first try, 1 = first retry, etc.)
-    auto_retry_attempt: u32,
-    /// Timestamp when the last retry cooldown started (None = not in cooldown)
-    retry_cooldown_start: Option<Instant>,
-    pcileech_test_state: Option<Arc<Mutex<crate::ui::pcileech_test::types::PcileechTestState>>>,
+    pcileech_test: PcileechTestController,
 }
 
 impl FirmwareToolApp {
@@ -65,29 +49,17 @@ impl FirmwareToolApp {
         Self {
             window_manager,
             state: AppState::FileCheck,
-            file_checker: FileChecker::new(),
-            firmware_manager: FirmwareManager::new(),
-            flashing_manager: FlashingManager::new_with_logger(logger.clone()),
-            selected_firmware: None,
-            selected_option: None,
-            check_started: false,
-            start_time: Instant::now(),
-            last_firmware_scan: Instant::now(),
-            firmware_scanning: false,
-            check_success_display_time: None,
+            file_check: FileCheckFlow::new(),
+            firmware_scan: FirmwareScanFlow::new(),
+            operation: OperationFlow::new(logger.clone()),
             logger,
             previous_log_state: false,
-            dna_read_start_time: None,
-            dna_read_in_progress: false,
-            waiting_message_logged: false,
             #[cfg(feature = "branding")]
             branding_manager: BrandingManager::new(),
             contact_copy_notification: None,
             icon_manager,
             language: Language::English,
-            auto_retry_attempt: 0,
-            retry_cooldown_start: None,
-            pcileech_test_state: None,
+            pcileech_test: PcileechTestController::new(),
         }
     }
 }

@@ -99,9 +99,6 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::NoteFewerSectors => {
             ".ملاحظة: تم إتمام العملية بأقل من 10 قطاعات. يرجى التحقق يدويًا أو المحاولة مرة أخرى"
         }
-        TextKey::NoteVerifySuccess => {
-            ".ملاحظة: لم يتمكن من التحقق من النجاح الكامل، ولكن لم يتم الكشف عن أخطاء. يرجى التحقق يدويًا أو المحاولة مرة أخرى"
-        }
         TextKey::ErrorDetails => "تفاصيل الخطأ",
 
         TextKey::Initializing => "...جارٍ التهيئة",

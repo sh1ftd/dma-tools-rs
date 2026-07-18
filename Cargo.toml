@@ -2,7 +2,7 @@ cargo-features = ["profile-rustflags"]
 
 [package]
     name = "dma-tools-rs"
-    version = "3.1.1"
+    version = "3.2.0"
     edition = "2024"
     license = "AGPL-3.0"
     authors = ["Shifty <contact@shifty.cloud>"]
@@ -49,6 +49,8 @@ cargo-features = ["profile-rustflags"]
         "windef",
         "processthreadsapi",
         "handleapi",
+        "jobapi2",
+        "tlhelp32",
         "winnt",
         "dwmapi",
         "utilapiset",

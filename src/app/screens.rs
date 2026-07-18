@@ -1,9 +1,11 @@
 use super::{AppState, FirmwareToolApp};
 use crate::device_programmer::FlashingOption;
+use crate::pcileech_test::PcileechTestSnapshot;
 use crate::ui;
 use crate::ui::file_select::FileCheckRenderContext;
+use crate::ui::pcileech_test::PcileechAction;
 use crate::ui::status::ResultAction;
-use crate::utils::file_checker::{CheckStatus, FileChecker};
+use crate::utils::file_checker::CheckStatus;
 use eframe::egui;
 use std::path::PathBuf;
 use std::time::Instant;
@@ -58,7 +60,7 @@ impl FirmwareToolApp {
     }
 
     fn render_file_check_state(&mut self, ui: &mut egui::Ui) {
-        let check_status = self.file_checker.get_status();
+        let check_status = self.file_check.checker.get_status();
         self.state = self.handle_file_check_state();
 
         let mut continue_callback = |continue_anyway: bool| {
@@ -74,8 +76,7 @@ impl FirmwareToolApp {
         };
 
         let mut rescan_callback = || {
-            self.check_started = false;
-            self.file_checker = FileChecker::new();
+            self.file_check.reset();
         };
 
         ui::file_select::render_file_check(&mut FileCheckRenderContext {
@@ -92,13 +93,12 @@ impl FirmwareToolApp {
             ui::operation::OperationType::FlashFirmware => {
                 self.state = AppState::FirmwareSelection;
 
-                self.firmware_manager.scan_firmware_files();
-                self.last_firmware_scan = Instant::now();
-                self.firmware_scanning = true;
+                self.firmware_scan.manager.scan_firmware_files();
+                self.firmware_scan.mark_scan_started();
             }
             ui::operation::OperationType::ReadDNA => {
                 self.state = AppState::FlashingOptions;
-                self.selected_option = Some(FlashingOption::DnaCH347);
+                self.operation.selected_option = Some(FlashingOption::DnaCH347);
             }
             ui::operation::OperationType::Drivers => {
                 self.state = AppState::Drivers;
@@ -119,20 +119,31 @@ impl FirmwareToolApp {
     }
 
     fn render_pcileech_test(&mut self, ui: &mut egui::Ui) {
-        let mut back_callback = || {
+        if self.pcileech_test.acknowledge_back_if_ready() {
             self.state = AppState::OperationSelection;
-        };
-        crate::ui::pcileech_test::render_pcileech_test(
+            return;
+        }
+
+        self.pcileech_test.ensure_started();
+        let test_snapshot: PcileechTestSnapshot = self.pcileech_test.snapshot();
+
+        match crate::ui::pcileech_test::render_pcileech_test(
             ui,
-            &mut self.pcileech_test_state,
-            &mut back_callback,
+            &test_snapshot.state,
             &self.language,
-        );
+        ) {
+            Some(PcileechAction::Back) => {
+                self.pcileech_test.request_back();
+                if self.pcileech_test.acknowledge_back_if_ready() {
+                    self.state = AppState::OperationSelection;
+                }
+            }
+            Some(PcileechAction::Retry) => self.pcileech_test.retry(),
+            None => {}
+        }
     }
 
     fn render_firmware_selection(&mut self, ui: &mut egui::Ui) {
-        let cleanup_enabled = self.firmware_manager.get_cleanup_enabled();
-
         let mut selected_file = None;
         let mut go_back = false;
 
@@ -140,8 +151,8 @@ impl FirmwareToolApp {
             selected_file = Some(selected);
         };
 
-        let scan_count = self.firmware_manager.get_scan_count();
-        let is_scanning = self.firmware_scanning || scan_count <= 1;
+        let scan_count = self.firmware_scan.manager.get_scan_count();
+        let is_scanning = self.firmware_scan.scanning || scan_count <= 1;
 
         let mut back_callback = || {
             go_back = true;
@@ -149,7 +160,7 @@ impl FirmwareToolApp {
 
         ui::file_select::render_firmware_selection(
             ui,
-            &mut self.firmware_manager,
+            &mut self.firmware_scan.manager,
             &mut select_callback,
             &mut back_callback,
             is_scanning,
@@ -159,21 +170,22 @@ impl FirmwareToolApp {
         if go_back {
             self.state = AppState::OperationSelection;
         } else if let Some(selected) = selected_file {
-            self.selected_firmware = selected;
+            let cleanup_enabled = self.firmware_scan.manager.get_cleanup_enabled();
+            self.operation.selected_firmware = selected;
             self.state = AppState::FlashingOptions;
-            self.flashing_manager.set_cleanup_enabled(cleanup_enabled);
+            self.operation.set_cleanup_enabled(cleanup_enabled);
         }
     }
 
     fn render_flashing_options(&mut self, ui: &mut egui::Ui) {
         let app_state = &mut self.state;
-        let selected_option = &mut self.selected_option;
-        let selected_firmware = &self.selected_firmware;
-        let flashing_manager = &mut self.flashing_manager;
-        let dna_read_start_time = &mut self.dna_read_start_time;
-        let dna_read_in_progress = &mut self.dna_read_in_progress;
-        let auto_retry_attempt = &mut self.auto_retry_attempt;
-        let retry_cooldown_start = &mut self.retry_cooldown_start;
+        let selected_option = &mut self.operation.selected_option;
+        let selected_firmware = &self.operation.selected_firmware;
+        let flashing_manager = &mut self.operation.manager;
+        let dna_read_start_time = &mut self.operation.dna_started_at;
+        let dna_read_in_progress = &mut self.operation.dna_in_progress;
+        let auto_retry_attempt = &mut self.operation.retry_attempt;
+        let retry_cooldown_start = &mut self.operation.retry_cooldown_started_at;
         let language = &self.language;
         let mut go_back = false;
 
@@ -218,7 +230,8 @@ impl FirmwareToolApp {
     }
 
     fn render_flashing(&mut self, ui: &mut egui::Ui) {
-        ui::status::render_flashing_progress(ui, &self.flashing_manager, &self.language);
+        let snapshot = self.operation.manager.snapshot();
+        ui::status::render_flashing_progress(ui, &snapshot, &self.language);
     }
 
     fn render_result(&mut self, ui: &mut egui::Ui) {
@@ -229,12 +242,8 @@ impl FirmwareToolApp {
                 action_to_take = Some(action);
             };
 
-            ui::status::render_result_screen(
-                ui,
-                &self.flashing_manager,
-                &mut action_callback,
-                &self.language,
-            );
+            let snapshot = self.operation.manager.snapshot();
+            ui::status::render_result_screen(ui, &snapshot, &mut action_callback, &self.language);
         }
 
         if let Some(action) = action_to_take {

@@ -101,9 +101,6 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::NoteFewerSectors => {
             "Hinweis: Vorgang mit weniger als 10 Sektoren abgeschlossen. Bitte manuell überprüfen oder erneut versuchen."
         }
-        TextKey::NoteVerifySuccess => {
-            "Hinweis: Vollständiger Erfolg konnte nicht verifiziert werden, aber es wurden keine Fehler erkannt. Bitte manuell überprüfen oder erneut versuchen."
-        }
         TextKey::ErrorDetails => "Fehlerdetails",
 
         TextKey::Initializing => "Initialisierung...",

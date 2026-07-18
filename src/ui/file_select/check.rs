@@ -3,7 +3,7 @@ use crate::APP_TITLE;
 use crate::ui::common::{self, palette};
 use crate::ui::file_select::components::render_missing_file;
 use crate::utils::file_checker::{CheckStatus, FileCheckResult, SUCCESS_TRANSITION_DELAY};
-use crate::utils::localization::{TextKey, translate};
+use crate::utils::localization::{TextKey, format_translation, translate};
 use eframe::egui::{self, Color32, CornerRadius, Margin, RichText, Sense, Stroke, Ui, Vec2};
 
 // UI Constants
@@ -85,7 +85,10 @@ fn render_file_check_internal(
 fn render_not_started(ui: &mut Ui, lang: &crate::utils::localization::Language) {
     ui.add_space(SPACING_XXLARGE);
     ui.add_space(SPACING_XXLARGE);
-    ui.label(translate(TextKey::WelcomeMessage, lang).replace("{}", APP_TITLE));
+    ui.label(format_translation(
+        translate(TextKey::WelcomeMessage, lang),
+        &[APP_TITLE],
+    ));
     ui.add_space(SPACING_LARGE);
     ui.label(translate(TextKey::CheckingFiles, lang));
     ui.add_space(SPACING_LARGE);
@@ -100,8 +103,11 @@ fn render_checking(ui: &mut Ui, current_file: &str, lang: &crate::utils::localiz
     ui.add_space(SPACING_XLARGE);
     ui.vertical_centered(|ui| {
         ui.label(
-            RichText::new(translate(TextKey::CheckingItem, lang).replace("{}", current_file))
-                .monospace(),
+            RichText::new(format_translation(
+                translate(TextKey::CheckingItem, lang),
+                &[current_file],
+            ))
+            .monospace(),
         );
     });
     ui.add_space(SPACING_XXLARGE);
@@ -195,9 +201,11 @@ fn render_countdown(
         ui.add_space(SPACING_MEDIUM);
 
         let s_text = if remaining == 1 { "" } else { "s" };
-        let countdown_text = translate(TextKey::CountdownMessage, lang)
-            .replacen("{}", &remaining.to_string(), 1)
-            .replacen("{}", s_text, 1);
+        let remaining = remaining.to_string();
+        let countdown_text = format_translation(
+            translate(TextKey::CountdownMessage, lang),
+            &[&remaining, s_text],
+        );
 
         ui.horizontal(|ui| {
             let estimated_text_width = countdown_text.chars().count() as f32

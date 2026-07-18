@@ -103,9 +103,6 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::NoteFewerSectors => {
             "Nota: Operação concluída com menos de 10 setores. Por favor, verifique manualmente ou tente novamente."
         }
-        TextKey::NoteVerifySuccess => {
-            "Nota: Não foi possível verificar o sucesso completo, mas nenhum erro foi detectado. Por favor, verifique manualmente ou tente novamente."
-        }
         TextKey::ErrorDetails => "Detalhes do Erro",
 
         TextKey::Initializing => "Inicializando...",

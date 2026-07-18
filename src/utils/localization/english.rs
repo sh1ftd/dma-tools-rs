@@ -102,9 +102,6 @@ pub fn get_text(key: TextKey) -> &'static str {
         TextKey::NoteFewerSectors => {
             "Note: Operation completed with fewer than 10 sectors. Please verify manually or try again."
         }
-        TextKey::NoteVerifySuccess => {
-            "Note: Unable to verify complete success, but no errors were detected. Please verify manually or try again."
-        }
         TextKey::ErrorDetails => "Error Details",
 
         // Progress

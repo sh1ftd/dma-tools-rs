@@ -8,6 +8,7 @@ mod assets;
 #[rustfmt::skip]
 mod branding;
 mod device_programmer;
+mod pcileech_test;
 mod ui;
 mod utils;
 

@@ -1,6 +1,6 @@
 use super::FirmwareToolApp;
 use crate::ui::common::palette;
-use crate::utils::localization::{Language, TextKey, translate};
+use crate::utils::localization::{Language, TextKey, format_translation, translate};
 use eframe::egui;
 use std::time::{Duration, Instant};
 
@@ -201,8 +201,10 @@ impl FirmwareToolApp {
                         egui_phosphor::regular::TELEGRAM_LOGO,
                         tg_contact,
                         translate(TextKey::CopyTelegram, &self.language),
-                        translate(TextKey::Copied, &self.language)
-                            .replace("{}", translate(TextKey::TelegramLink, &self.language)),
+                        format_translation(
+                            translate(TextKey::Copied, &self.language),
+                            &[translate(TextKey::TelegramLink, &self.language)],
+                        ),
                         &mut self.contact_copy_notification,
                     );
                 }
@@ -217,8 +219,10 @@ impl FirmwareToolApp {
                         egui_phosphor::regular::WECHAT_LOGO,
                         wc_contact,
                         translate(TextKey::CopyWeChat, &self.language),
-                        translate(TextKey::Copied, &self.language)
-                            .replace("{}", translate(TextKey::WeChatID, &self.language)),
+                        format_translation(
+                            translate(TextKey::Copied, &self.language),
+                            &[translate(TextKey::WeChatID, &self.language)],
+                        ),
                         &mut self.contact_copy_notification,
                     );
                 }
@@ -233,8 +237,10 @@ impl FirmwareToolApp {
                         egui_phosphor::regular::DISCORD_LOGO,
                         dc_contact,
                         translate(TextKey::CopyDiscord, &self.language),
-                        translate(TextKey::Copied, &self.language)
-                            .replace("{}", translate(TextKey::DiscordID, &self.language)),
+                        format_translation(
+                            translate(TextKey::Copied, &self.language),
+                            &[translate(TextKey::DiscordID, &self.language)],
+                        ),
                         &mut self.contact_copy_notification,
                     );
                 }

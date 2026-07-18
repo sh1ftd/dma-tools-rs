@@ -54,7 +54,8 @@ impl FirmwareFlasher {
         duration: Arc<Mutex<Option<Duration>>>,
     ) -> Result<(), String> {
         // Create a monitor callback (only pass the logger)
-        let monitor_callback = monitor.create_line_monitor(self.logger.clone());
+        let monitor_callback =
+            monitor.create_line_monitor(self.logger.clone(), executor.process_terminator());
 
         // Execute the command and get the child process
         match executor.execute_command(

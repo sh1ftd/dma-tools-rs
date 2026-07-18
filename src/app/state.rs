@@ -16,13 +16,15 @@ pub(super) enum AppState {
 
 impl FirmwareToolApp {
     fn is_dna_read_operation(&self) -> bool {
-        self.selected_option
+        self.operation
+            .selected_option
             .as_ref()
             .is_some_and(|option| option.is_dna_read())
     }
 
     fn is_flash_operation(&self) -> bool {
-        self.selected_option
+        self.operation
+            .selected_option
             .as_ref()
             .is_some_and(|option| option.is_flash_operation())
     }
@@ -30,7 +32,7 @@ impl FirmwareToolApp {
     pub(super) fn get_window_size_type(&self) -> WindowSizeType {
         match self.state {
             AppState::FileCheck => {
-                if let CheckStatus::Complete(result) = self.file_checker.get_status()
+                if let CheckStatus::Complete(result) = self.file_check.checker.get_status()
                     && result.error_count > 0
                 {
                     return WindowSizeType::MissingFiles;

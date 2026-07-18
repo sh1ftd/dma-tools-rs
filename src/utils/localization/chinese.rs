@@ -99,7 +99,6 @@ pub fn get_text(key: TextKey) -> &'static str {
         // Result Extras
         TextKey::OperationTook => "操作耗时",
         TextKey::NoteFewerSectors => "注意：操作完成但少于 10 个扇区。请手动验证或重试。",
-        TextKey::NoteVerifySuccess => "注意：无法验证完全成功，但未检测到错误。请手动验证或重试。",
         TextKey::ErrorDetails => "错误详情",
 
         // Progress

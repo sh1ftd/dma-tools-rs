@@ -33,6 +33,7 @@ impl FirmwareManager {
         }
 
         let previous_files = self.firmware_files.clone();
+        let previous_selection = self.get_selected_firmware().cloned();
         self.firmware_files.clear();
 
         let exe_path = env::current_exe().unwrap_or_else(|_| PathBuf::from("."));
@@ -46,6 +47,7 @@ impl FirmwareManager {
         self.collect_firmware_files(&search_dirs);
 
         self.deduplicate_firmware_files();
+        self.restore_selection(previous_selection.as_deref());
 
         if self.scan_count > 0 {
             let has_new_file = self
@@ -58,11 +60,6 @@ impl FirmwareManager {
         }
 
         self.scan_count += 1;
-
-        // Auto-select if only one file is found
-        if self.firmware_files.len() == 1 {
-            self.selected_index = Some(0);
-        }
 
         #[cfg(debug_assertions)]
         self.debug_print_results();
@@ -141,6 +138,20 @@ impl FirmwareManager {
         });
     }
 
+    fn restore_selection(&mut self, previous_selection: Option<&Path>) {
+        self.selected_index = previous_selection.and_then(|selected| {
+            self.firmware_files
+                .iter()
+                .position(|candidate| candidate == selected)
+        });
+
+        // A single discovered file is unambiguous. With multiple files, never
+        // carry a positional index forward after the selected path disappears.
+        if self.selected_index.is_none() && self.firmware_files.len() == 1 {
+            self.selected_index = Some(0);
+        }
+    }
+
     #[cfg(debug_assertions)]
     fn debug_print_search_dirs(&self, search_dirs: &[PathBuf]) {
         println!("Searching for firmware in:");
@@ -167,5 +178,75 @@ impl FirmwareManager {
 
     pub fn set_cleanup_enabled(&mut self, enabled: bool) {
         self.cleanup_enabled = enabled;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rescan_preserves_selection_by_exact_path_after_reordering() {
+        let selected = PathBuf::from("firmware/b.bin");
+        let mut manager = FirmwareManager::new();
+        manager.firmware_files = vec![
+            PathBuf::from("firmware/a.bin"),
+            selected.clone(),
+            PathBuf::from("firmware/c.bin"),
+        ];
+        manager.selected_index = Some(1);
+
+        let previous_selection = manager.get_selected_firmware().cloned();
+        manager.firmware_files = vec![
+            PathBuf::from("firmware/0-new.bin"),
+            PathBuf::from("firmware/a.bin"),
+            PathBuf::from("firmware/c.bin"),
+            selected.clone(),
+        ];
+        manager.restore_selection(previous_selection.as_deref());
+
+        assert_eq!(manager.get_selected_firmware(), Some(&selected));
+        assert_eq!(manager.selected_index, Some(3));
+    }
+
+    #[test]
+    fn rescan_clears_selection_when_selected_path_was_removed() {
+        let mut manager = FirmwareManager::new();
+        manager.firmware_files = vec![
+            PathBuf::from("firmware/a.bin"),
+            PathBuf::from("firmware/b.bin"),
+            PathBuf::from("firmware/c.bin"),
+        ];
+        manager.selected_index = Some(1);
+
+        let previous_selection = manager.get_selected_firmware().cloned();
+        manager.firmware_files = vec![
+            PathBuf::from("firmware/a.bin"),
+            PathBuf::from("firmware/c.bin"),
+        ];
+        manager.restore_selection(previous_selection.as_deref());
+
+        assert!(manager.get_selected_firmware().is_none());
+        assert!(manager.selected_index.is_none());
+    }
+
+    #[test]
+    fn rescan_auto_selects_only_remaining_file_after_removal() {
+        let mut manager = FirmwareManager::new();
+        manager.firmware_files = vec![
+            PathBuf::from("firmware/a.bin"),
+            PathBuf::from("firmware/b.bin"),
+        ];
+        manager.selected_index = Some(1);
+
+        let previous_selection = manager.get_selected_firmware().cloned();
+        manager.firmware_files = vec![PathBuf::from("firmware/a.bin")];
+        manager.restore_selection(previous_selection.as_deref());
+
+        assert_eq!(
+            manager.get_selected_firmware(),
+            Some(&PathBuf::from("firmware/a.bin"))
+        );
+        assert_eq!(manager.selected_index, Some(0));
     }
 }
