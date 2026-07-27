@@ -1,4 +1,6 @@
 /target/
+/BRANDED_BINS/
+/build_brands.py
 OpenOCD/openocd_output.log
 src/branding/*.webp
 src/branding/mod.rs
