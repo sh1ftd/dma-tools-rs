@@ -99,11 +99,19 @@ fn perform_file_check(status: &Arc<Mutex<CheckStatus>>) -> FileCheckResult {
         "OpenOCD/DNA/init_232_35t.cfg",
         "OpenOCD/DNA/init_232_75t.cfg",
         "OpenOCD/DNA/init_232_100t.cfg",
-        // Drivers and Tools
+        // FTDI driver
+        "tools/FTDIBUS3/FTDIBUS3.cat",
         "tools/FTDIBUS3/ftdibus3.Inf",
+        "tools/FTDIBUS3/ftdibus3.PNF",
+        "tools/FTDIBUS3/FTDIBUS3.sys",
+        // Standalone driver tools
         "tools/zadig-2.9.exe",
         "tools/CH341PAR_USB_DRIVER.EXE",
+        // PCILeech test tool and runtime libraries
+        "tools/memflow-base/FTD3XX.dll",
         "tools/memflow-base/memflow-base.exe",
+        "tools/memflow-base/memflow_pcileech.dll",
+        "tools/memflow-base/memflow_win32.dll",
     ];
 
     // Check each file with a small delay to show progress
