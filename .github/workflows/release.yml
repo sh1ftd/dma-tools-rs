@@ -24,11 +24,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@nightly
-        with:
-          toolchain: nightly
-          components: rustfmt, clippy
+      - name: Initialize Rust toolchain
+        run: rustc --version
           
       - name: Get Version
         id: get_version
