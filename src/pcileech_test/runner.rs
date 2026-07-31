@@ -5,7 +5,7 @@ use crate::utils::process_job::{CREATE_SUSPENDED, ProcessJob};
 use std::borrow::Cow;
 use std::ffi::OsString;
 use std::os::windows::process::CommandExt;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStderr, ChildStdout, Command, ExitStatus, Stdio};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -289,12 +289,22 @@ fn spawn_pcileech_tool(config: &RunConfig) -> Result<(Child, ProcessJob), RunOut
         )))
     })?;
 
-    let mut command = Command::new(&config.executable);
+    let executable = resolve_executable_path(&config.executable);
+    let mut command = Command::new(&executable);
     command
         .args(&config.args)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .creation_flags(CREATE_NO_WINDOW | CREATE_SUSPENDED);
+    if let Some(runtime_directory) = executable
+        .parent()
+        .filter(|path| !path.as_os_str().is_empty())
+    {
+        // memflow discovers dynamic connector/OS plugins in the process working
+        // directory. Launch beside the bundled DLLs so a shortcut or shell with
+        // a different working directory cannot make the inventory appear empty.
+        command.current_dir(runtime_directory);
+    }
 
     let mut child = command.spawn().map_err(|error| {
         RunOutcome::safe(PcileechTestState::Failed(format!(
@@ -328,6 +338,30 @@ fn spawn_pcileech_tool(config: &RunConfig) -> Result<(Child, ProcessJob), RunOut
     }
 
     Ok((child, process_job))
+}
+
+fn resolve_executable_path(configured_path: &Path) -> PathBuf {
+    if configured_path.is_absolute() || configured_path.parent().is_none() {
+        return configured_path.to_path_buf();
+    }
+
+    if let Ok(current_directory) = std::env::current_dir() {
+        let working_directory_candidate = current_directory.join(configured_path);
+        if working_directory_candidate.is_file() {
+            return working_directory_candidate;
+        }
+    }
+
+    if let Ok(current_executable) = std::env::current_exe()
+        && let Some(executable_directory) = current_executable.parent()
+    {
+        let installed_candidate = executable_directory.join(configured_path);
+        if installed_candidate.is_file() {
+            return installed_candidate;
+        }
+    }
+
+    configured_path.to_path_buf()
 }
 
 fn take_process_streams(child: &mut Child) -> Result<(ChildStdout, ChildStderr), String> {
@@ -902,6 +936,38 @@ mod tests {
         assert!(
             matches!(outcome.state, PcileechTestState::Success(line) if line.contains("0x7ffa0000"))
         );
+    }
+
+    #[test]
+    fn subprocess_runs_from_its_executable_directory() {
+        let config = subprocess_config(
+            "subprocess_reports_expected_working_directory_helper",
+            Duration::from_millis(100),
+        );
+
+        let outcome = run_with_config(&config, &CancellationToken::default());
+
+        assert!(
+            matches!(outcome.state, PcileechTestState::Success(line) if line.contains("0x7ffa0000"))
+        );
+    }
+
+    #[test]
+    #[ignore = "subprocess helper for executable working-directory coverage"]
+    fn subprocess_reports_expected_working_directory_helper() {
+        let current_directory = std::env::current_dir().unwrap();
+        let current_executable = std::env::current_exe().unwrap();
+        let executable_directory = current_executable.parent().unwrap();
+
+        if current_directory == executable_directory {
+            println!("ntdll.dll base address: 0x7ffa0000");
+        } else {
+            eprintln!(
+                "Error: expected working directory {}, got {}",
+                executable_directory.display(),
+                current_directory.display()
+            );
+        }
     }
 
     #[test]
