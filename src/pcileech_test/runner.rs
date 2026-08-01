@@ -1,5 +1,5 @@
 use super::PcileechTestState;
-use super::parser::{finalize_result, find_error_message, find_success_line};
+use super::parser::{finalize_result, find_error_message};
 use crate::device_programmer::CREATE_NO_WINDOW;
 use crate::utils::process_job::{CREATE_SUSPENDED, ProcessJob};
 use std::borrow::Cow;
@@ -14,7 +14,6 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 const PCILEECH_TOOL_PATH: &str = "tools\\memflow-base\\memflow-base.exe";
-const PCILEECH_IDLE_TIMEOUT: Duration = Duration::from_secs(20);
 const PCILEECH_POLL_INTERVAL: Duration = Duration::from_millis(50);
 const PROCESS_TERMINATION_GRACE: Duration = Duration::from_secs(2);
 const STREAM_DRAIN_GRACE: Duration = Duration::from_secs(1);
@@ -67,7 +66,6 @@ impl RunOutcome {
 struct RunConfig {
     executable: PathBuf,
     args: Vec<OsString>,
-    idle_timeout: Duration,
     poll_interval: Duration,
     termination_grace: Duration,
     stream_drain_grace: Duration,
@@ -82,7 +80,6 @@ impl Default for RunConfig {
                 .into_iter()
                 .map(OsString::from)
                 .collect(),
-            idle_timeout: PCILEECH_IDLE_TIMEOUT,
             poll_interval: PCILEECH_POLL_INTERVAL,
             termination_grace: PROCESS_TERMINATION_GRACE,
             stream_drain_grace: STREAM_DRAIN_GRACE,
@@ -131,33 +128,16 @@ fn run_with_config(config: &RunConfig, cancellation: &CancellationToken) -> RunO
         ),
     ];
 
-    let mut last_output_at = Instant::now();
     let mut output = CollectedOutput::default();
-    let mut observed_error = None;
     let mut output_limit_reached_at = None;
     let stop_reason = loop {
-        if drain_available_output(&output_receiver, &mut output) {
-            last_output_at = Instant::now();
-        }
+        let _ = drain_available_output(&output_receiver, &mut output);
 
         // Capture failures are runner failures, not tool diagnostics. They must
         // never be hidden by a success signature in an earlier output chunk.
         if let Some(error) = output.read_error.clone() {
             break StopReason::Error(error);
         }
-
-        // Only complete stdout lines are eligible for the success signature.
-        // stderr remains diagnostic-only, and an unterminated live tail must
-        // not be mistaken for a complete address before its suffix arrives.
-        let parsed = output.diagnostic_text();
-        if observed_error.is_none() {
-            observed_error = find_error_message(&parsed);
-        }
-
-        if let Some(line) = find_success_line(&output.stdout_text()) {
-            break StopReason::Success(line);
-        }
-        drop(parsed);
 
         if output.truncation_error.is_some() && output_limit_reached_at.is_none() {
             output_limit_reached_at = Some(Instant::now());
@@ -185,14 +165,7 @@ fn run_with_config(config: &RunConfig, cancellation: &CancellationToken) -> RunO
             }
         }
 
-        let idle_for = last_output_at.elapsed();
-        if idle_for >= config.idle_timeout {
-            break StopReason::TimedOut;
-        }
-
-        let mut wait_for = config
-            .poll_interval
-            .min(config.idle_timeout.saturating_sub(idle_for));
+        let mut wait_for = config.poll_interval;
         if let Some(reached_at) = output_limit_reached_at {
             wait_for = wait_for.min(
                 config
@@ -202,9 +175,7 @@ fn run_with_config(config: &RunConfig, cancellation: &CancellationToken) -> RunO
         }
         match output_receiver.recv_timeout(wait_for) {
             Ok(event) => {
-                if output.record(event) {
-                    last_output_at = Instant::now();
-                }
+                let _ = output.record(event);
             }
             Err(RecvTimeoutError::Timeout) => {}
             Err(RecvTimeoutError::Disconnected) => thread::sleep(wait_for),
@@ -235,23 +206,13 @@ fn run_with_config(config: &RunConfig, cancellation: &CancellationToken) -> RunO
 
     let final_stdout = output.stdout_text();
     let final_diagnostics = output.diagnostic_text();
-    let observed_error = observed_error.or_else(|| find_error_message(&final_diagnostics));
+    let observed_error = find_error_message(&final_diagnostics);
     let truncation_error = output.truncation_error.clone();
 
     let state = match stop_reason {
         StopReason::Cancelled => {
             PcileechTestState::Failed("PCILeech test was cancelled".to_string())
         }
-        StopReason::TimedOut => {
-            let error = observed_error.or(truncation_error).unwrap_or_else(|| {
-                format!(
-                    "PCILeech test timed out after {} seconds",
-                    config.idle_timeout.as_secs_f32()
-                )
-            });
-            finalize_result(&final_stdout, None, Some(error))
-        }
-        StopReason::Success(line) => finalize_result(&final_stdout, Some(line), observed_error),
         StopReason::OutputLimit(error) => finalize_result(&final_stdout, None, Some(error)),
         StopReason::Error(error) => PcileechTestState::Failed(error),
         StopReason::Exited(status) => {
@@ -765,8 +726,6 @@ fn finish_output_readers(
 
 enum StopReason {
     Cancelled,
-    TimedOut,
-    Success(String),
     OutputLimit(String),
     Error(String),
     Exited(ExitStatus),
@@ -775,6 +734,7 @@ enum StopReason {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::pcileech_test::parser::find_success_line;
 
     fn record_chunk(output: &mut CollectedOutput, stream: OutputStream, bytes: &[u8]) {
         let _ = output.record(OutputEvent::Chunk(stream, bytes.to_vec()));
@@ -787,7 +747,6 @@ mod tests {
                 .into_iter()
                 .map(OsString::from)
                 .collect(),
-            idle_timeout: Duration::from_secs(3),
             poll_interval: Duration::from_millis(5),
             termination_grace: Duration::from_secs(1),
             stream_drain_grace: Duration::from_millis(500),
@@ -898,11 +857,10 @@ mod tests {
         assert!(find_success_line(&output.stdout_text()).is_some());
     }
 
-    fn command_config(command: &str, timeout: Duration) -> RunConfig {
+    fn command_config(command: &str) -> RunConfig {
         RunConfig {
             executable: PathBuf::from("cmd"),
             args: ["/C", command].into_iter().map(OsString::from).collect(),
-            idle_timeout: timeout,
             poll_interval: Duration::from_millis(5),
             termination_grace: Duration::from_millis(200),
             stream_drain_grace: Duration::from_millis(50),
@@ -926,10 +884,7 @@ mod tests {
 
     #[test]
     fn detects_success_after_streams_complete() {
-        let config = command_config(
-            "echo memflow init & echo ntdll.dll base address: 0x7ffa0000",
-            Duration::from_secs(2),
-        );
+        let config = command_config("echo memflow init & echo ntdll.dll base address: 0x7ffa0000");
 
         let outcome = run_with_config(&config, &CancellationToken::default());
         assert!(outcome.safe_to_restart);
@@ -974,7 +929,6 @@ mod tests {
     fn valid_success_wins_over_a_prior_output_error() {
         let config = command_config(
             "echo ntdll.dll base address: 0x7ffa0000 & echo Error: connector failed 1>&2",
-            Duration::from_secs(2),
         );
 
         let outcome = run_with_config(&config, &CancellationToken::default());
@@ -983,10 +937,7 @@ mod tests {
 
     #[test]
     fn an_error_line_containing_the_signature_is_not_success() {
-        let config = command_config(
-            "echo Error: missing ntdll.dll base address: 0x7ffa0000 1>&2",
-            Duration::from_secs(2),
-        );
+        let config = command_config("echo Error: missing ntdll.dll base address: 0x7ffa0000 1>&2");
 
         let outcome = run_with_config(&config, &CancellationToken::default());
         assert!(
@@ -995,40 +946,42 @@ mod tests {
     }
 
     #[test]
-    fn timeout_is_bounded_even_when_a_descendant_holds_a_pipe() {
-        let config = command_config("ping 127.0.0.1 -n 10 > nul", Duration::from_millis(40));
+    fn waits_for_child_exit_after_success_output() {
+        let config = subprocess_config(
+            "success_output_before_process_exit_helper",
+            Duration::from_millis(100),
+        );
         let started_at = Instant::now();
 
         let outcome = run_with_config(&config, &CancellationToken::default());
 
-        assert!(
-            matches!(outcome.state, PcileechTestState::Failed(error) if error.contains("timed out"))
-        );
         assert!(outcome.safe_to_restart);
         assert!(
-            started_at.elapsed() < Duration::from_secs(4),
-            "timeout took {:?}",
+            matches!(&outcome.state, PcileechTestState::Success(_)),
+            "unexpected outcome: {:?}",
+            outcome.state
+        );
+        assert!(
+            started_at.elapsed() >= Duration::from_millis(200),
+            "runner returned before the child exited after {:?}",
             started_at.elapsed()
         );
     }
 
     #[test]
-    fn timeout_preserves_an_observed_output_error() {
-        let config = command_config(
-            "echo Error: connector failed & ping 127.0.0.1 -n 4 > nul",
-            Duration::from_millis(40),
-        );
+    #[ignore = "subprocess helper for process-exit lifecycle coverage"]
+    fn success_output_before_process_exit_helper() {
+        use std::io::Write;
 
-        let outcome = run_with_config(&config, &CancellationToken::default());
-
-        assert!(
-            matches!(outcome.state, PcileechTestState::Failed(error) if error.contains("connector failed"))
-        );
+        let mut stdout = std::io::stdout();
+        writeln!(stdout, "ntdll.dll base address: 0x7ffa0000").unwrap();
+        stdout.flush().unwrap();
+        thread::sleep(Duration::from_millis(250));
     }
 
     #[test]
     fn cancellation_terminates_a_running_process_promptly() {
-        let config = command_config("ping 127.0.0.1 -n 10 > nul", Duration::from_secs(2));
+        let config = command_config("ping 127.0.0.1 -n 10 > nul");
         let cancellation = CancellationToken::default();
         let cancellation_worker = cancellation.clone();
         let started_at = Instant::now();
@@ -1127,7 +1080,6 @@ mod tests {
             .into_iter()
             .map(OsString::from)
             .collect(),
-            idle_timeout: Duration::from_secs(2),
             poll_interval: Duration::from_millis(5),
             termination_grace: Duration::from_secs(1),
             stream_drain_grace: Duration::from_millis(500),
@@ -1154,51 +1106,5 @@ mod tests {
         }
         stdout.flush().unwrap();
         thread::sleep(Duration::from_secs(2));
-    }
-
-    #[test]
-    fn periodic_output_extends_the_idle_timeout() {
-        let idle_timeout = Duration::from_millis(600);
-        let config = RunConfig {
-            executable: std::env::current_exe().unwrap(),
-            args: [
-                "periodic_output_extends_idle_timeout_helper",
-                "--ignored",
-                "--nocapture",
-                "--test-threads=1",
-            ]
-            .into_iter()
-            .map(OsString::from)
-            .collect(),
-            idle_timeout,
-            poll_interval: Duration::from_millis(5),
-            termination_grace: Duration::from_millis(200),
-            stream_drain_grace: Duration::from_millis(50),
-            output_limit_grace: Duration::from_millis(100),
-        };
-        let started_at = Instant::now();
-
-        let outcome = run_with_config(&config, &CancellationToken::default());
-
-        assert!(
-            started_at.elapsed() > idle_timeout,
-            "helper did not run beyond the idle timeout"
-        );
-        assert!(matches!(outcome.state, PcileechTestState::Success(_)));
-    }
-
-    #[test]
-    #[ignore = "subprocess helper for idle-timeout coverage"]
-    fn periodic_output_extends_idle_timeout_helper() {
-        use std::io::Write;
-
-        let mut stdout = std::io::stdout();
-        for index in 0..5 {
-            writeln!(stdout, "progress {index}").unwrap();
-            stdout.flush().unwrap();
-            thread::sleep(Duration::from_millis(150));
-        }
-        writeln!(stdout, "ntdll.dll base address: 0x7ffa0000").unwrap();
-        stdout.flush().unwrap();
     }
 }
