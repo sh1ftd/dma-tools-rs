@@ -48,7 +48,12 @@ impl FirmwareToolApp {
                     _ => WindowSizeType::FlashOptionSelection, // fallback but should never happen
                 }
             }
-            AppState::Flashing | AppState::Result => WindowSizeType::OperationResult,
+            AppState::Flashing => WindowSizeType::FlashingProgress {
+                log_expanded: self.log_expanded,
+            },
+            AppState::Result => WindowSizeType::OperationResult {
+                log_expanded: self.log_expanded,
+            },
             AppState::Drivers => WindowSizeType::Drivers,
             AppState::PcileechTest => WindowSizeType::PcileechTest,
         }

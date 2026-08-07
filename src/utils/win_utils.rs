@@ -11,45 +11,6 @@ use winapi::um::winuser::{
     SWP_NOSIZE, SWP_NOZORDER, SetWindowLongA, SetWindowPos, WS_MAXIMIZEBOX,
 };
 
-pub fn play_success_beep() {
-    #[cfg(debug_assertions)]
-    println!("Playing success sound");
-    std::thread::spawn(|| {
-        // SAFETY: Beep is a safe-to-call Windows API function.
-        unsafe {
-            use winapi::um::utilapiset::Beep;
-            Beep(880, 100);
-            Beep(1108, 150);
-        }
-    });
-}
-
-pub fn play_error_beep() {
-    #[cfg(debug_assertions)]
-    println!("Playing error sound");
-    std::thread::spawn(|| {
-        // SAFETY: Beep is a safe-to-call Windows API function.
-        unsafe {
-            use winapi::um::utilapiset::Beep;
-            Beep(250, 150);
-            Beep(150, 250);
-        }
-    });
-}
-
-pub fn play_file_found_beep() {
-    #[cfg(debug_assertions)]
-    println!("Playing file found sound");
-    std::thread::spawn(|| {
-        // SAFETY: Beep is a safe-to-call Windows API function.
-        unsafe {
-            use winapi::um::utilapiset::Beep;
-            Beep(1500, 50);
-            Beep(2000, 100);
-        }
-    });
-}
-
 /// Disables the maximize button and enables dark mode for all windows containing APP_TITLE in their title.
 /// Returns Some message on success, None if no matching window was found.
 pub fn disable_maximize_button_for_all() -> Option<&'static str> {

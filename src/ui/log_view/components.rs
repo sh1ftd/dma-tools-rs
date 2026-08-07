@@ -7,6 +7,28 @@ const LOG_FONT_SIZE: f32 = 14.0;
 const LOG_AREA_MAX_HEIGHT: f32 = 200.0;
 const CLEAR_BUTTON_WIDTH: f32 = 110.0;
 const CLEAR_BUTTON_HEIGHT: f32 = 30.0;
+const TOGGLE_BUTTON_HEIGHT: f32 = 34.0;
+
+pub fn render_toggle_button(
+    ui: &mut Ui,
+    lang: &crate::utils::localization::Language,
+    expanded: &mut bool,
+) {
+    let icon = if *expanded {
+        egui_phosphor::regular::CARET_UP
+    } else {
+        egui_phosphor::regular::CARET_DOWN
+    };
+    let label = crate::utils::localization::translate(
+        crate::utils::localization::TextKey::OperationLog,
+        lang,
+    );
+    let size = egui::vec2(ui.available_width(), TOGGLE_BUTTON_HEIGHT);
+
+    if common::secondary_icon_button(ui, Some(icon), label, size).clicked() {
+        *expanded = !*expanded;
+    }
+}
 
 pub fn render_log_entries(ui: &mut Ui, logger: &Logger) {
     ScrollArea::vertical()

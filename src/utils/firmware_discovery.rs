@@ -4,8 +4,6 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::utils::win_utils::play_file_found_beep;
-
 pub struct FirmwareManager {
     firmware_files: Vec<PathBuf>,
     selected_index: Option<usize>,
@@ -32,7 +30,6 @@ impl FirmwareManager {
             ));
         }
 
-        let previous_files = self.firmware_files.clone();
         let previous_selection = self.get_selected_firmware().cloned();
         self.firmware_files.clear();
 
@@ -48,16 +45,6 @@ impl FirmwareManager {
 
         self.deduplicate_firmware_files();
         self.restore_selection(previous_selection.as_deref());
-
-        if self.scan_count > 0 {
-            let has_new_file = self
-                .firmware_files
-                .iter()
-                .any(|f| !previous_files.contains(f));
-            if has_new_file {
-                play_file_found_beep();
-            }
-        }
 
         self.scan_count += 1;
 

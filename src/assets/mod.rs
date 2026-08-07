@@ -3,6 +3,25 @@ use eframe::egui;
 
 const DEFAULT_ICON_SIZE: u32 = 32;
 
+// Raw RGBA8 pixels (not PNG-encoded), so the window/taskbar icon doesn't
+// need the `image` crate, which is only pulled in by the `branding` feature.
+// Branded builds use branding::get_window_icon() instead, so this is only
+// compiled in when branding is off.
+#[cfg(not(feature = "branding"))]
+const APP_ICON_SIZE: u32 = 256;
+#[cfg(not(feature = "branding"))]
+const APP_ICON_RGBA: &[u8] = include_bytes!("app_icon_256.rgba");
+
+/// Window/taskbar icon used when the `branding` feature is off.
+#[cfg(not(feature = "branding"))]
+pub fn default_window_icon() -> Option<egui::IconData> {
+    Some(egui::IconData {
+        rgba: APP_ICON_RGBA.to_vec(),
+        width: APP_ICON_SIZE,
+        height: APP_ICON_SIZE,
+    })
+}
+
 // SVG icon definitions
 mod svg {
     // Flags

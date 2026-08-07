@@ -8,7 +8,8 @@ pub enum WindowSizeType {
     FileSelection,
     FlashOptionSelection,
     ReadOptionSelection,
-    OperationResult,
+    FlashingProgress { log_expanded: bool },
+    OperationResult { log_expanded: bool },
     Drivers,
     PcileechTest,
 }
@@ -24,12 +25,20 @@ pub const WINDOW_HEIGHT_OPERATION_SELECT: f32 = 670.0;
 pub const WINDOW_HEIGHT_FLASH_FILE_SELECT: f32 = 360.0;
 
 pub const WINDOW_HEIGHT_FLASH_OPTION_SELECT: f32 = 820.0;
-pub const WINDOW_HEIGHT_READ_OPTION_SELECT: f32 = 600.0;
+pub const WINDOW_HEIGHT_READ_OPTION_SELECT: f32 = 530.0;
 
-pub const WINDOW_HEIGHT_OPERATION_RESULT: f32 = 725.0;
+// The progress screen (spinner + technical info) is tall on its own, so it
+// keeps the old combined-with-log height even with the log collapsed.
+pub const WINDOW_HEIGHT_FLASHING_PROGRESS: f32 = 725.0;
+// Result screens are shorter on average (icon + message + action buttons),
+// so this can sit lower than the progress screen once the log is collapsed.
+pub const WINDOW_HEIGHT_OPERATION_RESULT: f32 = 625.0;
+// Extra room needed to fit the toggle button, scrollable entries, and clear
+// button once the operation log is expanded.
+pub const LOG_EXPANDED_EXTRA_HEIGHT: f32 = 220.0;
 
-pub const WINDOW_HEIGHT_DRIVERS: f32 = 560.0;
-pub const WINDOW_HEIGHT_PCILEECH_TEST: f32 = 600.0;
+pub const WINDOW_HEIGHT_DRIVERS: f32 = 470.0;
+pub const WINDOW_HEIGHT_PCILEECH_TEST: f32 = 575.0;
 
 pub struct WindowManager {
     previous_height: Option<f32>,
@@ -199,20 +208,14 @@ impl WindowManager {
         });
     }
 
+    // Only resizes in place. The window is centered once at startup (see
+    // main.rs); re-centering on every view change made the window jump
+    // around whenever its height changed (e.g. toggling the log).
     pub fn resize_window(&mut self, ctx: &Context, new_height: f32) {
         if self.previous_height != Some(new_height) {
             ctx.send_viewport_cmd(eframe::egui::ViewportCommand::InnerSize(
                 eframe::egui::Vec2::new(WINDOW_WIDTH, new_height),
             ));
-
-            // Recenter the window when resizing
-            if let Some(screen_size) = get_primary_monitor_size() {
-                let x = (screen_size.x - WINDOW_WIDTH) / 2.0;
-                let y = (screen_size.y - new_height) / 2.0;
-                ctx.send_viewport_cmd(eframe::egui::ViewportCommand::OuterPosition(
-                    eframe::egui::Pos2::new(x, y),
-                ));
-            }
 
             self.previous_height = Some(new_height);
         }
@@ -226,7 +229,20 @@ impl WindowManager {
             WindowSizeType::FileSelection => WINDOW_HEIGHT_FLASH_FILE_SELECT,
             WindowSizeType::FlashOptionSelection => WINDOW_HEIGHT_FLASH_OPTION_SELECT,
             WindowSizeType::ReadOptionSelection => WINDOW_HEIGHT_READ_OPTION_SELECT,
-            WindowSizeType::OperationResult => WINDOW_HEIGHT_OPERATION_RESULT,
+            WindowSizeType::FlashingProgress { log_expanded } => {
+                if log_expanded {
+                    WINDOW_HEIGHT_FLASHING_PROGRESS + LOG_EXPANDED_EXTRA_HEIGHT
+                } else {
+                    WINDOW_HEIGHT_FLASHING_PROGRESS
+                }
+            }
+            WindowSizeType::OperationResult { log_expanded } => {
+                if log_expanded {
+                    WINDOW_HEIGHT_OPERATION_RESULT + LOG_EXPANDED_EXTRA_HEIGHT
+                } else {
+                    WINDOW_HEIGHT_OPERATION_RESULT
+                }
+            }
             WindowSizeType::Drivers => WINDOW_HEIGHT_DRIVERS,
             WindowSizeType::PcileechTest => WINDOW_HEIGHT_PCILEECH_TEST,
         }
@@ -235,21 +251,5 @@ impl WindowManager {
     pub fn set_window_size(&mut self, ctx: &Context, size_type: WindowSizeType) {
         let target_height = self.get_height_for_type(size_type);
         self.resize_window(ctx, target_height);
-    }
-}
-
-fn get_primary_monitor_size() -> Option<eframe::egui::Vec2> {
-    use winapi::um::winuser::{GetSystemMetrics, SM_CXSCREEN, SM_CYSCREEN};
-
-    // SAFETY: GetSystemMetrics is a read-only Windows API call that returns screen dimensions
-    unsafe {
-        let width = GetSystemMetrics(SM_CXSCREEN) as f32;
-        let height = GetSystemMetrics(SM_CYSCREEN) as f32;
-
-        if width > 0.0 && height > 0.0 {
-            Some(eframe::egui::Vec2::new(width, height))
-        } else {
-            None
-        }
     }
 }

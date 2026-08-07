@@ -257,13 +257,18 @@ impl FirmwareToolApp {
         if show_log != self.previous_log_state {
             self.previous_log_state = show_log;
             ctx.request_repaint();
+
+            // Always start collapsed on the next screen that shows a log.
+            if !show_log {
+                self.log_expanded = false;
+            }
         }
 
         if show_log {
             ui.add_space(LOG_SECTION_PADDING);
             ui.separator();
 
-            ui::log_view::render_log_view(ui, &self.logger, &self.language);
+            ui::log_view::render_log_view(ui, &self.logger, &self.language, &mut self.log_expanded);
         } else {
             ui.add_space(BOTTOM_PADDING);
         }

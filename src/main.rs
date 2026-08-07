@@ -60,7 +60,7 @@ fn create_window_options() -> eframe::NativeOptions {
     let icon_data = branding::get_window_icon();
 
     #[cfg(not(feature = "branding"))]
-    let icon_data: Option<egui::IconData> = None;
+    let icon_data: Option<egui::IconData> = assets::default_window_icon();
 
     let mut viewport = egui::ViewportBuilder::default()
         .with_inner_size([window_width, window_height])

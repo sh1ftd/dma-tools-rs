@@ -27,6 +27,7 @@ pub struct FirmwareToolApp {
     operation: OperationFlow,
     logger: Logger,
     previous_log_state: bool,
+    log_expanded: bool,
     #[cfg(feature = "branding")]
     branding_manager: BrandingManager,
     contact_copy_notification: Option<(String, Instant)>,
@@ -54,6 +55,7 @@ impl FirmwareToolApp {
             operation: OperationFlow::new(logger.clone()),
             logger,
             previous_log_state: false,
+            log_expanded: false,
             #[cfg(feature = "branding")]
             branding_manager: BrandingManager::new(),
             contact_copy_notification: None,

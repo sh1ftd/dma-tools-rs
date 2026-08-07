@@ -1,8 +1,6 @@
 use super::flows::RetryPlan;
 use super::{AppState, FirmwareToolApp};
-use crate::device_programmer::{
-    CompletionStatus, FinalizationOutcome, FlashAssessment, OperationSnapshot,
-};
+use crate::device_programmer::{CompletionStatus, FinalizationOutcome, OperationSnapshot};
 use crate::ui::status::ResultAction;
 use crate::utils::file_checker::{CheckStatus, SUCCESS_TRANSITION_DELAY};
 use eframe::egui;
@@ -21,13 +19,6 @@ const RETRY_COOLDOWN_MS: u64 = 2500;
 const MAX_CLEANUP_RETRIES: u32 = 3;
 const CLEANUP_RETRY_BASE_DELAY_MS: u64 = 100;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum ResultTone {
-    Success,
-    Error,
-    None,
-}
-
 fn is_terminal_status(status: &CompletionStatus) -> bool {
     matches!(
         status,
@@ -35,32 +26,6 @@ fn is_terminal_status(status: &CompletionStatus) -> bool {
             | CompletionStatus::DnaReadCompleted(_)
             | CompletionStatus::Failed(_)
     )
-}
-
-fn result_tone(
-    status: &CompletionStatus,
-    is_dna_read: bool,
-    assessment: &FlashAssessment,
-) -> ResultTone {
-    if is_dna_read {
-        return match status {
-            CompletionStatus::DnaReadCompleted(_) => ResultTone::Success,
-            CompletionStatus::Completed | CompletionStatus::Failed(_) => ResultTone::Error,
-            CompletionStatus::NotCompleted | CompletionStatus::InProgress(_) => ResultTone::None,
-        };
-    }
-
-    match assessment {
-        FlashAssessment::Success | FlashAssessment::SuccessWithLimitedSamples { .. } => {
-            ResultTone::Success
-        }
-        FlashAssessment::ConnectionUnstable { .. }
-        | FlashAssessment::Indeterminate
-        | FlashAssessment::Failed(_)
-        | FlashAssessment::UnexpectedDnaResult
-        | FlashAssessment::NotApplicable => ResultTone::Error,
-        FlashAssessment::Pending => ResultTone::None,
-    }
 }
 
 fn cleanup_retry_delay(retry_attempt: u32) -> Duration {
@@ -131,7 +96,7 @@ impl FirmwareToolApp {
         }
 
         // Process output readers are drained before a terminal status becomes visible, so this
-        // snapshot is the stable source for result classification, cleanup eligibility, and sound.
+        // snapshot is the stable source for result classification and cleanup eligibility.
         let snapshot = self.operation.manager.snapshot();
 
         let min_display_time_elapsed = self
@@ -151,7 +116,7 @@ impl FirmwareToolApp {
             }
 
             self.operation.manager.stop_monitor_thread();
-            self.transition_to_result(&snapshot);
+            self.transition_to_result();
         } else if operation_completed && !self.operation.waiting_message_logged {
             self.logger
                 .debug("Operation completed but waiting for minimum display time");
@@ -274,22 +239,9 @@ impl FirmwareToolApp {
         false
     }
 
-    fn transition_to_result(&mut self, snapshot: &OperationSnapshot) {
+    fn transition_to_result(&mut self) {
         self.logger
             .debug("State changing to Result after all conditions met");
-
-        {
-            use crate::utils::win_utils::{play_error_beep, play_success_beep};
-            let is_dna_read = snapshot
-                .option
-                .as_ref()
-                .is_some_and(|option| option.is_dna_read());
-            match result_tone(&snapshot.status, is_dna_read, &snapshot.assessment) {
-                ResultTone::Success => play_success_beep(),
-                ResultTone::Error => play_error_beep(),
-                ResultTone::None => {}
-            }
-        }
 
         self.state = AppState::Result;
         self.operation.dna_in_progress = false;
@@ -440,7 +392,7 @@ impl FirmwareToolApp {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::device_programmer::{DnaInfo, FlashingOption};
+    use crate::device_programmer::FlashingOption;
 
     fn test_app() -> FirmwareToolApp {
         let logger = crate::utils::logger::Logger::new("LifecycleRestartSafetyTest");
@@ -452,6 +404,7 @@ mod tests {
             operation: crate::app::flows::OperationFlow::new(logger.clone()),
             logger,
             previous_log_state: false,
+            log_expanded: false,
             #[cfg(feature = "branding")]
             branding_manager: crate::branding::BrandingManager::new(),
             contact_copy_notification: None,
@@ -459,75 +412,6 @@ mod tests {
             language: crate::utils::localization::Language::English,
             pcileech_test: crate::pcileech_test::PcileechTestController::new(),
         }
-    }
-
-    #[test]
-    fn indeterminate_completed_flash_uses_error_tone() {
-        assert_eq!(
-            result_tone(
-                &CompletionStatus::Completed,
-                false,
-                &FlashAssessment::Indeterminate,
-            ),
-            ResultTone::Error
-        );
-    }
-
-    #[test]
-    fn only_successful_flash_assessments_use_success_tone() {
-        assert_eq!(
-            result_tone(
-                &CompletionStatus::Completed,
-                false,
-                &FlashAssessment::Success,
-            ),
-            ResultTone::Success
-        );
-        assert_eq!(
-            result_tone(
-                &CompletionStatus::Completed,
-                false,
-                &FlashAssessment::SuccessWithLimitedSamples { total_sectors: 4 },
-            ),
-            ResultTone::Success
-        );
-        assert_eq!(
-            result_tone(
-                &CompletionStatus::Failed("unstable".to_string()),
-                false,
-                &FlashAssessment::ConnectionUnstable {
-                    normal_writes: 2,
-                    total_sectors: 10,
-                },
-            ),
-            ResultTone::Error
-        );
-    }
-
-    #[test]
-    fn dna_tone_uses_typed_completion_status() {
-        let info = DnaInfo {
-            dna_value: "0x1".to_string(),
-            dna_raw_value: "1".to_string(),
-            device_type: "test".to_string(),
-        };
-
-        assert_eq!(
-            result_tone(
-                &CompletionStatus::DnaReadCompleted(info),
-                true,
-                &FlashAssessment::NotApplicable,
-            ),
-            ResultTone::Success
-        );
-        assert_eq!(
-            result_tone(
-                &CompletionStatus::Completed,
-                true,
-                &FlashAssessment::NotApplicable,
-            ),
-            ResultTone::Error
-        );
     }
 
     #[test]
